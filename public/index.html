@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AFK Devs Bot</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">
+                <img src="https://i.imgur.com/8xNRIGP.png" alt="AFK Devs Bot Logo">
+                <h1>AFK Devs <span>Bot</span></h1>
+            </div>
+            <nav>
+                <ul>
+                    <li><a href="#features">Features</a></li>
+                    <li><a href="#commands">Commands</a></li>
+                    <li><a href="#stats">Stats</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    
+    <section class="hero">
+        <div class="container">
+            <div class="hero-content">
+                <h2>Your Ultimate Discord Giveaway Bot</h2>
+                <p>A powerful Discord bot with advanced giveaway management and welcome features.</p>
+                <div class="hero-buttons">
+                    <a href="https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=8&scope=bot%20applications.commands" class="btn primary" target="_blank">
+                        <i class="fab fa-discord"></i> Add to Discord
+                    </a>
+                    <a href="https://discord.gg/yourdiscord" class="btn secondary" target="_blank">
+                        <i class="fas fa-users"></i> Join Support Server
+                    </a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <img src="https://i.imgur.com/4MfQzYa.png" alt="Giveaway Preview">
+            </div>
+        </div>
+    </section>
+    
+    <section id="features" class="features">
+        <div class="container">
+            <h2>Features</h2>
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <i class="fas fa-gift"></i>
+                    <h3>Giveaways</h3>
+                    <p>Create, manage, and end giveaways with customizable duration, prize, and winner count.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-door-open"></i>
+                    <h3>Welcome Messages</h3>
+                    <p>Automatically welcome new members with customizable messages and embedded information.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-sliders-h"></i>
+                    <h3>Easy Configuration</h3>
+                    <p>Simple setup with customizable settings for your server's specific needs.</p>
+                </div>
+                <div class="feature-card">
+                    <i class="fas fa-terminal"></i>
+                    <h3>Slash Commands</h3>
+                    <p>Modern Discord slash commands for easy and intuitive interactions.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section id="commands" class="commands">
+        <div class="container">
+            <h2>Commands</h2>
+            <div class="command-list">
+                <div class="command-item">
+                    <h3><span class="prefix">$</span>commands</h3>
+                    <p>Shows a list of available commands</p>
+                </div>
+                <div class="command-item">
+                    <h3><span class="prefix">/</span>giveaway</h3>
+                    <p>Creates a new giveaway with customizable duration, prize, and winner count</p>
+                </div>
+                <div class="command-item">
+                    <h3><span class="prefix">/</span>end</h3>
+                    <p>Ends a giveaway early and picks winners</p>
+                </div>
+                <div class="command-item">
+                    <h3><span class="prefix">/</span>reroll</h3>
+                    <p>Rerolls winners for a completed giveaway</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <section id="stats" class="stats">
+        <div class="container">
+            <h2>Bot Statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <i class="fas fa-server"></i>
+                    <h3>Servers</h3>
+                    <p id="server-count">Loading...</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-clock"></i>
+                    <h3>Uptime</h3>
+                    <p id="uptime">Loading...</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-terminal"></i>
+                    <h3>Commands</h3>
+                    <p id="command-count">Loading...</p>
+                </div>
+                <div class="stat-card">
+                    <i class="fas fa-code"></i>
+                    <h3>Prefix</h3>
+                    <p id="prefix">Loading...</p>
+                </div>
+            </div>
+        </div>
+    </section>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <img src="https://i.imgur.com/8xNRIGP.png" alt="AFK Devs Bot Logo">
+                    <h3>AFK Devs Bot</h3>
+                </div>
+                <div class="footer-links">
+                    <h4>Links</h4>
+                    <ul>
+                        <li><a href="#features">Features</a></li>
+                        <li><a href="#commands">Commands</a></li>
+                        <li><a href="#stats">Stats</a></li>
+                        <li><a href="https://discord.gg/yourdiscord" target="_blank">Support Server</a></li>
+                    </ul>
+                </div>
+                <div class="footer-social">
+                    <h4>Connect</h4>
+                    <div class="social-icons">
+                        <a href="#" target="_blank"><i class="fab fa-discord"></i></a>
+                        <a href="#" target="_blank"><i class="fab fa-github"></i></a>
+                        <a href="#" target="_blank"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2025 AFK Devs. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="script.js"></script>
+</body>
+</html>

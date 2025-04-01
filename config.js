@@ -1,6 +1,6 @@
 module.exports = {
     // Bot configuration
-    prefix: '!', // Command prefix for message commands
+    prefix: '$', // Command prefix for message commands
     
     // Colors for embeds
     colors: {

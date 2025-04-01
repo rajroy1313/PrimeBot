@@ -49,6 +49,12 @@ for (const file of eventFiles) {
 const GiveawayManager = require('./utils/giveawayManager');
 client.giveawayManager = new GiveawayManager(client);
 
+// Make client globally available for the website
+global.client = client;
+
+// Start website
+const website = require('./website');
+
 // Login to Discord with your client's token
 client.login(process.env.DISCORD_TOKEN).catch(error => {
     console.error('[ERROR] Failed to login to Discord:', error);

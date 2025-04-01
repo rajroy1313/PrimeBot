@@ -12,7 +12,7 @@ module.exports = {
         // Set bot status
         client.user.setPresence({
             activities: [{ 
-                name: 'giveaways | !giveaway',
+                name: `giveaways | ${require('../config').prefix}commands`,
                 type: ActivityType.Watching
             }],
             status: 'online',

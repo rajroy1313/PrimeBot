@@ -52,8 +52,15 @@ class GiveawayManager {
             const giveawayEmbed = new EmbedBuilder()
                 .setColor(config.colors.primary)
                 .setTitle('🎉 GIVEAWAY 🎉')
-                .setDescription(`**Prize**: ${prize}\n**Winners**: ${winnerCount}\n**Ends**: <t:${Math.floor(endTime / 1000)}:R>\n\nReact with the button below to enter!`)
-                .setFooter({ text: 'Giveaway Bot' })
+                .setDescription(`**Prize**: ${prize}`)
+                .addFields(
+                    { name: '🏆 Winners', value: `${winnerCount}`, inline: true },
+                    { name: '⏱️ Ends', value: `<t:${Math.floor(endTime / 1000)}:R>`, inline: true },
+                    { name: '\u200B', value: '\u200B' },
+                    { name: '📝 How to Enter', value: 'Click the button below to enter the giveaway!' }
+                )
+                .setImage('https://i.imgur.com/4MfQzYa.png') // Decorative banner for giveaways
+                .setFooter({ text: 'Good luck! • Powered by AFK Devs' })
                 .setTimestamp();
             
             // Create entry button
@@ -175,8 +182,14 @@ class GiveawayManager {
             const endedEmbed = new EmbedBuilder()
                 .setColor(config.colors.success)
                 .setTitle('🎉 GIVEAWAY ENDED 🎉')
-                .setDescription(`**Prize**: ${giveaway.prize}\n**Winners**: ${winnersText}\n**Ended**: <t:${Math.floor(Date.now() / 1000)}:R>\n\nTotal Entries: ${participants.length}`)
-                .setFooter({ text: 'Giveaway Bot' })
+                .setDescription(`**Prize**: ${giveaway.prize}`)
+                .addFields(
+                    { name: '🏆 Winner(s)', value: winnersText, inline: false },
+                    { name: '⏱️ Ended', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
+                    { name: '📊 Entries', value: `${participants.length}`, inline: true },
+                )
+                .setImage('https://i.imgur.com/YlrGQlJ.png') // Different banner for ended giveaways
+                .setFooter({ text: 'Thanks for participating! • Powered by AFK Devs' })
                 .setTimestamp();
             
             // Disable the button

@@ -18,6 +18,10 @@ module.exports = {
                 .setTitle(`Welcome to ${member.guild.name}!`)
                 .setDescription(config.welcomeMessage.replace('{member}', member))
                 .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
+                .addFields(
+                    { name: 'Account Created', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: true },
+                    { name: 'Joined Server', value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`, inline: true }
+                )
                 .setFooter({ text: `Member #${member.guild.memberCount}` })
                 .setTimestamp();
             
