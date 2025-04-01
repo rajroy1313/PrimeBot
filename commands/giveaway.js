@@ -24,6 +24,14 @@ module.exports = {
             option.setName('channel')
                 .setDescription('The channel to start the giveaway in')
                 .setRequired(false))
+        .addStringOption(option =>
+            option.setName('thumbnail')
+                .setDescription('Optional URL for giveaway thumbnail image')
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('description')
+                .setDescription('Optional description/details for the giveaway')
+                .setRequired(false))    
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
     
     async execute(interaction) {
@@ -41,6 +49,8 @@ module.exports = {
             const winnerCount = interaction.options.getInteger('winners');
             const prize = interaction.options.getString('prize');
             const channel = interaction.options.getChannel('channel') || interaction.channel;
+            const thumbnail = interaction.options.getString('thumbnail');
+            const description = interaction.options.getString('description');
 
             // Convert duration to milliseconds
             const ms_duration = ms(duration);
@@ -52,16 +62,45 @@ module.exports = {
                 });
             }
 
-            // Create giveaway
-            const giveaway = await interaction.client.giveawayManager.startGiveaway({
+            // Validate thumbnail URL if provided
+            if (thumbnail) {
+                try {
+                    new URL(thumbnail);
+                } catch (e) {
+                    return interaction.reply({ 
+                        content: 'Please provide a valid URL for the thumbnail image!', 
+                        ephemeral: true 
+                    });
+                }
+            }
+
+            // Create detailed response embed
+            const detailsEmbed = new EmbedBuilder()
+                .setColor(config.colors.success)
+                .setTitle('🎉 Giveaway Created')
+                .setDescription(`Your giveaway for **${prize}** has been started!`)
+                .addFields(
+                    { name: '🏆 Prize', value: prize, inline: true },
+                    { name: '👥 Winners', value: winnerCount.toString(), inline: true },
+                    { name: '⏱️ Duration', value: duration, inline: true },
+                    { name: '📣 Channel', value: `<#${channel.id}>`, inline: true },
+                )
+                .setTimestamp();
+
+            // Create giveaway with additional options if provided
+            const giveawayOptions = {
                 channelId: channel.id,
                 duration: ms_duration,
                 prize,
-                winnerCount
-            });
+                winnerCount,
+                thumbnail: thumbnail || null,
+                description: description || null
+            };
+
+            const giveaway = await interaction.client.giveawayManager.startGiveaway(giveawayOptions);
 
             await interaction.reply({ 
-                content: `Giveaway created successfully in ${channel}!`, 
+                embeds: [detailsEmbed], 
                 ephemeral: true 
             });
             

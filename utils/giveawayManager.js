@@ -41,7 +41,7 @@ class GiveawayManager {
      * @param {Object} options - Giveaway options
      * @returns {Promise<Object>} The created giveaway object
      */
-    async startGiveaway({ channelId, duration, prize, winnerCount }) {
+    async startGiveaway({ channelId, duration, prize, winnerCount, thumbnail = null, description = null }) {
         try {
             const channel = await this.client.channels.fetch(channelId);
             if (!channel) throw new Error(`Channel with ID ${channelId} not found`);
@@ -55,13 +55,34 @@ class GiveawayManager {
                 .setDescription(`**Prize**: ${prize}`)
                 .addFields(
                     { name: '🏆 Winners', value: `${winnerCount}`, inline: true },
-                    { name: '⏱️ Ends', value: `<t:${Math.floor(endTime / 1000)}:R>`, inline: true },
+                    { name: '⏱️ Ends', value: `<t:${Math.floor(endTime / 1000)}:R>`, inline: true }
+                );
+                
+            // Add description if provided
+            if (description) {
+                giveawayEmbed.addFields(
                     { name: '\u200B', value: '\u200B' },
-                    { name: '📝 How to Enter', value: 'Click the button below to enter the giveaway!' }
-                )
-                .setImage('https://i.imgur.com/4MfQzYa.png') // Decorative banner for giveaways
-                .setFooter({ text: 'Good luck! • Powered by AFK Devs' })
-                .setTimestamp();
+                    { name: '📋 Description', value: description }
+                );
+            }
+            
+            // Add entry instructions
+            giveawayEmbed.addFields(
+                { name: '\u200B', value: '\u200B' },
+                { name: '📝 How to Enter', value: 'Click the button below to enter the giveaway!' }
+            );
+            
+            // Add thumbnail or image
+            if (thumbnail) {
+                giveawayEmbed.setThumbnail(thumbnail);
+            }
+            
+            // Always set the banner image
+            giveawayEmbed.setImage('https://i.imgur.com/4MfQzYa.png');
+            
+            // Set footer
+            giveawayEmbed.setFooter({ text: 'Good luck! • Powered by AFK Devs' })
+                         .setTimestamp();
             
             // Create entry button
             const entryButton = new ButtonBuilder()
@@ -86,6 +107,8 @@ class GiveawayManager {
                 winnerCount,
                 endTime,
                 ended: false,
+                description,
+                thumbnail,
                 participants: new Set()
             };
             
@@ -187,10 +210,25 @@ class GiveawayManager {
                     { name: '🏆 Winner(s)', value: winnersText, inline: false },
                     { name: '⏱️ Ended', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
                     { name: '📊 Entries', value: `${participants.length}`, inline: true },
-                )
-                .setImage('https://i.imgur.com/YlrGQlJ.png') // Different banner for ended giveaways
-                .setFooter({ text: 'Thanks for participating! • Powered by AFK Devs' })
-                .setTimestamp();
+                );
+                
+            // Add description if it exists
+            if (giveaway.description) {
+                endedEmbed.addFields(
+                    { name: '\u200B', value: '\u200B' },
+                    { name: '📋 Description', value: giveaway.description }
+                );
+            }
+            
+            // Add thumbnail if it exists
+            if (giveaway.thumbnail) {
+                endedEmbed.setThumbnail(giveaway.thumbnail);
+            }
+            
+            // Set banner for ended giveaways
+            endedEmbed.setImage('https://i.imgur.com/YlrGQlJ.png')
+                      .setFooter({ text: 'Thanks for participating! • Powered by AFK Devs' })
+                      .setTimestamp();
             
             // Disable the button
             const disabledButton = new ButtonBuilder()
