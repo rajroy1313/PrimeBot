@@ -1,6 +1,118 @@
 const { EmbedBuilder } = require('discord.js');
 const config = require('../config');
 
+/**
+ * Shows detailed help for a specific command
+ * @param {Object} message - The message object
+ * @param {string} commandName - The command to show help for
+ * @param {string} prefix - The bot's command prefix
+ * @returns {Promise} - The message reply promise
+ */
+async function handleCommandHelp(message, commandName, prefix) {
+    const command = commandName.toLowerCase();
+    const embedColor = config.colors.primary;
+    
+    // Create base embed template
+    const helpEmbed = new EmbedBuilder()
+        .setColor(embedColor)
+        .setTimestamp()
+        .setFooter({ text: `Requested by ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
+        
+    switch (command) {
+        case 'giveaway':
+        case 'gstart':
+            helpEmbed
+                .setTitle('Giveaway Command Help')
+                .setDescription('Create a new giveaway in your server')
+                .addFields(
+                    { name: 'Usage', value: `\`${prefix}giveaway [duration] [winners] [prize]\`` },
+                    { name: 'Aliases', value: `\`${prefix}gstart\`` },
+                    { name: 'Examples', value: 
+                        `\`${prefix}giveaway 1d 1 Discord Nitro\` - 1 day giveaway for 1 winner\n` +
+                        `\`${prefix}gstart 12h 3 Steam Game\` - 12 hour giveaway for 3 winners`
+                    },
+                    { name: 'Duration Format', value: '`s` - Seconds\n`m` - Minutes\n`h` - Hours\n`d` - Days' },
+                    { name: 'Parameters', value: 
+                        '`duration` - How long the giveaway should last\n' + 
+                        '`winners` - Number of winners (1-10)\n' +
+                        '`prize` - What you\'re giving away'
+                    },
+                    { name: 'Required Permissions', value: 'Manage Server' }
+                );
+            break;
+            
+        case 'end':
+        case 'gend':
+            helpEmbed
+                .setTitle('End Giveaway Command Help')
+                .setDescription('End a giveaway early')
+                .addFields(
+                    { name: 'Usage', value: `\`${prefix}end [message_id]\`` },
+                    { name: 'Aliases', value: `\`${prefix}gend\`` },
+                    { name: 'Example', value: `\`${prefix}end 1234567890123456\`` },
+                    { name: 'Parameters', value: '`message_id` - The message ID of the giveaway' },
+                    { name: 'How to get Message ID', value: 'Enable Developer Mode in Discord settings, then right-click on the giveaway message and select "Copy ID"' },
+                    { name: 'Required Permissions', value: 'Manage Server' }
+                );
+            break;
+        
+        case 'reroll':
+            helpEmbed
+                .setTitle('Reroll Giveaway Command Help')
+                .setDescription('Reroll winners for a completed giveaway')
+                .addFields(
+                    { name: 'Usage', value: `\`${prefix}reroll [message_id]\`` },
+                    { name: 'Example', value: `\`${prefix}reroll 1234567890123456\`` },
+                    { name: 'Parameters', value: '`message_id` - The message ID of the giveaway' },
+                    { name: 'How to get Message ID', value: 'Enable Developer Mode in Discord settings, then right-click on the giveaway message and select "Copy ID"' },
+                    { name: 'Required Permissions', value: 'Manage Server' }
+                );
+            break;
+            
+        case 'welcome':
+            helpEmbed
+                .setTitle('Welcome System Command Help')
+                .setDescription('Configure welcome messages for your server')
+                .addFields(
+                    { name: 'Base Command', value: `\`${prefix}welcome\` - Show current welcome settings` },
+                    { name: 'Setting the Channel', value: `\`${prefix}welcome channel #channel\`` },
+                    { name: 'Enabling/Disabling', value: `\`${prefix}welcome on\` or \`${prefix}welcome off\`` },
+                    { name: 'Welcome Message', value: `\`${prefix}welcome message Your message here\`` },
+                    { name: 'Description Text', value: `\`${prefix}welcome description Your description here\`` },
+                    { name: 'Test Preview', value: `\`${prefix}welcome test\`` },
+                    { name: 'User Mentions', value: `\`${prefix}welcome mentions on\` or \`${prefix}welcome mentions off\`` },
+                    { name: 'Banner Images', value: `\`${prefix}welcome image on\` or \`${prefix}welcome image off\`` },
+                    { name: 'Available Placeholders', value: '`{member}` - Mentions the new member\n`{server}` - Server name\n`{memberCount}` - Member count' },
+                    { name: 'Required Permissions', value: 'Manage Server' }
+                );
+            break;
+            
+        case 'commands':
+        case 'help':
+            helpEmbed
+                .setTitle('Commands Help')
+                .setDescription('Shows a list of all available commands')
+                .addFields(
+                    { name: 'Usage', value: `\`${prefix}commands\` - Show all commands\n\`${prefix}commands [command]\` - Show detailed help for a specific command` },
+                    { name: 'Aliases', value: `\`${prefix}help\`` },
+                    { name: 'Examples', value: `\`${prefix}commands giveaway\` - Shows help for giveaway command\n\`${prefix}help welcome\` - Shows help for welcome system` },
+                    { name: 'Required Permissions', value: 'None - anyone can use this command' }
+                );
+            break;
+            
+        default:
+            helpEmbed
+                .setTitle('Command Not Found')
+                .setDescription(`Could not find help for command \`${command}\``)
+                .addFields(
+                    { name: 'Available Commands', value: `Type \`${prefix}commands\` to see all available commands` }
+                )
+                .setColor(config.colors.error);
+    }
+    
+    return message.reply({ embeds: [helpEmbed] });
+}
+
 module.exports = {
     name: 'messageCreate',
     async execute(message, client) {
@@ -32,27 +144,49 @@ module.exports = {
             // Handle commands
             switch (commandName) {
                 case 'commands':
+                case 'help':
+                    if (args.length > 0) {
+                        // Show detailed help for specific command
+                        return handleCommandHelp(message, args[0], prefix);
+                    }
+                    
+                    // Main commands overview embed
                     const commandsEmbed = new EmbedBuilder()
                         .setColor(config.colors.primary)
-                        .setTitle('Available Commands')
-                        .setDescription('Here are all the commands you can use:')
+                        .setTitle('AFK Devs Bot - Command List')
+                        .setDescription(`Here are all the commands you can use. Type \`${prefix}commands [command]\` for detailed help on any command.`)
                         .addFields(
-                            { name: `${prefix}commands`, value: 'Shows this list of commands' },
-                            { name: `${prefix}giveaway [duration] [winners] [prize]`, value: 'Creates a new giveaway (Requires Manage Server permission)' },
-                            { name: `${prefix}end [message_id]`, value: 'Ends a giveaway early (Requires Manage Server permission)' },
-                            { name: `${prefix}reroll [message_id]`, value: 'Rerolls winners for a giveaway (Requires Manage Server permission)' },
-                            { name: `${prefix}gstart [duration] [winners] [prize]`, value: 'Shortcut to create a giveaway (Requires Manage Server permission)' },
-                            { name: `${prefix}gend [message_id]`, value: 'Shortcut to end a giveaway (Requires Manage Server permission)' },
-                            { name: `${prefix}welcome channel #channel`, value: 'Sets the welcome channel (Requires Manage Server permission)' },
-                            { name: `${prefix}welcome on/off`, value: 'Toggles welcome messages (Requires Manage Server permission)' },
-                            { name: `${prefix}welcome message [text]`, value: 'Sets the welcome message (Requires Manage Server permission)' },
-                            { name: '/giveaway', value: 'Creates a new giveaway with slash command' },
-                            { name: '/end', value: 'Ends a giveaway early with slash command' },
-                            { name: '/reroll', value: 'Rerolls winners for a giveaway with slash command' },
-                            { name: '/welcome', value: 'Configure the welcome system with slash commands' }
+                            { 
+                                name: '📋 General Commands', 
+                                value: `\`${prefix}commands\` - Show all commands\n` +
+                                       `\`${prefix}help\` - Alias for commands\n` +
+                                       `Mention the bot to see prefix information`
+                            },
+                            { 
+                                name: '🎉 Giveaway Commands', 
+                                value: `\`${prefix}giveaway\` - Create a giveaway\n` +
+                                       `\`${prefix}gstart\` - Quick giveaway creation\n` +
+                                       `\`${prefix}end\` - End a giveaway early\n` +
+                                       `\`${prefix}gend\` - Alias for end command\n` +
+                                       `\`${prefix}reroll\` - Reroll giveaway winners`
+                            },
+                            { 
+                                name: '👋 Welcome System', 
+                                value: `\`${prefix}welcome\` - Configure welcome system\n` +
+                                       `\`${prefix}welcome channel\` - Set welcome channel\n` +
+                                       `\`${prefix}welcome message\` - Set welcome message\n` +
+                                       `\`${prefix}welcome test\` - Preview welcome message`
+                            },
+                            { 
+                                name: '🔍 Command Details', 
+                                value: `Use \`${prefix}commands [command]\` to see detailed help for any command.\n` +
+                                       `Example: \`${prefix}commands giveaway\`\n` +
+                                       `Example: \`${prefix}commands welcome\``
+                            }
                         )
+                        .setThumbnail(client.user.displayAvatarURL())
                         .setTimestamp()
-                        .setFooter({ text: `Requested by ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
+                        .setFooter({ text: `Type ${prefix}commands [command] for more info • Requested by ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
                     
                     return message.reply({ embeds: [commandsEmbed] });
                 
