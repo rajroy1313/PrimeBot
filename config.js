@@ -10,18 +10,8 @@ module.exports = {
         warning: '#FEE75C'  // Yellow color for warning messages
     },
     
-    // Welcome system configuration
-    welcome: {
-        message: 'Welcome to the server, {member}! Enjoy your stay!',
-        channelName: 'welcome', // Default channel name to look for
-        enabled: true, // Whether welcome messages are enabled
-        showImage: true, // Whether to show a welcome image banner
-        mentions: true, // Whether to mention the user in the message
-        // Additional welcome message text or information
-        description: 'Please read the rules and have a great time in our community!',
-        // Image banner for welcome messages
-        banner: 'https://i.imgur.com/BQAcscx.png',
-    },
+    // Default welcome message - can be customized
+    welcomeMessage: 'Welcome to the server, {member}! Enjoy your stay!',
     
     // Giveaway settings
     giveaway: {
