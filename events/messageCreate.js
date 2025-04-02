@@ -43,9 +43,13 @@ module.exports = {
                             { name: `${prefix}reroll [message_id]`, value: 'Rerolls winners for a giveaway (Requires Manage Server permission)' },
                             { name: `${prefix}gstart [duration] [winners] [prize]`, value: 'Shortcut to create a giveaway (Requires Manage Server permission)' },
                             { name: `${prefix}gend [message_id]`, value: 'Shortcut to end a giveaway (Requires Manage Server permission)' },
+                            { name: `${prefix}welcome channel #channel`, value: 'Sets the welcome channel (Requires Manage Server permission)' },
+                            { name: `${prefix}welcome on/off`, value: 'Toggles welcome messages (Requires Manage Server permission)' },
+                            { name: `${prefix}welcome message [text]`, value: 'Sets the welcome message (Requires Manage Server permission)' },
                             { name: '/giveaway', value: 'Creates a new giveaway with slash command' },
                             { name: '/end', value: 'Ends a giveaway early with slash command' },
-                            { name: '/reroll', value: 'Rerolls winners for a giveaway with slash command' }
+                            { name: '/reroll', value: 'Rerolls winners for a giveaway with slash command' },
+                            { name: '/welcome', value: 'Configure the welcome system with slash commands' }
                         )
                         .setTimestamp()
                         .setFooter({ text: `Requested by ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
@@ -175,6 +179,272 @@ module.exports = {
                     } catch (error) {
                         console.error('Error rerolling giveaway:', error);
                         return message.reply('There was an error rerolling the giveaway! Please try again later.');
+                    }
+                
+                case 'welcome':
+                    // Check permissions
+                    if (!message.member.permissions.has('ManageGuild')) {
+                        return message.reply('You need the Manage Server permission to configure welcome messages!');
+                    }
+                    
+                    // No arguments - show current settings
+                    if (args.length < 1) {
+                        const settingsEmbed = new EmbedBuilder()
+                            .setColor(config.colors.primary)
+                            .setTitle('Welcome Message Settings')
+                            .addFields(
+                                { name: 'Status', value: config.welcome.enabled ? '✅ Enabled' : '❌ Disabled', inline: true },
+                                { name: 'Channel', value: `#${config.welcome.channelName}`, inline: true },
+                                { name: 'Mentions', value: config.welcome.mentions ? '✅ Enabled' : '❌ Disabled', inline: true },
+                                { name: 'Images', value: config.welcome.showImage ? '✅ Enabled' : '❌ Disabled', inline: true },
+                                { name: 'Message', value: config.welcome.message, inline: false },
+                                { name: 'Description', value: config.welcome.description, inline: false },
+                                { name: 'Usage', value: 
+                                    `\`${prefix}welcome channel #channel\` - Set welcome channel\n` +
+                                    `\`${prefix}welcome on/off\` - Toggle welcome messages\n` +
+                                    `\`${prefix}welcome message <text>\` - Set welcome message\n` +
+                                    `\`${prefix}welcome description <text>\` - Set welcome description\n` +
+                                    `\`${prefix}welcome test\` - Test the welcome message\n` +
+                                    `\`${prefix}welcome mentions on/off\` - Toggle mentions\n` +
+                                    `\`${prefix}welcome image on/off\` - Toggle images`
+                                }
+                            )
+                            .setTimestamp();
+                            
+                        return message.reply({ embeds: [settingsEmbed] });
+                    }
+                    
+                    const subCommand = args[0].toLowerCase();
+                    
+                    switch (subCommand) {
+                        case 'channel':
+                            // Validate arguments
+                            if (args.length < 2 || !message.mentions.channels.size) {
+                                return message.reply(`**Correct Usage:** \`${prefix}welcome channel #channel\``);
+                            }
+                            
+                            const channel = message.mentions.channels.first();
+                            
+                            // Check if the channel is a text channel
+                            if (channel.type !== 0) {
+                                return message.reply('The channel must be a text channel!');
+                            }
+                            
+                            // Update the config
+                            config.welcome.channelName = channel.name;
+                            
+                            // Create response
+                            const channelEmbed = new EmbedBuilder()
+                                .setColor(config.colors.success)
+                                .setTitle('Welcome Channel Updated')
+                                .setDescription(`Welcome messages will now be sent to ${channel}!`)
+                                .setTimestamp();
+                            
+                            return message.reply({ embeds: [channelEmbed] });
+                            
+                        case 'on':
+                        case 'enable':
+                            // Update the config
+                            config.welcome.enabled = true;
+                            
+                            // Create response
+                            const enableEmbed = new EmbedBuilder()
+                                .setColor(config.colors.success)
+                                .setTitle('Welcome Messages Enabled')
+                                .setDescription('Welcome messages are now enabled!')
+                                .setTimestamp();
+                            
+                            return message.reply({ embeds: [enableEmbed] });
+                            
+                        case 'off':
+                        case 'disable':
+                            // Update the config
+                            config.welcome.enabled = false;
+                            
+                            // Create response
+                            const disableEmbed = new EmbedBuilder()
+                                .setColor(config.colors.success)
+                                .setTitle('Welcome Messages Disabled')
+                                .setDescription('Welcome messages are now disabled!')
+                                .setTimestamp();
+                            
+                            return message.reply({ embeds: [disableEmbed] });
+                            
+                        case 'message':
+                            // Validate arguments
+                            if (args.length < 2) {
+                                return message.reply(`**Correct Usage:** \`${prefix}welcome message Your message here\``);
+                            }
+                            
+                            const welcomeMessage = args.slice(1).join(' ');
+                            
+                            // Update the config
+                            config.welcome.message = welcomeMessage;
+                            
+                            // Create response
+                            const messageEmbed = new EmbedBuilder()
+                                .setColor(config.colors.success)
+                                .setTitle('Welcome Message Updated')
+                                .setDescription('The welcome message has been updated!')
+                                .addFields(
+                                    { name: 'New Message', value: welcomeMessage }
+                                )
+                                .setFooter({ text: `Use ${prefix}welcome test to preview` })
+                                .setTimestamp();
+                            
+                            return message.reply({ embeds: [messageEmbed] });
+                            
+                        case 'description':
+                            // Validate arguments
+                            if (args.length < 2) {
+                                return message.reply(`**Correct Usage:** \`${prefix}welcome description Your description here\``);
+                            }
+                            
+                            const welcomeDescription = args.slice(1).join(' ');
+                            
+                            // Update the config
+                            config.welcome.description = welcomeDescription;
+                            
+                            // Create response
+                            const descriptionEmbed = new EmbedBuilder()
+                                .setColor(config.colors.success)
+                                .setTitle('Welcome Description Updated')
+                                .setDescription('The welcome description has been updated!')
+                                .addFields(
+                                    { name: 'New Description', value: welcomeDescription }
+                                )
+                                .setFooter({ text: `Use ${prefix}welcome test to preview` })
+                                .setTimestamp();
+                            
+                            return message.reply({ embeds: [descriptionEmbed] });
+                            
+                        case 'test':
+                        case 'preview':
+                            // Format the welcome message with placeholders
+                            const formattedMessage = config.welcome.message
+                                .replace('{member}', message.author)
+                                .replace('{server}', message.guild.name)
+                                .replace('{memberCount}', message.guild.memberCount);
+                                
+                            const formattedDescription = config.welcome.description
+                                .replace('{member}', message.author)
+                                .replace('{server}', message.guild.name)
+                                .replace('{memberCount}', message.guild.memberCount);
+                            
+                            // Get information about the member
+                            const joinedAt = `<t:${Math.floor(Date.now() / 1000)}:F> (<t:${Math.floor(Date.now() / 1000)}:R>)`;
+                            const accountCreated = `<t:${Math.floor(message.author.createdTimestamp / 1000)}:F> (<t:${Math.floor(message.author.createdTimestamp / 1000)}:R>)`;
+                            
+                            // Create welcome embed preview
+                            const previewEmbed = new EmbedBuilder()
+                                .setColor(config.colors.primary)
+                                .setTitle(`Welcome to ${message.guild.name}!`)
+                                .setDescription(formattedMessage)
+                                .setThumbnail(message.author.displayAvatarURL({ dynamic: true, size: 256 }))
+                                .addFields(
+                                    { name: '📝 About', value: formattedDescription },
+                                    { name: '📆 Account Created', value: accountCreated, inline: false },
+                                    { name: '🎉 Joined Server', value: joinedAt, inline: false },
+                                    { name: '👥 Member Count', value: `You are the ${message.guild.memberCount}th member!`, inline: false }
+                                )
+                                .setFooter({ text: `Preview • ID: ${message.author.id}` })
+                                .setTimestamp();
+                                
+                            // Add banner image if enabled
+                            if (config.welcome.showImage) {
+                                previewEmbed.setImage(config.welcome.banner);
+                            }
+                            
+                            // Reply with preview
+                            return message.reply({
+                                content: config.welcome.mentions ? `Welcome, ${message.author}!` : null,
+                                embeds: [previewEmbed]
+                            });
+                            
+                        case 'mentions':
+                            // Validate arguments
+                            if (args.length < 2) {
+                                return message.reply(`**Correct Usage:** \`${prefix}welcome mentions on/off\``);
+                            }
+                            
+                            const mentionsToggle = args[1].toLowerCase();
+                            
+                            if (mentionsToggle === 'on' || mentionsToggle === 'enable') {
+                                config.welcome.mentions = true;
+                                
+                                const mentionsEnableEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle('Welcome Mentions Enabled')
+                                    .setDescription('User mentions in welcome messages are now enabled!')
+                                    .setTimestamp();
+                                
+                                return message.reply({ embeds: [mentionsEnableEmbed] });
+                            } else if (mentionsToggle === 'off' || mentionsToggle === 'disable') {
+                                config.welcome.mentions = false;
+                                
+                                const mentionsDisableEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle('Welcome Mentions Disabled')
+                                    .setDescription('User mentions in welcome messages are now disabled!')
+                                    .setTimestamp();
+                                
+                                return message.reply({ embeds: [mentionsDisableEmbed] });
+                            } else {
+                                return message.reply(`**Correct Usage:** \`${prefix}welcome mentions on/off\``);
+                            }
+                            
+                        case 'image':
+                        case 'images':
+                            // Validate arguments
+                            if (args.length < 2) {
+                                return message.reply(`**Correct Usage:** \`${prefix}welcome image on/off\``);
+                            }
+                            
+                            const imageToggle = args[1].toLowerCase();
+                            
+                            if (imageToggle === 'on' || imageToggle === 'enable') {
+                                config.welcome.showImage = true;
+                                
+                                const imageEnableEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle('Welcome Images Enabled')
+                                    .setDescription('Images in welcome messages are now enabled!')
+                                    .setTimestamp();
+                                
+                                return message.reply({ embeds: [imageEnableEmbed] });
+                            } else if (imageToggle === 'off' || imageToggle === 'disable') {
+                                config.welcome.showImage = false;
+                                
+                                const imageDisableEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle('Welcome Images Disabled')
+                                    .setDescription('Images in welcome messages are now disabled!')
+                                    .setTimestamp();
+                                
+                                return message.reply({ embeds: [imageDisableEmbed] });
+                            } else {
+                                return message.reply(`**Correct Usage:** \`${prefix}welcome image on/off\``);
+                            }
+                        
+                        default:
+                            const helpEmbed = new EmbedBuilder()
+                                .setColor(config.colors.primary)
+                                .setTitle('Welcome Command Help')
+                                .setDescription('Available welcome commands:')
+                                .addFields(
+                                    { name: 'Usage', value: 
+                                        `\`${prefix}welcome channel #channel\` - Set welcome channel\n` +
+                                        `\`${prefix}welcome on/off\` - Toggle welcome messages\n` +
+                                        `\`${prefix}welcome message <text>\` - Set welcome message\n` +
+                                        `\`${prefix}welcome description <text>\` - Set welcome description\n` +
+                                        `\`${prefix}welcome test\` - Test the welcome message\n` +
+                                        `\`${prefix}welcome mentions on/off\` - Toggle mentions\n` +
+                                        `\`${prefix}welcome image on/off\` - Toggle images`
+                                    }
+                                )
+                                .setTimestamp();
+                                
+                            return message.reply({ embeds: [helpEmbed] });
                     }
                     
                 default:
