@@ -11,7 +11,7 @@ module.exports = {
             const prefix = config.prefix;
             
             // Check for ping (mention)
-            if (message.mentions.has(client.user.id)) {
+            if (message.mentions.has(client.user.id) && client.ws.status === 0) {
                 // Calculate bot uptime
                 const uptime = process.uptime();
                 const uptimeString = formatUptime(uptime);
