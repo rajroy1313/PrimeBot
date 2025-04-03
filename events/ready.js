@@ -12,10 +12,10 @@ module.exports = {
         // Set bot status
         client.user.setPresence({
             activities: [{ 
-                name: `giveaways | ${require('../config').prefix}commands`,
+                name: `AFK Devs`,
                 type: ActivityType.Watching
             }],
-            status: 'online',
+            status: 'dnd',
         });
         
         console.log(`Bot is ready! Serving ${client.guilds.cache.size} servers.`);
