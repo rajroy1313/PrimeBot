@@ -12,14 +12,51 @@ module.exports = {
             
             // Check for ping (mention)
             if (message.mentions.has(client.user.id)) {
+                // Calculate bot uptime
+                const uptime = process.uptime();
+                const uptimeString = formatUptime(uptime);
+                
+                // Get guild count
+                const guildCount = client.guilds.cache.size;
+                
+                // Get command count
+                const commandCount = 8; // Update this manually when adding commands (giveaway, end, reroll, gstart, gend, commands, help)
+                
+                // Create ping embed
                 const pingEmbed = new EmbedBuilder()
                     .setColor(config.colors.primary)
                     .setTitle('Hello there! 👋')
-                    .setDescription(`My prefix is \`${prefix}\`\nType \`${prefix}commands\` to see what I can do!`)
-                    .setTimestamp()
-                    .setFooter({ text: `Requested by ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
+                    .setDescription(`I'm **${client.user.username}**, a Discord bot with giveaway and welcome features!`)
+                    .addFields(
+                        { name: '📋 Prefix', value: `\`${prefix}\``, inline: true },
+                        { name: '🏓 Ping', value: `${client.ws.ping}ms`, inline: true },
+                        { name: '⏱️ Uptime', value: uptimeString, inline: true },
+                        { name: '🔧 Commands', value: `Type \`${prefix}commands\` to see all available commands!` }
+                    )
+                    .setThumbnail(client.user.displayAvatarURL({ dynamic: true }))
+                    .setFooter({ 
+                        text: `Requested by ${message.author.tag} | Serving ${guildCount} servers`, 
+                        iconURL: message.author.displayAvatarURL({ dynamic: true }) 
+                    })
+                    .setTimestamp();
                 
                 return message.reply({ embeds: [pingEmbed] });
+            }
+            
+            // Format uptime in a readable format
+            function formatUptime(uptime) {
+                const seconds = Math.floor(uptime % 60);
+                const minutes = Math.floor((uptime / 60) % 60);
+                const hours = Math.floor((uptime / 3600) % 24);
+                const days = Math.floor(uptime / 86400);
+                
+                const parts = [];
+                if (days > 0) parts.push(`${days}d`);
+                if (hours > 0) parts.push(`${hours}h`);
+                if (minutes > 0) parts.push(`${minutes}m`);
+                if (seconds > 0) parts.push(`${seconds}s`);
+                
+                return parts.join(' ') || '0s';
             }
             
             // Check if message starts with prefix
@@ -31,13 +68,15 @@ module.exports = {
             
             // Handle commands
             switch (commandName) {
+                case 'help':
                 case 'commands':
                     const commandsEmbed = new EmbedBuilder()
                         .setColor(config.colors.primary)
                         .setTitle('Available Commands')
                         .setDescription('Here are all the commands you can use:')
                         .addFields(
-                            { name: `${prefix}commands`, value: 'Shows this list of commands' },
+                            { name: `${prefix}help`, value: 'Shows this list of commands' },
+                            { name: `${prefix}commands`, value: 'Alias for help command' },
                             { name: `${prefix}giveaway [duration] [winners] [prize]`, value: 'Creates a new giveaway (Requires Manage Server permission)' },
                             { name: `${prefix}end [message_id]`, value: 'Ends a giveaway early (Requires Manage Server permission)' },
                             { name: `${prefix}reroll [message_id]`, value: 'Rerolls winners for a giveaway (Requires Manage Server permission)' },

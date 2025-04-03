@@ -10,8 +10,23 @@ module.exports = {
         warning: '#FEE75C'  // Yellow color for warning messages
     },
     
-    // Default welcome message - can be customized
-    welcomeMessage: 'Welcome to the server, {member}! Enjoy your stay!',
+    // Welcome system configuration
+    welcome: {
+        // Default welcome message in server - can be customized
+        serverMessage: 'Welcome to the server, {member}! Enjoy your stay!',
+        
+        // Welcome message sent via DM to new members
+        dmMessage: 'Hey {username}! Welcome to **{server}**!\n\nWe\'re excited to have you join our community. If you have any questions, feel free to ask in the help channel.\n\nHere are a few things to check out:\n• Read the rules in the rules channel\n• Introduce yourself in the introductions channel\n• Get roles in the roles channel',
+        
+        // Default welcome channel ID (set to null to use the first available channel)
+        channelId: null,
+        
+        // Whether to send a welcome DM to new members
+        sendDM: true,
+        
+        // Additional welcome banner image URL (set to null for no image)
+        bannerUrl: 'https://i.imgur.com/hxGEQJh.png'
+    },
     
     // Giveaway settings
     giveaway: {

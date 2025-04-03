@@ -1,3 +1,6 @@
+
+const debug = require('debug')('bot:main');
+
 const { Client, GatewayIntentBits, Collection } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
@@ -56,10 +59,12 @@ global.client = client;
 const website = require('./website');
 
 // Login to Discord with your client's token
-client.login(process.env.DISCORD_TOKEN).catch(error => {
-    console.error('[ERROR] Failed to login to Discord:', error);
-    process.exit(1);
-});
+client.login(process.env.DISCORD_TOKEN)
+    .then(() => debug('Bot successfully logged in'))
+    .catch(error => {
+        console.error('[ERROR] Failed to login to Discord:', error);
+        process.exit(1);
+    });
 
 // Handle process termination
 process.on('SIGINT', () => {
