@@ -20,7 +20,7 @@ module.exports = {
                 const guildCount = client.guilds.cache.size;
                 
                 // Get command count
-                const commandCount = 8; // Update this manually when adding commands (giveaway, end, reroll, gstart, gend, commands, help)
+                const commandCount = 9; // Update this manually when adding commands (giveaway, end, reroll, gstart, gend, commands, help, echo)
                 
                 // Create ping embed
                 const pingEmbed = new EmbedBuilder()
@@ -82,9 +82,7 @@ module.exports = {
                             { name: `${prefix}reroll [message_id]`, value: 'Rerolls winners for a giveaway (Requires Manage Server permission)' },
                             { name: `${prefix}gstart [duration] [winners] [prize]`, value: 'Shortcut to create a giveaway (Requires Manage Server permission)' },
                             { name: `${prefix}gend [message_id]`, value: 'Shortcut to end a giveaway (Requires Manage Server permission)' },
-                            { name: '/giveaway', value: 'Creates a new giveaway with slash command' },
-                            { name: '/end', value: 'Ends a giveaway early with slash command' },
-                            { name: '/reroll', value: 'Rerolls winners for a giveaway with slash command' }
+                            { name: `${prefix}echo [message]`, value: 'Makes the bot repeat a message' }
                         )
                         .setTimestamp()
                         .setFooter({ text: `Requested by ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
@@ -215,6 +213,46 @@ module.exports = {
                         console.error('Error rerolling giveaway:', error);
                         return message.reply('There was an error rerolling the giveaway! Please try again later.');
                     }
+                
+                case 'echo':
+                    // Validate arguments
+                    if (args.length < 1) {
+                        const usageEmbed = new EmbedBuilder()
+                            .setColor(config.colors.error)
+                            .setTitle('Invalid Usage')
+                            .setDescription(`**Correct Usage:** \`${prefix}${commandName} [message]\``)
+                            .addFields(
+                                { name: 'Examples', value: 
+                                    `\`${prefix}${commandName} Hello World!\` - Makes the bot say "Hello World!"\n` +
+                                    `\`${prefix}${commandName} Welcome to the server!\` - Makes the bot say "Welcome to the server!"`
+                                }
+                            );
+                        return message.reply({ embeds: [usageEmbed] });
+                    }
+                    
+                    // Get message content
+                    const echoMessage = args.join(' ');
+                    
+                    // Send the echo message
+                    await message.channel.send(echoMessage);
+                    
+                    // Send confirmation (optional - can be removed if you don't want this)
+                    const confirmEchoEmbed = new EmbedBuilder()
+                        .setColor(config.colors.success)
+                        .setDescription('✅ Message echoed successfully!')
+                        .setFooter({ text: `Echoed by ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
+                        
+                    // Delete the confirmation after 3 seconds
+                    message.reply({ embeds: [confirmEchoEmbed] })
+                        .then(reply => {
+                            setTimeout(() => {
+                                reply.delete().catch(err => console.error('Could not delete message:', err));
+                            }, 3000);
+                        })
+                        .catch(err => console.error('Could not send message:', err));
+                    
+                    // Don't return here to allow the confirmation to be sent
+                    break;
                     
                 default:
                     // Command not found - do nothing

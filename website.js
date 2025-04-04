@@ -12,7 +12,7 @@ app.use((req, res, next) => {
         name: 'AFK Devs Bot',
         prefix: require('./config').prefix,
         servers: global.client ? global.client.guilds.cache.size : 'Loading...',
-        commands: ['giveaway', 'end', 'reroll', 'commands'],
+        commands: ['help', 'commands', 'giveaway', 'gstart', 'end', 'gend', 'reroll', 'echo'],
         uptime: global.client ? formatUptime(global.client.uptime) : 'Loading...'
     };
     next();
