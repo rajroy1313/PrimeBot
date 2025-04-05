@@ -20,7 +20,7 @@ module.exports = {
                 const guildCount = client.guilds.cache.size;
 
                 // Get command count
-                const commandCount = 9; // Update this manually when adding commands (giveaway, end, reroll, gstart, gend, commands, help, echo)
+                const commandCount = 10; // Update this manually when adding commands (giveaway, end, reroll, gstart, gend, commands, help, echo, aka)
 
                 // Create ping embed
                 const pingEmbed = new EmbedBuilder()
@@ -257,6 +257,19 @@ module.exports = {
                         .catch(err => console.error('Could not send message:', err));
 
                     // Don't return here to allow the confirmation to be sent
+                    break;
+
+                case 'aka':
+                    if (!args.length) {
+                        return message.reply('Please provide a note to set as AKA.');
+                    }
+                    const note = args.join(' ');
+                    try {
+                        await message.member.setNickname(`${message.member.displayName} (${note})`);
+                        message.reply('✅ AKA note set successfully!');
+                    } catch (error) {
+                        message.reply('❌ Unable to set AKA note. Make sure I have the right permissions!');
+                    }
                     break;
 
                 default:
