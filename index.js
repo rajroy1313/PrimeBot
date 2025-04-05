@@ -46,13 +46,26 @@ global.client = client;
 // Start website
 const website = require('./website');
 
-// Login to Discord with your client's token
-client.login(process.env.DISCORD_TOKEN)
-    .then(() => debug('Bot successfully logged in'))
-    .catch(error => {
+// Function to handle reconnection
+async function connectBot() {
+    try {
+        await client.login(process.env.DISCORD_TOKEN);
+        debug('Bot successfully logged in');
+    } catch (error) {
         console.error('[ERROR] Failed to login to Discord:', error);
-        process.exit(1);
-    });
+        console.log('Attempting to reconnect in 5 seconds...');
+        setTimeout(connectBot, 5000);
+    }
+}
+
+// Initial connection
+connectBot();
+
+// Handle disconnections
+client.on('disconnect', () => {
+    console.log('Bot disconnected! Attempting to reconnect...');
+    connectBot();
+});
 
 // Handle process termination
 process.on('SIGINT', () => {
