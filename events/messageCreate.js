@@ -1,4 +1,4 @@
-const { EmbedBuilder } = require('discord.js');
+const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const config = require('../config');
 
 module.exports = {
@@ -23,6 +23,13 @@ module.exports = {
                 const commandCount = 9; // Update this manually when adding commands (giveaway, end, reroll, gstart, gend, commands, help, echo)
 
                 // Create ping embed
+                const inviteButton = new ButtonBuilder()
+                    .setLabel('Invite Me')
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(`https://discord.com/api/oauth2/authorize?client_id=${client.user.id}&permissions=274878024704&scope=bot%20applications.commands`);
+
+                const row = new ActionRowBuilder().addComponents(inviteButton);
+
                 const pingEmbed = new EmbedBuilder()
                     .setColor(config.colors.primary)
                     .setTitle('Hello there! 👋')
@@ -41,7 +48,7 @@ module.exports = {
                     .setTimestamp();
 
                 try {
-                    await message.reply({ embeds: [pingEmbed] });
+                    await message.reply({ embeds: [pingEmbed], components: [row] });
                 } catch (error) {
                     console.error('Error handling ping:', error);
                     await message.reply('Sorry, I encountered an error while processing your ping. Please try again later.');
