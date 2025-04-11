@@ -4,8 +4,9 @@ module.exports = {
         try {
             // We no longer handle slash commands, only button interactions
             
-            // Handle giveaway reactions
+            // Handle button interactions
             if (interaction.isButton()) {
+                // Handle giveaway entry button
                 if (interaction.customId === 'giveaway-enter') {
                     await client.giveawayManager.handleGiveawayEntry(interaction);
                 }
