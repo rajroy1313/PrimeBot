@@ -20,7 +20,7 @@ module.exports = {
                 const guildCount = client.guilds.cache.size;
 
                 // Get command count
-                const commandCount = 13; // Update this manually when adding commands (giveaway, end, reroll, gstart, gend, commands, help, echo, ticket, thistory, ab, ulog)
+                const commandCount = 9; // Update this manually when adding commands (giveaway, end, reroll, gstart, gend, commands, help, echo)
 
                 // Create ping embed
                 const inviteButton = new ButtonBuilder()
@@ -33,7 +33,7 @@ module.exports = {
                 const pingEmbed = new EmbedBuilder()
                     .setColor(config.colors.primary)
                     .setTitle('Hello there! 👋')
-                    .setDescription(`I'm **${client.user.username}**, a Discord bot with giveaway, ticket, and welcome features!`)
+                    .setDescription(`I'm **${client.user.username}**, a Discord bot with giveaway and welcome features!`)
                     .addFields(
                         { name: '📋 Prefix', value: `\`${prefix}\``, inline: true },
                         { name: '🏓 Ping', value: `${client.ws.ping}ms`, inline: true },
