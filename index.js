@@ -44,6 +44,10 @@ client.giveawayManager = new GiveawayManager(client);
 const TicketManager = require('./utils/ticketManager');
 client.ticketManager = new TicketManager(client);
 
+// Initialize tic-tac-toe manager
+const TicTacToeManager = require('./utils/ticTacToeManager');
+client.ticTacToeManager = new TicTacToeManager(client);
+
 // Make client globally available for the website
 global.client = client;
 
