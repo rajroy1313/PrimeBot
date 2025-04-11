@@ -138,7 +138,7 @@ class TicTacToeManager {
                 // Two players
                 const nextPlayer = game.players.find(p => p !== game.currentPlayer);
                 embed.setDescription(`It's ${currentPlayer}'s turn! <@${nextPlayer}> will play next.`);
-                embed.setFooter({ text: `Use $move <1-9> to make a move • Use $end to end the game` });
+                embed.setFooter({ text: `Use $move <1-9> to make a move • Use $tend to end the game` });
             }
         } else if (game.status === 'ended') {
             if (game.winner === 'draw') {

@@ -101,7 +101,7 @@ module.exports = {
                             { name: `${prefix}ulog`, value: 'Shows updates and upcoming features' },
                             { name: `${prefix}tictactoe`, value: 'Starts a new TicTacToe game in the channel' },
                             { name: `${prefix}move [1-9]`, value: 'Makes a move in an active TicTacToe game' },
-                            { name: `${prefix}end`, value: 'Ends the current TicTacToe game in the channel' }
+                            { name: `${prefix}tend`, value: 'Ends the current TicTacToe game in the channel' }
                         )
                         .setTimestamp()
                         .setFooter({ text: `Requested by ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
@@ -409,7 +409,7 @@ module.exports = {
                     }
                     break;
                     
-                case 'end':
+                case 'tend':
                     try {
                         // Check if there's a TicTacToe game in this channel
                         const game = client.ticTacToeManager.getGame(message.channel.id);
@@ -458,7 +458,7 @@ module.exports = {
                         .setDescription('Keep track of the latest updates and upcoming features!')
                         .addFields(
                             { name: '✅ Recent Updates', value: 
-                                '• Added TicTacToe game with $tictactoe and $move commands\n' +
+                                '• Added Multiplayer TicTacToe game with $tictactoe, $move, and $tend commands\n' +
                                 '• Added ticket system for support requests\n' +
                                 '• Added welcome system with customizable messages\n' +
                                 '• Enhanced giveaway system with better visuals\n' +
