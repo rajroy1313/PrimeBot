@@ -1,9 +1,11 @@
+const { EmbedBuilder } = require('discord.js');
+
 module.exports = {
     name: 'interactionCreate',
     async execute(interaction, client) {
+        // We no longer handle slash commands, only button interactions
+        
         try {
-            // We no longer handle slash commands, only button interactions
-            
             // Handle button interactions
             if (interaction.isButton()) {
                 // Handle giveaway entry button
@@ -23,6 +25,18 @@ module.exports = {
             }
         } catch (error) {
             console.error('Error in interactionCreate event:', error);
+            
+            // Try to notify user of error if possible
+            try {
+                if (interaction.isRepliable() && !interaction.replied && !interaction.deferred) {
+                    await interaction.reply({
+                        content: 'There was an error processing your interaction. Please try again later.',
+                        ephemeral: true
+                    });
+                }
+            } catch (replyError) {
+                console.error('Error sending error notification:', replyError);
+            }
         }
-    },
+    }
 };
