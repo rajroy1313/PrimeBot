@@ -101,7 +101,9 @@ module.exports = {
                             { name: `${prefix}ulog`, value: 'Shows updates and upcoming features' },
                             { name: `${prefix}tictactoe`, value: 'Starts a new TicTacToe game in the channel' },
                             { name: `${prefix}move [1-9]`, value: 'Makes a move in an active TicTacToe game' },
-                            { name: `${prefix}tend`, value: 'Ends the current TicTacToe game in the channel' }
+                            { name: `${prefix}tend`, value: 'Ends the current TicTacToe game in the channel' },
+                            { name: `${prefix}poll [duration] [question] | [options]`, value: 'Creates a poll with a timer' },
+                            { name: `${prefix}endpoll [message_id]`, value: 'Ends a poll early (Requires Manage Messages permission)' }
                         )
                         .setTimestamp()
                         .setFooter({ text: `Requested by ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
@@ -271,6 +273,108 @@ module.exports = {
                         .catch(err => console.error('Could not send message:', err));
 
                     // Don't return here to allow the confirmation to be sent
+                    break;
+                    
+                case 'poll':
+                    try {
+                        // Parse the command format: $poll <duration> <question> | <option1> | <option2> | ... 
+                        if (args.length < 3) {
+                            const usageEmbed = new EmbedBuilder()
+                                .setColor(config.colors.error)
+                                .setTitle('Invalid Usage')
+                                .setDescription(`**Correct Usage:** \`${prefix}${commandName} [duration] [question] | [option1] | [option2] | ...\``)
+                                .addFields(
+                                    { name: 'Examples', value: 
+                                        `\`${prefix}${commandName} 1d What's your favorite color? | Red | Blue | Green\` - 1 day poll with 3 options\n` +
+                                        `\`${prefix}${commandName} 12h Best programming language? | JavaScript | Python | Java | C++\` - 12 hour poll with 4 options`
+                                    }
+                                );
+                            return message.reply({ embeds: [usageEmbed] });
+                        }
+                        
+                        // Get the duration
+                        const duration = args[0];
+                        
+                        // Get the full content after the duration
+                        const fullContent = message.content.slice(message.content.indexOf(args[0]) + args[0].length).trim();
+                        
+                        // Split by pipe character
+                        const parts = fullContent.split('|').map(part => part.trim());
+                        
+                        if (parts.length < 3) {
+                            return message.reply('Please provide a question and at least 2 options separated by | characters.');
+                        }
+                        
+                        // The first part is the question
+                        const question = parts[0];
+                        
+                        // The rest are options
+                        const options = parts.slice(1);
+                        
+                        // Limit to 10 options
+                        if (options.length > 10) {
+                            return message.reply('You can only have up to 10 options in a poll.');
+                        }
+                        
+                        // Create the poll
+                        await client.pollManager.createPoll({
+                            channelId: message.channel.id,
+                            question,
+                            options,
+                            duration,
+                            userId: message.author.id
+                        });
+                        
+                        // Send confirmation
+                        const confirmEmbed = new EmbedBuilder()
+                            .setColor(config.colors.success)
+                            .setDescription('✅ Poll created successfully!');
+                        
+                        message.reply({ embeds: [confirmEmbed] })
+                            .then(reply => {
+                                setTimeout(() => {
+                                    reply.delete().catch(err => console.error('Could not delete message:', err));
+                                }, 3000);
+                            })
+                            .catch(err => console.error('Could not send message:', err));
+                        
+                    } catch (error) {
+                        console.error('Error creating poll:', error);
+                        return message.reply(error.message || 'There was an error creating the poll! Please try again later.');
+                    }
+                    break;
+                    
+                case 'endpoll':
+                    try {
+                        // Check if user has permission
+                        if (!message.member.permissions.has('ManageMessages') && !message.member.permissions.has('ManageGuild')) {
+                            return message.reply('You need the Manage Messages permission to end polls early!');
+                        }
+                        
+                        // Validate arguments
+                        if (args.length < 1) {
+                            return message.reply(`**Correct Usage:** \`${prefix}${commandName} [message_id]\``);
+                        }
+                        
+                        // Get message ID
+                        const messageId = args[0];
+                        
+                        // End the poll
+                        const success = await client.pollManager.forceEndPoll(messageId);
+                        
+                        if (success) {
+                            const confirmEndEmbed = new EmbedBuilder()
+                                .setColor(config.colors.success)
+                                .setDescription('✅ Poll ended successfully!');
+                            
+                            return message.reply({ embeds: [confirmEndEmbed] });
+                        } else {
+                            return message.reply('Could not find an active poll with that message ID.');
+                        }
+                    } catch (error) {
+                        console.error('Error ending poll:', error);
+                        return message.reply('There was an error ending the poll! Please try again later.');
+                    }
                     break;
                 
                 case 'ticket':
@@ -443,6 +547,8 @@ module.exports = {
                             { name: 'Giveaway System', value: 'Create and manage giveaways with customizable duration, prizes, and winners.' },
                             { name: 'Welcome System', value: 'Greet new members with customizable welcome messages and details.' },
                             { name: 'Ticket System', value: 'Handle support requests through a ticket system with private threads.' },
+                            { name: 'Poll System', value: 'Create timed polls with multiple options and automated results.' },
+                            { name: 'TicTacToe Game', value: 'Play multiplayer TicTacToe games in your server channels.' },
                             { name: 'Utility Commands', value: 'Various utility commands to enhance server management.' }
                         )
                         .setTimestamp()
@@ -458,6 +564,7 @@ module.exports = {
                         .setDescription('Keep track of the latest updates and upcoming features!')
                         .addFields(
                             { name: '✅ Recent Updates', value: 
+                                '• Added Poll system with $poll and $endpoll commands\n' +
                                 '• Added Multiplayer TicTacToe game with $tictactoe, $move, and $tend commands\n' +
                                 '• Added ticket system for support requests\n' +
                                 '• Added welcome system with customizable messages\n' +

@@ -48,6 +48,10 @@ client.ticketManager = new TicketManager(client);
 const TicTacToeManager = require('./utils/ticTacToeManager');
 client.ticTacToeManager = new TicTacToeManager(client);
 
+// Initialize poll manager
+const PollManager = require('./utils/pollManager');
+client.pollManager = new PollManager(client);
+
 // Make client globally available for the website
 global.client = client;
 
