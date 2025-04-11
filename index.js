@@ -40,6 +40,10 @@ for (const file of eventFiles) {
 const GiveawayManager = require('./utils/giveawayManager');
 client.giveawayManager = new GiveawayManager(client);
 
+// Initialize ticket manager
+const TicketManager = require('./utils/ticketManager');
+client.ticketManager = new TicketManager(client);
+
 // Make client globally available for the website
 global.client = client;
 

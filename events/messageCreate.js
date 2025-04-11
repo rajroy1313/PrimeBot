@@ -94,7 +94,11 @@ module.exports = {
                             { name: `${prefix}reroll [message_id]`, value: 'Rerolls winners for a giveaway (Requires Manage Server permission)' },
                             { name: `${prefix}gstart [duration] [winners] [prize]`, value: 'Shortcut to create a giveaway (Requires Manage Server permission)' },
                             { name: `${prefix}gend [message_id]`, value: 'Shortcut to end a giveaway (Requires Manage Server permission)' },
-                            { name: `${prefix}echo [message]`, value: 'Makes the bot repeat a message' }
+                            { name: `${prefix}echo [message]`, value: 'Makes the bot repeat a message' },
+                            { name: `${prefix}ticket [channel] (roles)`, value: 'Creates a ticket panel (Requires Manage Server permission)' },
+                            { name: `${prefix}thistory (page)`, value: 'Shows ticket history (Requires Manage Server permission)' },
+                            { name: `${prefix}ab`, value: 'Shows information about the bot' },
+                            { name: `${prefix}ulog`, value: 'Shows updates and upcoming features' }
                         )
                         .setTimestamp()
                         .setFooter({ text: `Requested by ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
@@ -265,6 +269,144 @@ module.exports = {
 
                     // Don't return here to allow the confirmation to be sent
                     break;
+                
+                case 'ticket':
+                    // Check permissions
+                    if (!message.member.permissions.has('ManageGuild')) {
+                        return message.reply('You need the Manage Server permission to create ticket panels!');
+                    }
+                    
+                    // Validate arguments
+                    if (args.length < 1) {
+                        const usageEmbed = new EmbedBuilder()
+                            .setColor(config.colors.error)
+                            .setTitle('Invalid Usage')
+                            .setDescription(`**Correct Usage:** \`${prefix}${commandName} [channel-mention] (role-mention1) (role-mention2)...\``)
+                            .addFields(
+                                { name: 'Examples', value: 
+                                    `\`${prefix}${commandName} #support\` - Creates a ticket panel in #support channel\n` +
+                                    `\`${prefix}${commandName} #help @Moderator @Admin\` - Creates a ticket panel with specified support roles`
+                                }
+                            );
+                        return message.reply({ embeds: [usageEmbed] });
+                    }
+                    
+                    // Parse arguments
+                    const channelMention = args[0];
+                    const channelId = channelMention.replace(/[<#>]/g, '');
+                    
+                    // Parse support roles
+                    const supportRoles = [];
+                    for (let i = 1; i < args.length; i++) {
+                        const roleMention = args[i];
+                        const roleId = roleMention.replace(/[<@&>]/g, '');
+                        supportRoles.push(roleId);
+                    }
+                    
+                    // Create ticket panel
+                    try {
+                        await client.ticketManager.sendTicketEmbed({
+                            channelId,
+                            title: 'Support Tickets',
+                            description: 'Need help? Click the button below to create a support ticket!',
+                            buttonText: 'Create Ticket',
+                            supportRoles
+                        });
+                        
+                        // Send confirmation
+                        const confirmEmbed = new EmbedBuilder()
+                            .setColor(config.colors.success)
+                            .setDescription(`✅ Ticket panel created successfully in <#${channelId}>!`);
+                            
+                        return message.reply({ embeds: [confirmEmbed] });
+                    } catch (error) {
+                        console.error('Error creating ticket panel:', error);
+                        return message.reply('There was an error creating the ticket panel! Make sure the channel exists and I have permissions to send messages there.');
+                    }
+                
+                case 'thistory':
+                    // Check permissions
+                    if (!message.member.permissions.has('ManageGuild')) {
+                        return message.reply('You need the Manage Server permission to view ticket history!');
+                    }
+                    
+                    // Get ticket history
+                    const history = client.ticketManager.getTicketHistory();
+                    
+                    if (history.length === 0) {
+                        return message.reply('No ticket history found.');
+                    }
+                    
+                    // Create pages of 10 tickets each
+                    const page = args[0] ? parseInt(args[0]) : 1;
+                    const pageSize = 10;
+                    const totalPages = Math.ceil(history.length / pageSize);
+                    const startIndex = (page - 1) * pageSize;
+                    const endIndex = startIndex + pageSize;
+                    const pageHistory = history.slice(startIndex, endIndex);
+                    
+                    // Create embed
+                    const historyEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle('Ticket History')
+                        .setDescription(`Showing ${pageHistory.length} of ${history.length} tickets. Page ${page}/${totalPages}`)
+                        .setFooter({ text: `Use ${prefix}thistory [page] to view different pages` });
+                    
+                    // Add ticket info
+                    pageHistory.forEach((ticket, index) => {
+                        const createdAt = new Date(ticket.createdAt).toLocaleString();
+                        const closedAt = new Date(ticket.closedAt).toLocaleString();
+                        
+                        historyEmbed.addFields({
+                            name: `#${startIndex + index + 1} - ${ticket.threadName}`,
+                            value: `Created by: ${ticket.userName} on ${createdAt}\n` +
+                                  `Closed by: ${ticket.closedByName} on ${closedAt}`
+                        });
+                    });
+                    
+                    return message.reply({ embeds: [historyEmbed] });
+                
+                case 'ab':
+                    // Create bot description embed
+                    const aboutEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle('About this Bot')
+                        .setDescription('AFK Devs Bot is a feature-rich Discord bot designed to enhance server management and user engagement.')
+                        .addFields(
+                            { name: 'Giveaway System', value: 'Create and manage giveaways with customizable duration, prizes, and winners.' },
+                            { name: 'Welcome System', value: 'Greet new members with customizable welcome messages and details.' },
+                            { name: 'Ticket System', value: 'Handle support requests through a ticket system with private threads.' },
+                            { name: 'Utility Commands', value: 'Various utility commands to enhance server management.' }
+                        )
+                        .setTimestamp()
+                        .setFooter({ text: `Bot Version: 1.0.0`, iconURL: client.user.displayAvatarURL() });
+                    
+                    return message.reply({ embeds: [aboutEmbed] });
+                
+                case 'ulog':
+                    // Create update log embed
+                    const updateEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle('Update Log')
+                        .setDescription('Keep track of the latest updates and upcoming features!')
+                        .addFields(
+                            { name: '✅ Recent Updates', value: 
+                                '• Added ticket system for support requests\n' +
+                                '• Added welcome system with customizable messages\n' +
+                                '• Enhanced giveaway system with better visuals\n' +
+                                '• Added echo command for fun interactions'
+                            },
+                            { name: '🔜 Coming Soon', value: 
+                                '• Advanced moderation tools\n' +
+                                '• Custom reaction roles\n' +
+                                '• Server statistics tracking\n' +
+                                '• Auto-responses for common questions'
+                            }
+                        )
+                        .setTimestamp()
+                        .setFooter({ text: `Current Version: 1.0.0`, iconURL: client.user.displayAvatarURL() });
+                    
+                    return message.reply({ embeds: [updateEmbed] });
 
                 default:
                     // Command not found - do nothing
