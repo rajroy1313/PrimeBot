@@ -98,7 +98,10 @@ module.exports = {
                             { name: `${prefix}ticket [channel] (roles)`, value: 'Creates a ticket panel (Requires Manage Server permission)' },
                             { name: `${prefix}thistory (page)`, value: 'Shows ticket history (Requires Manage Server permission)' },
                             { name: `${prefix}ab`, value: 'Shows information about the bot' },
-                            { name: `${prefix}ulog`, value: 'Shows updates and upcoming features' }
+                            { name: `${prefix}ulog`, value: 'Shows updates and upcoming features' },
+                            { name: `${prefix}tictactoe`, value: 'Starts a new TicTacToe game in the channel' },
+                            { name: `${prefix}move [1-9]`, value: 'Makes a move in an active TicTacToe game' },
+                            { name: `${prefix}end`, value: 'Ends the current TicTacToe game in the channel' }
                         )
                         .setTimestamp()
                         .setFooter({ text: `Requested by ${message.author.tag}`, iconURL: message.author.displayAvatarURL({ dynamic: true }) });
@@ -366,6 +369,70 @@ module.exports = {
                     
                     return message.reply({ embeds: [historyEmbed] });
                 
+                case 'tictactoe':
+                case 'tictactoi': // Alternate spelling as requested
+                    try {
+                        // Start a new TicTacToe game
+                        await client.ticTacToeManager.startGame({
+                            channelId: message.channel.id,
+                            playerId: message.author.id
+                        });
+                        
+                        // Success message is sent by the manager
+                    } catch (error) {
+                        console.error('Error starting TicTacToe game:', error);
+                        return message.reply(error.message || 'There was an error starting the game! Please try again later.');
+                    }
+                    break;
+                    
+                case 'move':
+                    try {
+                        // Validate arguments
+                        if (args.length < 1) {
+                            return message.reply(`**Correct Usage:** \`${prefix}${commandName} [position 1-9]\``);
+                        }
+                        
+                        // Parse position
+                        const position = parseInt(args[0]);
+                        
+                        // Make the move
+                        await client.ticTacToeManager.makeMove({
+                            channelId: message.channel.id,
+                            playerId: message.author.id,
+                            position: position
+                        });
+                        
+                        // Success message is sent by the manager
+                    } catch (error) {
+                        console.error('Error making TicTacToe move:', error);
+                        return message.reply(error.message || 'There was an error making the move! Please try again later.');
+                    }
+                    break;
+                    
+                case 'end':
+                    try {
+                        // Check if there's a TicTacToe game in this channel
+                        const game = client.ticTacToeManager.getGame(message.channel.id);
+                        
+                        if (!game) {
+                            return message.reply('There is no TicTacToe game in progress in this channel.');
+                        }
+                        
+                        // Only allow the game starter or a user with manage messages permission to end the game
+                        if (game.startedBy !== message.author.id && !message.member.permissions.has('ManageMessages')) {
+                            return message.reply('Only the game starter or a moderator can end the game.');
+                        }
+                        
+                        // End the game
+                        await client.ticTacToeManager.endGame(message.channel.id);
+                        
+                        // Success message is sent by the manager
+                    } catch (error) {
+                        console.error('Error ending TicTacToe game:', error);
+                        return message.reply(error.message || 'There was an error ending the game! Please try again later.');
+                    }
+                    break;
+                
                 case 'ab':
                     // Create bot description embed
                     const aboutEmbed = new EmbedBuilder()
@@ -391,6 +458,7 @@ module.exports = {
                         .setDescription('Keep track of the latest updates and upcoming features!')
                         .addFields(
                             { name: '✅ Recent Updates', value: 
+                                '• Added TicTacToe game with $tictactoe and $move commands\n' +
                                 '• Added ticket system for support requests\n' +
                                 '• Added welcome system with customizable messages\n' +
                                 '• Enhanced giveaway system with better visuals\n' +
