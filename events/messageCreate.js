@@ -605,6 +605,247 @@ module.exports = {
                     }
                     break;
 
+                case "birthday":
+                case "bday":
+                    try {
+                        if (args.length < 1) {
+                            const usageEmbed = new EmbedBuilder()
+                                .setColor(config.colors.primary)
+                                .setTitle("Birthday Commands")
+                                .setDescription("Here are the available birthday commands:")
+                                .addFields(
+                                    { name: `${prefix}birthday set [MM/DD/YYYY]`, value: "Set your birthday (year is optional)" },
+                                    { name: `${prefix}birthday remove`, value: "Remove your birthday" },
+                                    { name: `${prefix}birthday list`, value: "List upcoming birthdays" },
+                                    { name: `${prefix}birthday check [@user]`, value: "Check your or someone else's birthday" }
+                                );
+                                
+                            if (message.member.permissions.has("ManageGuild")) {
+                                usageEmbed.addFields(
+                                    { name: `${prefix}birthday channel [#channel]`, value: "Set the birthday announcement channel" },
+                                    { name: `${prefix}birthday role [@role]`, value: "Set the birthday role (given on birthdays)" }
+                                );
+                            }
+                            
+                            return message.reply({ embeds: [usageEmbed] });
+                        }
+                        
+                        const subcommand = args[0].toLowerCase();
+                        
+                        switch (subcommand) {
+                            case "set":
+                                if (args.length < 2) {
+                                    return message.reply(`**Correct Usage:** \`${prefix}${commandName} set [MM/DD/YYYY]\` (year is optional)`);
+                                }
+                                
+                                // Parse the date
+                                const dateStr = args[1];
+                                const dateParts = dateStr.split("/");
+                                
+                                if (dateParts.length < 2 || dateParts.length > 3) {
+                                    return message.reply("Please provide a valid date format (MM/DD/YYYY or MM/DD).");
+                                }
+                                
+                                const month = parseInt(dateParts[0]);
+                                const day = parseInt(dateParts[1]);
+                                const year = dateParts.length === 3 ? parseInt(dateParts[2]) : null;
+                                
+                                // Set the birthday
+                                await client.birthdayManager.setBirthday({
+                                    guildId: message.guild.id,
+                                    userId: message.author.id,
+                                    month,
+                                    day,
+                                    year
+                                });
+                                
+                                // Format the date for display
+                                const formattedDate = client.birthdayManager.formatDate(month, day);
+                                const yearText = year ? `, ${year}` : "";
+                                
+                                const setBirthdayEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle("🎂 Birthday Set")
+                                    .setDescription(`Your birthday has been set to **${formattedDate}${yearText}**!`)
+                                    .setFooter({ text: "You will receive a celebration on your birthday!" });
+                                
+                                return message.reply({ embeds: [setBirthdayEmbed] });
+                                
+                            case "remove":
+                                // Remove the birthday
+                                const removed = client.birthdayManager.removeBirthday(message.guild.id, message.author.id);
+                                
+                                if (removed) {
+                                    const removeBirthdayEmbed = new EmbedBuilder()
+                                        .setColor(config.colors.success)
+                                        .setDescription("✅ Your birthday has been removed.");
+                                    
+                                    return message.reply({ embeds: [removeBirthdayEmbed] });
+                                } else {
+                                    return message.reply("You don't have a birthday set!");
+                                }
+                                
+                            case "list":
+                                // Get upcoming birthdays
+                                const upcomingBirthdays = client.birthdayManager.getUpcomingBirthdays(message.guild.id, 10);
+                                
+                                if (upcomingBirthdays.length === 0) {
+                                    return message.reply("No upcoming birthdays found! Set your birthday with `" + prefix + "birthday set MM/DD/YYYY`.");
+                                }
+                                
+                                // Create embed
+                                const upcomingEmbed = new EmbedBuilder()
+                                    .setColor("#FFC0CB") // Pink
+                                    .setTitle("🎂 Upcoming Birthdays")
+                                    .setDescription("Here are the upcoming birthdays in this server:")
+                                    .setThumbnail("https://i.imgur.com/1XXtUx0.gif");
+                                
+                                // Add each birthday to the embed
+                                for (const birthday of upcomingBirthdays) {
+                                    try {
+                                        const member = await message.guild.members.fetch(birthday.userId);
+                                        const formattedDate = client.birthdayManager.formatDate(birthday.month, birthday.day);
+                                        const yearText = birthday.year ? ` (Born: ${birthday.year})` : "";
+                                        const daysText = birthday.daysUntil === 0 ? "Today!" : birthday.daysUntil === 1 ? "Tomorrow!" : `In ${birthday.daysUntil} days`;
+                                        
+                                        upcomingEmbed.addFields({
+                                            name: `${member.displayName}${yearText}`,
+                                            value: `${formattedDate} - ${daysText}`
+                                        });
+                                    } catch (err) {
+                                        console.error(`Error fetching member ${birthday.userId}:`, err);
+                                    }
+                                }
+                                
+                                return message.reply({ embeds: [upcomingEmbed] });
+                                
+                            case "check":
+                                // Get the target user
+                                let targetUser = message.author;
+                                let targetMember = message.member;
+                                
+                                if (message.mentions.users.size > 0) {
+                                    targetUser = message.mentions.users.first();
+                                    targetMember = message.mentions.members.first();
+                                }
+                                
+                                // Get the birthday
+                                const birthday = client.birthdayManager.getBirthday(message.guild.id, targetUser.id);
+                                
+                                if (!birthday) {
+                                    return message.reply(targetUser.id === message.author.id ? 
+                                        "You don't have a birthday set! Set it with `" + prefix + "birthday set MM/DD/YYYY`." :
+                                        `${targetMember.displayName} doesn't have a birthday set!`
+                                    );
+                                }
+                                
+                                // Format the date for display
+                                const checkedFormattedDate = client.birthdayManager.formatDate(birthday.month, birthday.day);
+                                const checkedYearText = birthday.year ? `, ${birthday.year}` : "";
+                                
+                                // Calculate days until next birthday
+                                const today = new Date();
+                                const birthdayThisYear = new Date(today.getFullYear(), birthday.month - 1, birthday.day);
+                                const birthdayNextYear = new Date(today.getFullYear() + 1, birthday.month - 1, birthday.day);
+                                
+                                let daysUntil;
+                                if (birthdayThisYear < today) {
+                                    daysUntil = Math.ceil((birthdayNextYear - today) / (1000 * 60 * 60 * 24));
+                                } else {
+                                    daysUntil = Math.ceil((birthdayThisYear - today) / (1000 * 60 * 60 * 24));
+                                }
+                                
+                                const daysText = daysUntil === 0 ? "Today!" : daysUntil === 1 ? "Tomorrow!" : `In ${daysUntil} days`;
+                                
+                                // Create embed
+                                const checkEmbed = new EmbedBuilder()
+                                    .setColor("#FFC0CB") // Pink
+                                    .setTitle(`🎂 ${targetMember.displayName}'s Birthday`)
+                                    .setDescription(`**${checkedFormattedDate}${checkedYearText}**\nComing up: ${daysText}`)
+                                    .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }));
+                                
+                                return message.reply({ embeds: [checkEmbed] });
+                                
+                            case "channel":
+                                // Check permissions
+                                if (!message.member.permissions.has("ManageGuild")) {
+                                    return message.reply("You need the Manage Server permission to set the birthday channel!");
+                                }
+                                
+                                if (args.length < 2) {
+                                    const guildConfig = client.birthdayManager.getGuildConfig(message.guild.id);
+                                    
+                                    const currentChannel = guildConfig.announcementChannel ? 
+                                        `<#${guildConfig.announcementChannel}>` : "None";
+                                    
+                                    return message.reply(`Current birthday announcement channel: ${currentChannel}\n\nUse \`${prefix}${commandName} channel #channel\` to change it.`);
+                                }
+                                
+                                // Parse the channel
+                                const channelMention = args[1];
+                                const channelId = channelMention.replace(/[<#>]/g, "");
+                                
+                                // Verify the channel exists
+                                const channel = await message.guild.channels.fetch(channelId).catch(() => null);
+                                
+                                if (!channel) {
+                                    return message.reply("Invalid channel! Please mention a valid channel.");
+                                }
+                                
+                                // Set the channel
+                                client.birthdayManager.setAnnouncementChannel(message.guild.id, channelId);
+                                
+                                const channelEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setDescription(`✅ Birthday announcements will now be sent to ${channel}.`);
+                                
+                                return message.reply({ embeds: [channelEmbed] });
+                                
+                            case "role":
+                                // Check permissions
+                                if (!message.member.permissions.has("ManageGuild")) {
+                                    return message.reply("You need the Manage Server permission to set the birthday role!");
+                                }
+                                
+                                if (args.length < 2) {
+                                    const guildConfig = client.birthdayManager.getGuildConfig(message.guild.id);
+                                    
+                                    const currentRole = guildConfig.role ? 
+                                        `<@&${guildConfig.role}>` : "None";
+                                    
+                                    return message.reply(`Current birthday role: ${currentRole}\n\nUse \`${prefix}${commandName} role @role\` to change it.`);
+                                }
+                                
+                                // Parse the role
+                                const roleMention = args[1];
+                                const roleId = roleMention.replace(/[<@&>]/g, "");
+                                
+                                // Verify the role exists
+                                const role = await message.guild.roles.fetch(roleId).catch(() => null);
+                                
+                                if (!role) {
+                                    return message.reply("Invalid role! Please mention a valid role.");
+                                }
+                                
+                                // Set the role
+                                client.birthdayManager.setBirthdayRole(message.guild.id, roleId);
+                                
+                                const roleEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setDescription(`✅ The ${role} role will now be given to members on their birthday.`);
+                                
+                                return message.reply({ embeds: [roleEmbed] });
+                                
+                            default:
+                                return message.reply(`Unknown subcommand. Use \`${prefix}${commandName}\` to see all available commands.`);
+                        }
+                        
+                    } catch (error) {
+                        console.error("Error with birthday command:", error);
+                        return message.reply(error.message || "There was an error processing your request! Please try again later.");
+                    }
+                    break;
+
                 case "ticket":
                     // Check permissions
                     if (!message.member.permissions.has("ManageGuild")) {
