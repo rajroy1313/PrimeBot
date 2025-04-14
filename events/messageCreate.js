@@ -1231,18 +1231,15 @@ module.exports = {
                             {
                                 name: "✅ Recent Updates",
                                 value:
+                                    "• Added Birthday celebration system with $birthday commands\n" +
                                     "• Added Poll system with $poll and $endpoll commands\n" +
                                     "• Added Multiplayer TicTacToe game with $tictactoe, $move, and $tend commands\n" +
                                     "• Added ticket system for support requests\n" +
-
                                     "• Added echo command for fun interactions",
                             },{ name: '🔜 Coming Soon', value: 
-
                                 '• Leveling system\n' +
-                                '• Birthday celebration system\n'+
-
-                                '• Games\n' +
-
+                                '• Custom reaction roles\n' +
+                                '• Server statistics tracking\n' +
                                 '• Auto-responses for common questions'
                                   
                             },
