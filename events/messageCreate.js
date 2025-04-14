@@ -325,6 +325,26 @@ module.exports = {
                                 value: "Ends a poll early",
                             },
                             {
+                                name: `${prefix}birthday set [month] [day] [year]`,
+                                value: "Sets your birthday in the server (year is optional)",
+                            },
+                            {
+                                name: `${prefix}birthday remove`,
+                                value: "Removes your birthday from the server",
+                            },
+                            {
+                                name: `${prefix}birthday list`,
+                                value: "Shows upcoming birthdays in the server",
+                            },
+                            {
+                                name: `${prefix}birthday channel [#channel]`,
+                                value: "Sets the birthday announcement channel (requires Manage Server permission)",
+                            },
+                            {
+                                name: `${prefix}birthday role [@role]`,
+                                value: "Sets the birthday role to assign (requires Manage Server permission)",
+                            },
+                            {
                                 name: `${prefix}birthday [subcommand]`,
                                 value: "Birthday celebration system commands",
                             },
