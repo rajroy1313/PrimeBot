@@ -7,7 +7,8 @@ module.exports = {
         primary: '#5865F2', // Discord blurple color
         success: '#57F287', // Green color for success messages
         error: '#ED4245',   // Red color for error messages
-        warning: '#FEE75C'  // Yellow color for warning messages
+        warning: '#FEE75C',  // Yellow color for warning messages
+        Gold: "#FFD700"
     },
     
     // Welcome system configuration

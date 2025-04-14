@@ -52,6 +52,10 @@ client.ticTacToeManager = new TicTacToeManager(client);
 const PollManager = require('./utils/pollManager');
 client.pollManager = new PollManager(client);
 
+// Initialize birthday manager
+const BirthdayManager = require('./utils/birthdayManager');
+client.birthdayManager = new BirthdayManager(client);
+
 // Make client globally available for the website
 global.client = client;
 
