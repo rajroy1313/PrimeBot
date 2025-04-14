@@ -80,7 +80,7 @@ module.exports = {
 
                             iconURL: client.user.displayAvatarURL(),
 
-                        text: `Current Version: 1.0.6`,
+                        text: `Current Version: 1.1.0`,
                     })
                     .setTimestamp();
 
@@ -358,7 +358,7 @@ module.exports = {
                         )
                         .setTimestamp()
                         .setFooter({
-                            text: `Requested by ${message.author.tag} Current Version: 1.0.6`,
+                            text: `Requested by ${message.author.tag} Current Version: 1.1.0`,
                             iconURL: message.author.displayAvatarURL({
                                 dynamic: true,
                             }),
@@ -434,7 +434,7 @@ module.exports = {
                                 `✅ Giveaway created successfully for **${prize}**!`,
                             ).setFooter({
 
-                            text: `Current Version: 1.0.6`,
+                            text: `Current Version: 1.1.0`,
 
                             iconURL: client.user.displayAvatarURL(),
 
@@ -482,7 +482,7 @@ module.exports = {
                                 )
                             .setFooter({
 
-                            text: `Current Version: 1.0.6`,
+                            text: `Current Version: 1.1.0`,
 
                             iconURL: client.user.displayAvatarURL(),
 
@@ -534,7 +534,7 @@ module.exports = {
                                 )
                             .setFooter({
 
-                            text: `Current Version: 1.0.6`,
+                            text: `Current Version: 1.1.0`,
 
                             iconURL: client.user.displayAvatarURL(),
 
@@ -584,7 +584,7 @@ module.exports = {
                         .setColor(config.colors.success)
                         .setDescription("✅ Message echoed successfully!")
                         .setFooter({
-                            text: `Echoed by ${message.author.tag} Current Version: 1.0.6`,
+                            text: `Echoed by ${message.author.tag} Current Version: 1.1.0`,
                             iconURL: message.author.displayAvatarURL({
                                 dynamic: true,
                             }),
@@ -681,7 +681,7 @@ module.exports = {
                             .setDescription("✅ Poll created successfully!")
 .setFooter({
 
-                            text: `Current Version: 1.0.6`,
+                            text: `Current Version: 1.1.0`,
 
                             iconURL: client.user.displayAvatarURL(),
 
@@ -1282,7 +1282,7 @@ module.exports = {
                         )
                         .setTimestamp()
                         .setFooter({
-                            text: `Bot Version: 1.0.6`,
+                            text: `Bot Version: 1.1.0`,
                             iconURL: client.user.displayAvatarURL(),
                         });
 
@@ -1317,7 +1317,7 @@ module.exports = {
                         )
                         .setTimestamp()
                         .setFooter({
-                            text: `Current Version: 1.0.6`,
+                            text: `Current Version: 1.1.0`,
                             iconURL: client.user.displayAvatarURL(),
                         });
 
