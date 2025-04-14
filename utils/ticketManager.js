@@ -108,8 +108,9 @@ class TicketManager {
     /**
      * Handle ticket creation button interaction
      * @param {Interaction} interaction - The button interaction
+     * @param {string} customName - Optional custom ticket name
      */
-    async handleTicketCreation(interaction) {
+    async handleTicketCreation(interaction, customName = null) {
         try {
             // Defer the reply to avoid interaction timeout
             await interaction.deferReply({ ephemeral: true });
@@ -131,7 +132,12 @@ class TicketManager {
             const supportRoles = this.tickets.supportConfig?.[channelId] || [];
             
             // Create thread name
-            const threadName = `ticket-${user.username}-${Date.now().toString().slice(-4)}`;
+            let threadName = `ticket-${user.username}-${Date.now().toString().slice(-4)}`;
+            
+            // Use custom name if provided
+            if (customName) {
+                threadName = `ticket-${customName}-${user.username}`.substring(0, 100);
+            }
             
             // Get the channel
             const channel = await this.client.channels.fetch(channelId);
@@ -155,14 +161,15 @@ class TicketManager {
                 userName: user.tag,
                 threadName,
                 createdAt: new Date().toISOString(),
-                supportRoles
+                supportRoles,
+                customName: customName || null
             };
             this.saveTickets();
             
             // Create welcome embed for the thread
             const welcomeEmbed = new EmbedBuilder()
                 .setColor(config.colors.primary)
-                .setTitle('Support Ticket')
+                .setTitle(customName ? `Support Ticket: ${customName}` : 'Support Ticket')
                 .setDescription(`Hello ${user}, support staff will be with you shortly.\nPlease describe your issue in detail.`)
                 .addFields({ name: 'Ticket ID', value: ticketId })
                 .setTimestamp()
