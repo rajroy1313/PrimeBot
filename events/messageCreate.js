@@ -80,7 +80,7 @@ module.exports = {
 
                             iconURL: client.user.displayAvatarURL(),
 
-                        text: `Current Version: 1.0.5`,
+                        text: `Current Version: 1.0.6`,
                     })
                     .setTimestamp();
 
@@ -290,11 +290,14 @@ module.exports = {
                             {
                                 name: `${prefix}ticket [channel] (roles)`,
                                 value: "Creates a ticket panel",
-
+                            },
+                            {
+                                name: `${prefix}tcreate [channel-id] [ticket-name]`,
+                                value: "Creates a ticket with a custom name",
                             },
                             {
                                 name: `${prefix}thistory (page)`,
-                                value: "Shows ticket history ",
+                                value: "Shows ticket history",
                             },
                             {
                                 name: `${prefix}ab`,
@@ -355,7 +358,7 @@ module.exports = {
                         )
                         .setTimestamp()
                         .setFooter({
-                            text: `Requested by ${message.author.tag} Current Version: 1.0.5`,
+                            text: `Requested by ${message.author.tag} Current Version: 1.0.6`,
                             iconURL: message.author.displayAvatarURL({
                                 dynamic: true,
                             }),
@@ -431,7 +434,7 @@ module.exports = {
                                 `✅ Giveaway created successfully for **${prize}**!`,
                             ).setFooter({
 
-                            text: `Current Version: 1.0.5`,
+                            text: `Current Version: 1.0.6`,
 
                             iconURL: client.user.displayAvatarURL(),
 
@@ -479,7 +482,7 @@ module.exports = {
                                 )
                             .setFooter({
 
-                            text: `Current Version: 1.0.5`,
+                            text: `Current Version: 1.0.6`,
 
                             iconURL: client.user.displayAvatarURL(),
 
@@ -531,7 +534,7 @@ module.exports = {
                                 )
                             .setFooter({
 
-                            text: `Current Version: 1.0.5`,
+                            text: `Current Version: 1.0.6`,
 
                             iconURL: client.user.displayAvatarURL(),
 
@@ -581,7 +584,7 @@ module.exports = {
                         .setColor(config.colors.success)
                         .setDescription("✅ Message echoed successfully!")
                         .setFooter({
-                            text: `Echoed by ${message.author.tag} Current Version: 1.0.5`,
+                            text: `Echoed by ${message.author.tag} Current Version: 1.0.6`,
                             iconURL: message.author.displayAvatarURL({
                                 dynamic: true,
                             }),
@@ -678,7 +681,7 @@ module.exports = {
                             .setDescription("✅ Poll created successfully!")
 .setFooter({
 
-                            text: `Current Version: 1.0.5`,
+                            text: `Current Version: 1.0.6`,
 
                             iconURL: client.user.displayAvatarURL(),
 
@@ -1279,7 +1282,7 @@ module.exports = {
                         )
                         .setTimestamp()
                         .setFooter({
-                            text: `Bot Version: 1.0.5`,
+                            text: `Bot Version: 1.0.6`,
                             iconURL: client.user.displayAvatarURL(),
                         });
 
@@ -1289,7 +1292,7 @@ module.exports = {
                     // Create update log embed
                     const updateEmbed = new EmbedBuilder()
                         .setColor(config.colors.success)
-                        .setTitle("Update Log | Updated on 12/04/2025")
+                        .setTitle("Update Log | Updated on 14/04/2025")
                         .setDescription(
                             "Keep track of the latest updates and upcoming features!",
                         )
@@ -1297,6 +1300,8 @@ module.exports = {
                             {
                                 name: "✅ Recent Updates",
                                 value:
+                                    "• Added custom ticket names with $tcreate command\n" +
+                                    "• Added developer broadcast system\n" +
                                     "• Added Birthday celebration system with $birthday commands\n" +
                                     "• Added Poll system with $poll and $endpoll commands\n" +
                                     "• Added Multiplayer TicTacToe game with $tictactoe, $move, and $tend commands\n" +
@@ -1312,7 +1317,7 @@ module.exports = {
                         )
                         .setTimestamp()
                         .setFooter({
-                            text: `Current Version: 1.0.5`,
+                            text: `Current Version: 1.0.6`,
                             iconURL: client.user.displayAvatarURL(),
                         });
 
