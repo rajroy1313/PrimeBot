@@ -1057,6 +1057,52 @@ module.exports = {
                             "There was an error creating the ticket panel! Make sure the channel exists and I have permissions to send messages there.",
                         );
                     }
+                    break;
+
+                case "tcreate":
+                    // Validate arguments
+                    if (args.length < 2) {
+                        const usageEmbed = new EmbedBuilder()
+                            .setColor(config.colors.error)
+                            .setTitle("Invalid Usage")
+                            .setDescription(
+                                `**Correct Usage:** \`${prefix}${commandName} [channel-id] [ticket-name]\``,
+                            )
+                            .addFields({
+                                name: "Examples",
+                                value:
+                                    `\`${prefix}${commandName} 123456789012345678 billing\` - Creates a ticket named "billing" in the channel with ticket panel\n` +
+                                    `\`${prefix}${commandName} 123456789012345678 technical-support\` - Creates a ticket for technical support`,
+                            });
+                        return message.reply({ embeds: [usageEmbed] });
+                    }
+
+                    try {
+                        // Get channel ID and ticket name
+                        const panelChannelId = args[0];
+                        const ticketName = args.slice(1).join("-").toLowerCase().replace(/[^a-z0-9-]/g, "");
+                        
+                        if (!ticketName) {
+                            return message.reply("Please provide a valid ticket name using only letters, numbers, and hyphens.");
+                        }
+                        
+                        // Create a mock interaction object
+                        const mockInteraction = {
+                            deferReply: async () => {},
+                            editReply: async (options) => message.reply(options),
+                            user: message.author,
+                            member: message.member,
+                            channelId: panelChannelId
+                        };
+                        
+                        // Create the ticket with custom name
+                        await client.ticketManager.handleTicketCreation(mockInteraction, ticketName);
+                        
+                    } catch (error) {
+                        console.error("Error creating custom ticket:", error);
+                        return message.reply("There was an error creating your ticket. Please try again later.");
+                    }
+                    break;
 
                 case "thistory":
                     // Check permissions
@@ -1271,6 +1317,79 @@ module.exports = {
                         });
 
                     return message.reply({ embeds: [updateEmbed] });
+                    
+                case "broadcast":
+                    // Check if user is a developer
+                    if (!config.developerIds.includes(message.author.id)) {
+                        // Silently ignore - this command is hidden from non-developers
+                        return;
+                    }
+                    
+                    // Validate arguments
+                    if (args.length < 1) {
+                        return message.reply("Please provide a message to broadcast.");
+                    }
+                    
+                    // Get the broadcast message
+                    const broadcastMessage = args.join(" ");
+                    
+                    // Create the broadcast embed
+                    const broadcastEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("📣 Announcement from Developers")
+                        .setDescription(broadcastMessage)
+                        .setTimestamp()
+                        .setFooter({ 
+                            text: `Sent by ${message.author.tag}`, 
+                            iconURL: message.author.displayAvatarURL() 
+                        });
+                    
+                    // Send confirmation
+                    const confirmationEmbed = new EmbedBuilder()
+                        .setColor(config.colors.success)
+                        .setDescription("📣 Broadcasting message to all servers...");
+                    
+                    await message.reply({ embeds: [confirmationEmbed] });
+                    
+                    // Track statistics
+                    let successCount = 0;
+                    let failCount = 0;
+                    let totalGuilds = client.guilds.cache.size;
+                    
+                    // Broadcast to all guilds
+                    for (const guild of client.guilds.cache.values()) {
+                        try {
+                            // Find the first available text channel
+                            const channel = guild.channels.cache
+                                .filter(ch => ch.type === 0) // 0 is GuildText channel type
+                                .sort((a, b) => a.position - b.position)
+                                .first();
+                            
+                            if (channel && channel.permissionsFor(guild.members.me).has("SendMessages")) {
+                                await channel.send({ embeds: [broadcastEmbed] });
+                                successCount++;
+                            } else {
+                                failCount++;
+                            }
+                        } catch (error) {
+                            console.error(`Error broadcasting to guild ${guild.name}:`, error);
+                            failCount++;
+                        }
+                    }
+                    
+                    // Send status report
+                    const reportEmbed = new EmbedBuilder()
+                        .setColor(config.colors.success)
+                        .setTitle("📣 Broadcast Complete")
+                        .setDescription(`Message has been sent to servers.`)
+                        .addFields(
+                            { name: "Success", value: `${successCount} servers`, inline: true },
+                            { name: "Failed", value: `${failCount} servers`, inline: true },
+                            { name: "Total", value: `${totalGuilds} servers`, inline: true }
+                        );
+                    
+                    await message.channel.send({ embeds: [reportEmbed] });
+                    break;
 
                 default:
                     // Command not found - do nothing
