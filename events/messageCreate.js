@@ -113,7 +113,128 @@ module.exports = {
                 return parts.join(" ") || "0s";
             }
 
-            // Check if message starts with prefix
+            // Check if message starts with emoji prefix (A!)
+            const emojiPrefix = "A!";
+            if (message.content.startsWith(emojiPrefix)) {
+                // Handle emoji commands
+                const args = message.content.slice(emojiPrefix.length).trim().split(/ +/);
+                const commandName = args.shift().toLowerCase();
+
+                // Process emoji commands
+                switch (commandName) {
+                    case "emojis":
+                        // Get all emojis and display them in an embed
+                        const emojiListEmbed = client.emojiManager.createEmojiListEmbed();
+                        return message.reply({ embeds: [emojiListEmbed] });
+                        
+                    case "eadd":
+                        // Check permissions
+                        if (!message.member.permissions.has("ManageMessages") && !message.member.permissions.has("ManageGuild")) {
+                            return message.reply("You need the Manage Messages permission to add custom emojis!");
+                        }
+                        
+                        // Validate arguments
+                        if (args.length < 2) {
+                            return message.reply(`**Correct Usage:** \`${emojiPrefix}${commandName} [name] [emoji]\``);
+                        }
+                        
+                        // Get emoji name and emoji
+                        const emojiName = args[0].toLowerCase();
+                        const emojiValue = args[1];
+                        
+                        // Validate emoji name (no spaces, special characters)
+                        if (!/^[a-z0-9_]+$/.test(emojiName)) {
+                            return message.reply("Emoji names can only contain lowercase letters, numbers, and underscores.");
+                        }
+                        
+                        // Add the emoji
+                        const added = client.emojiManager.addEmoji(emojiName, emojiValue);
+                        
+                        if (added) {
+                            const addEmbed = new EmbedBuilder()
+                                .setColor(config.colors.success)
+                                .setDescription(`✅ Added emoji **${emojiName}**: ${emojiValue}`);
+                            
+                            return message.reply({ embeds: [addEmbed] });
+                        } else {
+                            return message.reply(`An emoji with the name "${emojiName}" already exists.`);
+                        }
+                        
+                    case "eremove":
+                    case "edel":
+                        // Check permissions
+                        if (!message.member.permissions.has("ManageMessages") && !message.member.permissions.has("ManageGuild")) {
+                            return message.reply("You need the Manage Messages permission to remove custom emojis!");
+                        }
+                        
+                        // Validate arguments
+                        if (args.length < 1) {
+                            return message.reply(`**Correct Usage:** \`${emojiPrefix}${commandName} [name]\``);
+                        }
+                        
+                        // Get emoji name
+                        const emojiToRemove = args[0].toLowerCase();
+                        
+                        // Remove the emoji
+                        const removed = client.emojiManager.removeEmoji(emojiToRemove);
+                        
+                        if (removed) {
+                            const removeEmbed = new EmbedBuilder()
+                                .setColor(config.colors.success)
+                                .setDescription(`✅ Removed emoji **${emojiToRemove}**`);
+                            
+                            return message.reply({ embeds: [removeEmbed] });
+                        } else {
+                            return message.reply(`No emoji with the name "${emojiToRemove}" exists.`);
+                        }
+                        
+                    case "e":
+                        // Send an emoji by name
+                        if (args.length < 1) {
+                            return message.reply(`**Correct Usage:** \`${emojiPrefix}${commandName} [name]\``);
+                        }
+                        
+                        const emojiToSend = args[0].toLowerCase();
+                        const emoji = client.emojiManager.getEmoji(emojiToSend);
+                        
+                        if (emoji) {
+                            return message.channel.send(emoji);
+                        } else {
+                            return message.reply(`No emoji with the name "${emojiToSend}" exists.`);
+                        }
+                        
+                    case "ehelp":
+                        // Display help for emoji commands
+                        const emojiHelpEmbed = new EmbedBuilder()
+                            .setColor(config.colors.primary)
+                            .setTitle("Emoji Commands")
+                            .setDescription("Here are all available emoji commands:")
+                            .addFields(
+                                { name: `${emojiPrefix}emojis`, value: "Show all available custom emojis" },
+                                { name: `${emojiPrefix}eadd [name] [emoji]`, value: "Add a new custom emoji (requires Manage Messages permission)" },
+                                { name: `${emojiPrefix}eremove [name]`, value: "Remove a custom emoji (requires Manage Messages permission)" },
+                                { name: `${emojiPrefix}e [name]`, value: "Send a custom emoji in the current channel" },
+                                { name: `${emojiPrefix}ehelp`, value: "Show this help message" }
+                            );
+                            
+                        return message.reply({ embeds: [emojiHelpEmbed] });
+                        
+                    default:
+                        // Check if it's an emoji name
+                        const customEmoji = client.emojiManager.getEmoji(commandName);
+                        if (customEmoji) {
+                            return message.channel.send(customEmoji);
+                        }
+                        
+                        // Unknown command
+                        return message.reply(`Unknown emoji command. Use \`${emojiPrefix}ehelp\` to see available commands.`);
+                }
+                
+                // We don't need to continue processing after emoji commands
+                return;
+            }
+
+            // Check if message starts with regular prefix
             if (!message.content.startsWith(prefix)) return;
 
             // Parse command and arguments
@@ -202,6 +323,14 @@ module.exports = {
                             {
                                 name: `${prefix}endpoll [message_id]`,
                                 value: "Ends a poll early",
+                            },
+                            {
+                                name: `${prefix}birthday [subcommand]`,
+                                value: "Birthday celebration system commands",
+                            },
+                            {
+                                name: "Emoji Commands (A! prefix)",
+                                value: "Use `A!ehelp` to see all emoji commands",
                             },
                         )
                         .setTimestamp()

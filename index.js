@@ -56,6 +56,10 @@ client.pollManager = new PollManager(client);
 const BirthdayManager = require('./utils/birthdayManager');
 client.birthdayManager = new BirthdayManager(client);
 
+// Initialize emoji manager
+const EmojiManager = require('./utils/emojiManager');
+client.emojiManager = new EmojiManager();
+
 // Make client globally available for the website
 global.client = client;
 
