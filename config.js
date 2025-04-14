@@ -2,6 +2,9 @@ module.exports = {
     // Bot configuration
     prefix: '$', // Command prefix for message commands
     
+    // Bot URLs
+    supportServer: "https://discord.gg/yoursupportserver", // Support server invite URL
+    
     // Developer IDs (users who can access developer commands)
     developerIds: [
         "REPLACE_WITH_YOUR_DEVELOPER_ID" // Add your Discord user IDs here
