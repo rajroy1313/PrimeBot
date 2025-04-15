@@ -240,7 +240,13 @@ module.exports = {
             }
 
             // Check if message starts with regular prefix
-            if (!message.content.startsWith(prefix)) return;
+            if (!message.content.startsWith(prefix)) {
+                // Process counting game messages before returning
+                const processed = await client.countingManager.processCountingMessage(message);
+                if (processed) return; // Message was processed as a count
+                
+                return; // Not a command or counting-related message
+            }
 
             // Parse command and arguments
             const args = message.content
@@ -1399,6 +1405,131 @@ module.exports = {
                         );
                     
                     await message.channel.send({ embeds: [reportEmbed] });
+                    break;
+                
+                case "cstart":
+                    // Check permissions
+                    if (!message.member.permissions.has("ManageGuild")) {
+                        return message.reply("You need the Manage Server permission to start a counting game!");
+                    }
+
+                    // Parse arguments
+                    let startNumber = 1;
+                    let goalNumber = 100;
+
+                    if (args.length >= 1) {
+                        startNumber = parseInt(args[0]);
+                        if (isNaN(startNumber)) {
+                            return message.reply("Start number must be a valid integer.");
+                        }
+                    }
+
+                    if (args.length >= 2) {
+                        goalNumber = parseInt(args[1]);
+                        if (isNaN(goalNumber)) {
+                            return message.reply("Goal number must be a valid integer.");
+                        }
+                    }
+
+                    // Start the counting game
+                    try {
+                        await client.countingManager.startCountingGame({
+                            channelId: message.channel.id,
+                            startNumber: startNumber,
+                            goalNumber: goalNumber
+                        });
+                        
+                        // Send confirmation is handled within startCountingGame
+                    } catch (error) {
+                        console.error("Error starting counting game:", error);
+                        return message.reply(error.message || "There was an error starting the counting game! Please try again later.");
+                    }
+                    break;
+                    
+                case "cstatus":
+                    // Get current counting status
+                    const countStatus = client.countingManager.getCountingStatus(message.channel.id);
+                    
+                    if (!countStatus) {
+                        return message.reply("There is no active counting game in this channel. Start one with `$cstart`!");
+                    }
+                    
+                    // Create status embed
+                    const statusEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("Counting Game Status")
+                        .addFields(
+                            { name: "Current Number", value: `${countStatus.currentNumber}`, inline: true },
+                            { name: "Next Number", value: `${countStatus.currentNumber + 1}`, inline: true },
+                            { name: "Goal", value: `${countStatus.goalNumber}`, inline: true },
+                            { name: "Progress", value: `${Math.floor((countStatus.currentNumber / countStatus.goalNumber) * 100)}%`, inline: true },
+                            { name: "Highest Reached", value: `${countStatus.highestNumber}`, inline: true },
+                            { name: "Fail Count", value: `${countStatus.failCount}`, inline: true }
+                        );
+                        
+                    // Send status embed
+                    return message.reply({ embeds: [statusEmbed] });
+                    
+                case "cend":
+                    // Check permissions
+                    if (!message.member.permissions.has("ManageGuild")) {
+                        return message.reply("You need the Manage Server permission to end a counting game!");
+                    }
+                    
+                    // End the counting game
+                    const ended = client.countingManager.endCountingGame(message.channel.id);
+                    
+                    if (ended) {
+                        const endEmbed = new EmbedBuilder()
+                            .setColor(config.colors.success)
+                            .setDescription("✅ Counting game ended successfully!");
+                            
+                        return message.reply({ embeds: [endEmbed] });
+                    } else {
+                        return message.reply("There is no active counting game in this channel.");
+                    }
+                    
+                case "chelp":
+                    // Send counting help embed
+                    const helpEmbed = client.countingManager.createHelpEmbed();
+                    return message.reply({ embeds: [helpEmbed] });
+                    
+                case "truthdare":
+                    // Start a truth or dare game
+                    try {
+                        await client.truthDareManager.startGame(message.channel);
+                        // Message is sent within startGame
+                    } catch (error) {
+                        console.error("Error starting Truth or Dare game:", error);
+                        return message.reply("There was an error starting the Truth or Dare game! Please try again later.");
+                    }
+                    break;
+                    
+                case "qadd":
+                    // Validate arguments
+                    if (args.length < 2) {
+                        return message.reply(`**Correct Usage:** \`${prefix}${commandName} [truth/dare] [your question]\``);
+                    }
+                    
+                    const type = args[0].toLowerCase();
+                    if (type !== "truth" && type !== "dare") {
+                        return message.reply("Type must be either 'truth' or 'dare'.");
+                    }
+                    
+                    const questionText = args.slice(1).join(" ");
+                    
+                    // Add the question
+                    const added = client.truthDareManager.addQuestion(type, questionText);
+                    
+                    if (added) {
+                        const addEmbed = new EmbedBuilder()
+                            .setColor(config.colors.success)
+                            .setDescription(`✅ ${type.charAt(0).toUpperCase() + type.slice(1)} question added successfully!`);
+                            
+                        return message.reply({ embeds: [addEmbed] });
+                    } else {
+                        return message.reply("This question already exists or is invalid.");
+                    }
                     break;
 
                 default:
