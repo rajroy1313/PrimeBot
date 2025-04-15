@@ -60,6 +60,14 @@ client.birthdayManager = new BirthdayManager(client);
 const EmojiManager = require('./utils/emojiManager');
 client.emojiManager = new EmojiManager();
 
+// Initialize counting game manager
+const CountingManager = require('./utils/countingManager');
+client.countingManager = new CountingManager(client);
+
+// Initialize truth or dare game manager
+const TruthDareManager = require('./utils/truthDareManager');
+client.truthDareManager = new TruthDareManager(client);
+
 // Make client globally available for the website
 global.client = client;
 
