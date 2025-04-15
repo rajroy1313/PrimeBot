@@ -366,6 +366,30 @@ module.exports = {
                                 name: "Emoji Commands (A! prefix)",
                                 value: "Use `A!ehelp` to see all emoji commands",
                             },
+                            {
+                                name: `${prefix}cstart [start] [goal]`,
+                                value: "Start a number counting game (requires Manage Server permission)",
+                            },
+                            {
+                                name: `${prefix}cstatus`,
+                                value: "Check the status of the current counting game",
+                            },
+                            {
+                                name: `${prefix}cend`,
+                                value: "End the current counting game (requires Manage Server permission)",
+                            },
+                            {
+                                name: `${prefix}chelp`,
+                                value: "Show help for the counting game",
+                            },
+                            {
+                                name: `${prefix}truthdare`,
+                                value: "Start a Truth or Dare game with interactive buttons",
+                            },
+                            {
+                                name: `${prefix}qadd [truth/dare] [question]`,
+                                value: "Add a custom truth or dare question to the collection",
+                            },
                         )
                         .setTimestamp()
                         .setFooter({
