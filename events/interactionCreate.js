@@ -1,11 +1,39 @@
+const { Collection } = require('discord.js');
+
 module.exports = {
     name: 'interactionCreate',
     async execute(interaction, client) {
         try {
-            // We no longer handle slash commands, only button interactions
-            
-            // Handle giveaway reactions
-            if (interaction.isButton()) {
+            // Handle slash commands
+            if (interaction.isChatInputCommand()) {
+                const command = client.commands.get(interaction.commandName);
+                
+                if (!command) {
+                    console.error(`No command matching ${interaction.commandName} was found.`);
+                    return;
+                }
+                
+                try {
+                    await command.execute(interaction);
+                } catch (error) {
+                    console.error(`Error executing ${interaction.commandName}:`, error);
+                    
+                    // Handle error responses to users
+                    if (interaction.replied || interaction.deferred) {
+                        await interaction.followUp({ 
+                            content: 'There was an error while executing this command!', 
+                            ephemeral: true 
+                        });
+                    } else {
+                        await interaction.reply({ 
+                            content: 'There was an error while executing this command!', 
+                            ephemeral: true 
+                        });
+                    }
+                }
+            }
+            // Handle button interactions
+            else if (interaction.isButton()) {
                 if (interaction.customId === 'giveaway-enter') {
                     await client.giveawayManager.handleGiveawayEntry(interaction);
                 }

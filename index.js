@@ -19,8 +19,22 @@ const client = new Client({
 // Initialize collections for commands
 client.commands = new Collection();
 
-// We've removed loading slash commands since we're only using message commands now
-// The commands are handled directly in the messageCreate event
+// Load slash commands from the commands directory
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+    
+    // Set a new item in the Collection with the key as the command name and the value as the exported module
+    if ('data' in command && 'execute' in command) {
+        debug(`Loading slash command: ${command.data.name}`);
+        client.commands.set(command.data.name, command);
+    } else {
+        debug(`[WARNING] The command at ${filePath} is missing required "data" or "execute" property.`);
+    }
+}
 
 // Load event handlers
 const eventsPath = path.join(__dirname, 'events');
