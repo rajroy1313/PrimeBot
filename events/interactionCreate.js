@@ -6,6 +6,7 @@ module.exports = {
         try {
             // Handle slash commands
             if (interaction.isChatInputCommand()) {
+                console.log(`Received slash command: ${interaction.commandName} from ${interaction.user.tag}`);
                 const command = client.commands.get(interaction.commandName);
                 
                 if (!command) {
@@ -16,6 +17,7 @@ module.exports = {
                 try {
                     console.log(`Executing command: ${interaction.commandName}`);
                     await command.execute(interaction);
+                    console.log(`Command ${interaction.commandName} executed successfully`);
                 } catch (error) {
                     console.error(`Error executing ${interaction.commandName}:`, error);
                     
