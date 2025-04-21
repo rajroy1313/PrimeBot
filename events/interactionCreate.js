@@ -1,4 +1,5 @@
 const { Collection } = require('discord.js');
+const { logCommandExecution, logError } = require('../utils/logUtils');
 
 module.exports = {
     name: 'interactionCreate',
@@ -6,20 +7,33 @@ module.exports = {
         try {
             // Handle slash commands
             if (interaction.isChatInputCommand()) {
-                console.log(`Received slash command: ${interaction.commandName} from ${interaction.user.tag}`);
+                console.log(`SLASH COMMAND DEBUG: Received slash command: ${interaction.commandName} from ${interaction.user.tag} in ${interaction.guild ? interaction.guild.name : 'DM'}`);
+                
                 const command = client.commands.get(interaction.commandName);
                 
                 if (!command) {
-                    console.error(`No command matching ${interaction.commandName} was found.`);
+                    console.error(`SLASH COMMAND DEBUG: No command matching ${interaction.commandName} was found in the commands collection!`);
+                    console.log(`SLASH COMMAND DEBUG: Available commands: ${Array.from(client.commands.keys()).join(', ')}`);
                     return;
                 }
                 
                 try {
-                    console.log(`Executing command: ${interaction.commandName}`);
+                    // Log detailed command execution
+                    logCommandExecution(interaction.commandName, interaction);
+                    
+                    // Check if execute function exists
+                    if (typeof command.execute !== 'function') {
+                        console.error(`SLASH COMMAND DEBUG: Command ${interaction.commandName} doesn't have a valid execute function!`);
+                        return;
+                    }
+                    
+                    // Execute the command
+                    console.log(`SLASH COMMAND DEBUG: Executing command: ${interaction.commandName}`);
                     await command.execute(interaction);
-                    console.log(`Command ${interaction.commandName} executed successfully`);
+                    console.log(`SLASH COMMAND DEBUG: Command ${interaction.commandName} executed successfully`);
                 } catch (error) {
-                    console.error(`Error executing ${interaction.commandName}:`, error);
+                    logError(`Command ${interaction.commandName}`, error);
+                    console.error(`SLASH COMMAND DEBUG: Error executing ${interaction.commandName}:`, error);
                     
                     // Handle error responses to users
                     try {

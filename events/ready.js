@@ -1,4 +1,5 @@
 const { ActivityType } = require("discord.js");
+const { logServerActivity } = require('../utils/logUtils');
 
 module.exports = {
     name: "ready",
@@ -8,6 +9,19 @@ module.exports = {
 
         // Start checking for ended giveaways
         client.giveawayManager.startCheckingGiveaways();
+
+        // Debug: List all registered slash commands
+        console.log('\n===== SLASH COMMANDS DEBUG =====');
+        console.log(`Commands collection size: ${client.commands.size}`);
+        if (client.commands.size === 0) {
+            console.log('WARNING: No commands are loaded in the collection!');
+        } else {
+            console.log('Registered commands:');
+            client.commands.forEach((cmd, name) => {
+                console.log(`- ${name}: ${cmd.data ? 'Has data' : 'No data'}, ${typeof cmd.execute === 'function' ? 'Has execute function' : 'No execute function'}`);
+            });
+        }
+        console.log('=================================\n');
 
         // Set bot nickname for all guilds
         client.guilds.cache.forEach((guild) => {
@@ -25,7 +39,7 @@ module.exports = {
         client.user.setPresence({
             activities: [
                 {
-                    name: `${client.guilds.cache.size} servers`,
+                    name: `${client.guilds.cache.size} servers | /help`,
                     type: ActivityType.Watching,
                 },
             ],
@@ -38,7 +52,7 @@ module.exports = {
                 client.user.setPresence({
                     activities: [
                         {
-                            name: `${client.guilds.cache.size} servers`,
+                            name: `${client.guilds.cache.size} servers | /help`,
                             type: ActivityType.Watching,
                         },
                     ],
@@ -51,6 +65,12 @@ module.exports = {
         console.log(
             `Bot is ready! Serving ${client.guilds.cache.size} servers.`,
         );
+        
+        // Log server names for debugging
+        logServerActivity(`Bot is serving the following servers:`);
+        client.guilds.cache.forEach(guild => {
+            logServerActivity(`- ${guild.name} (ID: ${guild.id}, Members: ${guild.memberCount})`);
+        });
     },
 };
 //
