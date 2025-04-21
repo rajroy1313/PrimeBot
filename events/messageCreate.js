@@ -35,13 +35,13 @@ module.exports = {
                     .setLabel("Invite Me")
                     .setStyle(ButtonStyle.Link)
                     .setURL(
-                        `https://discord.com/api/oauth2/authorize?client_id=${client.user.id}&permissions=274878024704&scope=bot%20applications.commands`,
+                        `https://discord.com/api/oauth2/authorize?client_id=${client.user.id}&permissions=563242011339808&scope=bot%20applications.commands`,
                     );
                     
                 const supportServerButton = new ButtonBuilder()
                     .setLabel("Support Server")
                     .setStyle(ButtonStyle.Link)
-                    .setURL(config.supportServer);
+                    .setURL(config.supportServer.inviteUrl);
 
                 const row = new ActionRowBuilder().addComponents(inviteButton, supportServerButton);
 
@@ -69,7 +69,7 @@ module.exports = {
                         },
                         {
                             name: "🔧 Commands",
-                            value: `Type \`${prefix}commands\` to see all available commands!`,
+                            value: `Type \`${prefix}help\` to see all available commands!`,
                         },
                     )
                     .setThumbnail(
@@ -85,7 +85,7 @@ module.exports = {
 
                             iconURL: client.user.displayAvatarURL(),
 
-                        text: `Current Version: 1.1.0`,
+                        text: `Version: ${config.version}`,
                     })
                     .setTimestamp();
 
@@ -119,7 +119,7 @@ module.exports = {
             }
 
             // Check if message starts with emoji prefix (A!)
-            const emojiPrefix = "A!";
+            const emojiPrefix = "+";
             if (message.content.startsWith(emojiPrefix)) {
                 // Handle emoji commands
                 const args = message.content.slice(emojiPrefix.length).trim().split(/ +/);
@@ -128,9 +128,74 @@ module.exports = {
                 // Process emoji commands
                 switch (commandName) {
                     case "emojis":
-                        // Get all emojis and display them in an embed
-                        const emojiListEmbed = client.emojiManager.createEmojiListEmbed();
-                        return message.reply({ embeds: [emojiListEmbed] });
+                        // Get page number if provided
+                        let emojiPage = 1;
+                        if (args.length > 0) {
+                            const requestedPage = parseInt(args[0]);
+                            if (!isNaN(requestedPage) && requestedPage > 0) {
+                                emojiPage = requestedPage;
+                            }
+                        }
+                        
+                        // Get paginated emojis with buttons
+                        const { embed: emojiListEmbed, currentPage, totalPages, components } = client.emojiManager.createEmojiListEmbed(emojiPage);
+                        
+                        // Display pagination info in the message if there are multiple pages
+                        let content = null;
+                        if (totalPages > 1) {
+                            content = `Showing page ${currentPage} of ${totalPages}`;
+                        }
+                        
+                        // Create message with pagination buttons that expire after 5 minutes
+                        const reply = await message.reply({ 
+                            content, 
+                            embeds: [emojiListEmbed], 
+                            components: components || [] 
+                        });
+                        
+                        // Set up collector for button interactions
+                        if (components && totalPages > 1) {
+                            const filter = i => 
+                                (i.customId === 'emoji_prev_page' || i.customId === 'emoji_next_page') && 
+                                i.user.id === message.author.id;
+                                
+                            const collector = reply.createMessageComponentCollector({ 
+                                filter, 
+                                time: 300000 // 5 minutes
+                            });
+                            
+                            // Store the current page for the collector to track
+                            let currentEmojiPage = currentPage;
+                            
+                            collector.on('collect', async interaction => {
+                                // Calculate the new page based on the current tracked page
+                                let newPage = currentEmojiPage;
+                                if (interaction.customId === 'emoji_prev_page') {
+                                    newPage = Math.max(1, currentEmojiPage - 1);
+                                } else if (interaction.customId === 'emoji_next_page') {
+                                    newPage = Math.min(totalPages, currentEmojiPage + 1);
+                                }
+                                
+                                // Update the current page for future interactions
+                                currentEmojiPage = newPage;
+                                
+                                // Get the updated emoji list
+                                const updatedList = client.emojiManager.createEmojiListEmbed(newPage);
+                                
+                                // Update the message
+                                await interaction.update({ 
+                                    embeds: [updatedList.embed], 
+                                    components: updatedList.components || []
+                                });
+                            });
+                            
+                            collector.on('end', () => {
+                                // Remove buttons when collector expires
+                                reply.edit({ components: [] }).catch(console.error);
+                            });
+                        }
+                        
+                        return;
                         
                     case "eadd":
                         // Check permissions
@@ -215,12 +280,15 @@ module.exports = {
                             .setTitle("Emoji Commands")
                             .setDescription("Here are all available emoji commands:")
                             .addFields(
-                                { name: `${emojiPrefix}emojis`, value: "Show all available custom emojis" },
+                                { name: `${emojiPrefix}emojis [page]`, value: "Show all available custom emojis (5 per page)" },
                                 { name: `${emojiPrefix}eadd [name] [emoji]`, value: "Add a new custom emoji (requires Manage Messages permission)" },
                                 { name: `${emojiPrefix}eremove [name]`, value: "Remove a custom emoji (requires Manage Messages permission)" },
                                 { name: `${emojiPrefix}e [name]`, value: "Send a custom emoji in the current channel" },
                                 { name: `${emojiPrefix}ehelp`, value: "Show this help message" }
-                            );
+                            )
+                            .setFooter({ 
+                                text: `Emoji commands use the ${emojiPrefix} prefix • Version: ${config.version}`
+                            });
                             
                         return message.reply({ embeds: [emojiHelpEmbed] });
                         
@@ -259,149 +327,222 @@ module.exports = {
             switch (commandName) {
                 case "help":
                 case "commands":
+                    // Get page number if provided
+                    let commandPage = 1;
+                    if (args.length > 0) {
+                        const requestedPage = parseInt(args[0]);
+                        if (!isNaN(requestedPage) && requestedPage > 0) {
+                            commandPage = requestedPage;
+                        }
+                    }
+                    
+                    // Define all commands with their descriptions
+                    const allCommands = [
+                        { name: `${prefix}help [page]`, value: "Shows this list of commands" },
+                        { name: `${prefix}commands [page]`, value: "Alias for help command" },
+                        { name: `${prefix}giveaway`, value: "Shows all giveaway commands" },
+                        { name: `${prefix}gstart [duration] [winners] [prize]`, value: "Creates a new giveaway" },
+                        { name: `${prefix}gend [message_id]`, value: "Ends a giveaway early" },
+                        { name: `${prefix}reroll [message_id]`, value: "Rerolls winners for a giveaway" },
+                        { name: `${prefix}echo [message]`, value: "Makes the bot repeat a message" },
+                        { name: `${prefix}ping`, value: "Shows the bot's latency" },
+                        { name: `${prefix}thelp`, value: "Shows all ticket system commands" },
+                        { name: `${prefix}ticket [channel] (roles)`, value: "Creates a ticket panel" },
+                        
+                        { name: `${prefix}thistory (page)`, value: "Shows ticket history" },
+                        { name: `${prefix}ab`, value: "Shows information about the bot" },
+                        { name: `${prefix}ulog`, value: "Shows updates and upcoming features" },
+                        { name: `${prefix}tictactoe`, value: "Starts a new TicTacToe game in the channel" },
+                        { name: `${prefix}move [1-9]`, value: "Makes a move in an active TicTacToe game" },
+                        { name: `${prefix}tend`, value: "Ends the current TicTacToe game in the channel" },
+                        { name: `${prefix}poll [duration] [question] | [options]`, value: "Creates a poll with a timer" },
+                        { name: `${prefix}endpoll [message_id]`, value: "Ends a poll early" },
+                        { name: `${prefix}birthday`, value: "Shows all birthday commands" },
+                        { name: `${prefix}birthday set [MM/DD/YYYY]`, value: "Sets your birthday (year is optional)" },
+                        { name: `${prefix}birthday remove`, value: "Removes your birthday" },
+                        { name: `${prefix}birthday list`, value: "Shows upcoming birthdays" },
+                        { name: `${prefix}birthday check [@user]`, value: "Check your or someone else's birthday" },
+                        { name: `${prefix}birthday channel [#channel]`, value: "Sets the birthday announcement channel (requires Manage Server permission)" },
+                        { name: `${prefix}birthday role [@role]`, value: "Sets the birthday role (requires Manage Server permission)" },
+                        { name: `Emoji Commands ${emojiPrefix} prefix`, value: `Use ${emojiPrefix}help to see all emoji commands`, },
+                        { name: `${prefix}cstart [start] [goal]`, value: "Start a number counting game (requires Manage Server permission)" },
+                        { name: `${prefix}cstatus`, value: "Check the status of the current counting game" },
+                        { name: `${prefix}cend`, value: "End the current counting game (requires Manage Server permission)" },
+                        { name: `${prefix}chelp`, value: "Show help for the counting game" },
+                        { name: `${prefix}truthdare`, value: "Start a Truth or Dare game with interactive buttons" },
+                        { name: `${prefix}qadd [truth/dare] [question]`, value: "Add a custom truth or dare question to the collection" },
+                    ];
+                    
+                    // Settings for pagination
+                    const commandsPerPage = 5; // 5 commands per page as requested
+                    const totalCommands = allCommands.length;
+                    const totalPages = Math.ceil(totalCommands / commandsPerPage);
+                    
+                    // Validate the page number
+                    commandPage = Math.max(1, Math.min(commandPage, totalPages));
+                    
+                    // Calculate start and end indices for the current page
+                    const startIndex = (commandPage - 1) * commandsPerPage;
+                    const endIndex = Math.min(startIndex + commandsPerPage, totalCommands);
+                    
+                    // Get the commands for the current page
+                    const pageCommands = allCommands.slice(startIndex, endIndex);
+                    
+                    // Create the embed
                     const commandsEmbed = new EmbedBuilder()
                         .setColor(config.colors.Gold)
                         .setTitle("Available Commands")
-                        .setDescription(
-                            "Here are all the commands you can use:",
-                        )
-                        .addFields(
-                            {
-                                name: `${prefix}help`,
-                                value: "Shows this list of commands",
-                            },
-                            {
-                                name: `${prefix}commands`,
-                                value: "Alias for help command",
-                            },
-                            {
-                                name: `${prefix}giveaway [duration] [winners] [prize]`,
-                                value: "Creates a new giveaway ",
-                            },
-                            {
-                                name: `${prefix}end [message_id]`,
-                                value: "Ends a giveaway early ",
-                            },
-                            {
-                                name: `${prefix}reroll [message_id]`,
-                                value: "Rerolls winners for a giveaway ",
-                            },
-                            {
-                                name: `${prefix}gstart [duration] [winners] [prize]`,
-                                value: "Shortcut to create a giveaway ",
-                            },
-                            {
-                                name: `${prefix}gend [message_id]`,
-                                value: "Shortcut to end a giveaway ",
-                            },
-                            {
-                                name: `${prefix}echo [message]`,
-                                value: "Makes the bot repeat a message",
-                            },
-                            {
-                                name: `${prefix}ticket [channel] (roles)`,
-                                value: "Creates a ticket panel",
-                            },
-                            {
-                                name: `${prefix}tcreate [channel-id] [ticket-name]`,
-                                value: "Creates a ticket with a custom name",
-                            },
-                            {
-                                name: `${prefix}thistory (page)`,
-                                value: "Shows ticket history",
-                            },
-                            {
-                                name: `${prefix}ab`,
-                                value: "Shows information about the bot",
-                            },
-                            {
-                                name: `${prefix}ulog`,
-                                value: "Shows updates and upcoming features",
-                            },
-                            {
-                                name: `${prefix}tictactoe`,
-                                value: "Starts a new TicTacToe game in the channel",
-                            },
-                            {
-                                name: `${prefix}move [1-9]`,
-                                value: "Makes a move in an active TicTacToe game",
-                            },
-                            {
-                                name: `${prefix}tend`,
-                                value: "Ends the current TicTacToe game in the channel",
-                            },
-                            {
-                                name: `${prefix}poll [duration] [question] | [options]`,
-                                value: "Creates a poll with a timer",
-                            },
-                            {
-                                name: `${prefix}endpoll [message_id]`,
-                                value: "Ends a poll early",
-                            },
-                            {
-                                name: `${prefix}birthday set [month] [day] [year]`,
-                                value: "Sets your birthday in the server (year is optional)",
-                            },
-                            {
-                                name: `${prefix}birthday remove`,
-                                value: "Removes your birthday from the server",
-                            },
-                            {
-                                name: `${prefix}birthday list`,
-                                value: "Shows upcoming birthdays in the server",
-                            },
-                            {
-                                name: `${prefix}birthday channel [#channel]`,
-                                value: "Sets the birthday announcement channel (requires Manage Server permission)",
-                            },
-                            {
-                                name: `${prefix}birthday role [@role]`,
-                                value: "Sets the birthday role to assign (requires Manage Server permission)",
-                            },
-                            {
-                                name: `${prefix}birthday [subcommand]`,
-                                value: "Birthday celebration system commands",
-                            },
-                            {
-                                name: "Emoji Commands (A! prefix)",
-                                value: "Use `A!ehelp` to see all emoji commands",
-                            },
-                            {
-                                name: `${prefix}cstart [start] [goal]`,
-                                value: "Start a number counting game (requires Manage Server permission)",
-                            },
-                            {
-                                name: `${prefix}cstatus`,
-                                value: "Check the status of the current counting game",
-                            },
-                            {
-                                name: `${prefix}cend`,
-                                value: "End the current counting game (requires Manage Server permission)",
-                            },
-                            {
-                                name: `${prefix}chelp`,
-                                value: "Show help for the counting game",
-                            },
-                            {
-                                name: `${prefix}truthdare`,
-                                value: "Start a Truth or Dare game with interactive buttons",
-                            },
-                            {
-                                name: `${prefix}qadd [truth/dare] [question]`,
-                                value: "Add a custom truth or dare question to the collection",
-                            },
-                        )
+                        .setDescription(`Here are commands you can use (Page ${commandPage}/${totalPages}):`)
+                        .addFields(...pageCommands)
                         .setTimestamp()
                         .setFooter({
-                            text: `Requested by ${message.author.tag} Current Version: 1.1.0`,
+                            text: `Page ${commandPage}/${totalPages} • Use buttons below to navigate • Version: ${config.version}`,
                             iconURL: message.author.displayAvatarURL({
                                 dynamic: true,
                             }),
                         });
-
-                    return message.reply({ embeds: [commandsEmbed] });
+                    
+                    // Display pagination info in the message if there are multiple pages
+                    let content = null;
+                    if (totalPages > 1) {
+                        content = `Showing page ${commandPage} of ${totalPages}`;
+                    }
+                    
+                    // Create buttons for pagination
+                    const buttons = [];
+                    
+                    // Create Previous page button (disabled on first page)
+                    const prevButton = new ButtonBuilder()
+                        .setCustomId('command_prev_page')
+                        .setLabel('⬅️ Previous')
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(commandPage === 1);
+                    
+                    // Create Next page button (disabled on last page)
+                    const nextButton = new ButtonBuilder()
+                        .setCustomId('command_next_page')
+                        .setLabel('Next ➡️')
+                        .setStyle(ButtonStyle.Secondary)
+                        .setDisabled(commandPage === totalPages);
+                    
+                    buttons.push(prevButton, nextButton);
+                    const row = new ActionRowBuilder().addComponents(buttons);
+                    
+                    // Components array to include in the message
+                    const components = totalPages > 1 ? [row] : [];
+                    
+                    // Create message with pagination buttons that expire after 5 minutes
+                    const reply = await message.reply({ 
+                        content, 
+                        embeds: [commandsEmbed], 
+                        components 
+                    });
+                    
+                    // Set up collector for button interactions if we have multiple pages
+                    if (totalPages > 1) {
+                        const filter = i => 
+                            (i.customId === 'command_prev_page' || i.customId === 'command_next_page') && 
+                            i.user.id === message.author.id;
+                            
+                        const collector = reply.createMessageComponentCollector({ 
+                            filter, 
+                            time: 300000 // 5 minutes
+                        });
+                        
+                        // Store the current page for the collector to track
+                        let currentPage = commandPage;
+                        
+                        collector.on('collect', async interaction => {
+                            // Calculate the new page based on the current tracked page
+                            let newPage = currentPage;
+                            if (interaction.customId === 'command_prev_page') {
+                                newPage = Math.max(1, currentPage - 1);
+                            } else if (interaction.customId === 'command_next_page') {
+                                newPage = Math.min(totalPages, currentPage + 1);
+                            }
+                            
+                            // Update the current page for future interactions
+                            currentPage = newPage;
+                            
+                            // Get the commands for the new page
+                            const newPageCommands = allCommands.slice(
+                                (newPage - 1) * commandsPerPage, 
+                                Math.min(newPage * commandsPerPage, totalCommands)
+                            );
+                            
+                            // Create the new embed
+                            const newEmbed = new EmbedBuilder()
+                                .setColor(config.colors.Gold)
+                                .setTitle("Available Commands")
+                                .setDescription(`Here are commands you can use (Page ${newPage}/${totalPages}):`)
+                                .addFields(...newPageCommands)
+                                .setTimestamp()
+                                .setFooter({
+                                    text: `Page ${newPage}/${totalPages} • Use buttons below to navigate • Version: ${config.version}`,
+                                    iconURL: message.author.displayAvatarURL({
+                                        dynamic: true,
+                                    }),
+                                });
+                            
+                            // Create new buttons with updated disabled states
+                            const newButtons = [];
+                            
+                            const newPrevButton = new ButtonBuilder()
+                                .setCustomId('command_prev_page')
+                                .setLabel('⬅️ Previous')
+                                .setStyle(ButtonStyle.Secondary)
+                                .setDisabled(newPage === 1);
+                            
+                            const newNextButton = new ButtonBuilder()
+                                .setCustomId('command_next_page')
+                                .setLabel('Next ➡️')
+                                .setStyle(ButtonStyle.Secondary)
+                                .setDisabled(newPage === totalPages);
+                            
+                            newButtons.push(newPrevButton, newNextButton);
+                            const newRow = new ActionRowBuilder().addComponents(newButtons);
+                            
+                            // Update the message
+                            await interaction.update({ 
+                                embeds: [newEmbed], 
+                                components: [newRow]
+                            });
+                        });
+                        
+                        collector.on('end', () => {
+                            // Remove buttons when collector expires
+                            reply.edit({ components: [] }).catch(console.error);
+                        });
+                    }
+                    
+                    return;
 
                 case "giveaway":
+                    // Show giveaway command help
+                    const giveawayHelpEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("🎉 Giveaway Commands")
+                        .setDescription("Here are all available giveaway commands:")
+                        .addFields(
+                            { name: `${prefix}gstart [duration] [winners] [prize]`, value: "Creates a new giveaway in the current channel" },
+                            { name: `${prefix}gend [message_id]`, value: "Ends a giveaway early" },
+                            { name: `${prefix}reroll [message_id]`, value: "Rerolls the winners for a completed giveaway" }
+                        )
+                        .addFields({
+                            name: "Examples",
+                            value:
+                                `\`${prefix}gstart 1d 1 Discord Nitro\` - 1 day giveaway for 1 winner\n` +
+                                `\`${prefix}gstart 12h 3 Steam Game\` - 12 hour giveaway for 3 winners\n` +
+                                `\`${prefix}gend 123456789123456789\` - End giveaway with the specified message ID\n` +
+                                `\`${prefix}reroll 123456789123456789\` - Reroll winners for the specified giveaway`
+                        })
+                        .setFooter({
+                            text: `Version: ${config.version}`,
+                            iconURL: client.user.displayAvatarURL()
+                        });
+                    
+                    return message.reply({ embeds: [giveawayHelpEmbed] });
+                
                 case "gstart":
                     // Check permissions
                     if (!message.member.permissions.has("ManageGuild")) {
@@ -468,12 +609,9 @@ module.exports = {
                             .setDescription(
                                 `✅ Giveaway created successfully for **${prize}**!`,
                             ).setFooter({
-
-                            text: `Current Version: 1.1.0`,
-
-                            iconURL: client.user.displayAvatarURL(),
-
-                        });
+                                text: `Version: ${config.version}`,
+                                iconURL: client.user.displayAvatarURL()
+                            });
 
                         return message.reply({ embeds: [confirmEmbed] });
                     } catch (error) {
@@ -517,7 +655,7 @@ module.exports = {
                                 )
                             .setFooter({
 
-                            text: `Current Version: 1.1.0`,
+                            text: `Version: ${config.version}`,
 
                             iconURL: client.user.displayAvatarURL(),
 
@@ -569,7 +707,7 @@ module.exports = {
                                 )
                             .setFooter({
 
-                            text: `Current Version: 1.1.0`,
+                            text: `Version: ${config.version}`,
 
                             iconURL: client.user.displayAvatarURL(),
 
@@ -619,10 +757,10 @@ module.exports = {
                         .setColor(config.colors.success)
                         .setDescription("✅ Message echoed successfully!")
                         .setFooter({
-                            text: `Echoed by ${message.author.tag} Current Version: 1.1.0`,
-                            iconURL: message.author.displayAvatarURL({
-                                dynamic: true,
-                            }),
+                            text: ` • Version: ${config.version}`,
+                           iconURL: client.user.displayAvatarURL()
+                                
+                            
                         });
 
                     // Delete the confirmation after 3 seconds
@@ -716,7 +854,7 @@ module.exports = {
                             .setDescription("✅ Poll created successfully!")
 .setFooter({
 
-                            text: `Current Version: 1.1.0`,
+                            text: `Version: ${config.version}`,
 
                             iconURL: client.user.displayAvatarURL(),
 
@@ -1032,7 +1170,33 @@ module.exports = {
                         return message.reply(error.message || "There was an error processing your request! Please try again later.");
                     }
                     break;
-
+                
+                case "thelp":
+                    // Show ticket command help
+                    const ticketHelpEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("🎫 Ticket System Commands")
+                        .setDescription("Here are all available ticket commands:")
+                        .addFields(
+                            { name: `${prefix}ticket [channel] (role-mentions)`, value: "Creates a ticket panel in the specified channel with optional support roles" },
+                            { name: `${prefix}tcreate [channel-id] [ticket-name]`, value: "Creates a ticket with a custom name in a specific channel" },
+                            { name: `${prefix}thistory (page)`, value: "Shows ticket history with pagination (requires Manage Server permission)" }
+                        )
+                        .addFields({
+                            name: "Examples",
+                            value:
+                                `\`${prefix}ticket #support\` - Creates a ticket panel in #support channel\n` +
+                                `\`${prefix}ticket #help @Moderator @Admin\` - Creates a panel with specified support roles\n` +
+                                `\`${prefix}tcreate 123456789012345678 billing\` - Creates a ticket named "billing"\n` +
+                                `\`${prefix}thistory 2\` - Shows page 2 of the ticket history`
+                        })
+                        .setFooter({
+                            text: `Version: ${config.version}`,
+                            iconURL: client.user.displayAvatarURL()
+                        });
+                    
+                    return message.reply({ embeds: [ticketHelpEmbed] });
+                    
                 case "ticket":
                     // Check permissions
                     if (!message.member.permissions.has("ManageGuild")) {
@@ -1043,49 +1207,37 @@ module.exports = {
 
                     // Validate arguments
                     if (args.length < 1) {
-                        const usageEmbed = new EmbedBuilder()
-                            .setColor(config.colors.error)
-                            .setTitle("Invalid Usage")
-                            .setDescription(
-                                `**Correct Usage:** \`${prefix}${commandName} [channel-mention] (role-mention1) (role-mention2)...\``,
-                            )
-                            .addFields({
-                                name: "Examples",
-                                value:
-                                    `\`${prefix}${commandName} #support\` - Creates a ticket panel in #support channel\n` +
-                                    `\`${prefix}${commandName} #help @Moderator @Admin\` - Creates a ticket panel with specified support roles`,
-                            });
-                        return message.reply({ embeds: [usageEmbed] });
+                        return message.reply({ embeds: [ticketHelpEmbed] });
                     }
 
                     // Parse arguments
-                    const channelMention = args[0];
-                    const channelId = channelMention.replace(/[<#>]/g, "");
+                    const ticketChannelMention = args[0];
+                    const ticketChannelId = ticketChannelMention.replace(/[<#>]/g, "");
 
                     // Parse support roles
-                    const supportRoles = [];
+                    const ticketSupportRoles = [];
                     for (let i = 1; i < args.length; i++) {
                         const roleMention = args[i];
                         const roleId = roleMention.replace(/[<@&>]/g, "");
-                        supportRoles.push(roleId);
+                        ticketSupportRoles.push(roleId);
                     }
 
                     // Create ticket panel
                     try {
                         await client.ticketManager.sendTicketEmbed({
-                            channelId,
+                            channelId: ticketChannelId,
                             title: "Support Tickets",
                             description:
                                 "Need help? Click the button below to create a support ticket!",
                             buttonText: "Create Ticket",
-                            supportRoles,
+                            supportRoles: ticketSupportRoles,
                         });
 
                         // Send confirmation
                         const confirmEmbed = new EmbedBuilder()
                             .setColor(config.colors.success)
                             .setDescription(
-                                `✅ Ticket panel created successfully in <#${channelId}>!`,
+                                `✅ Ticket panel created successfully in <#${ticketChannelId}>!`,
                             );
 
                         return message.reply({ embeds: [confirmEmbed] });
@@ -1096,7 +1248,7 @@ module.exports = {
                         );
                     }
                     break;
-
+                
                 case "tcreate":
                     // Validate arguments
                     if (args.length < 2) {
@@ -1109,7 +1261,7 @@ module.exports = {
                             .addFields({
                                 name: "Examples",
                                 value:
-                                    `\`${prefix}${commandName} 123456789012345678 billing\` - Creates a ticket named "billing" in the channel with ticket panel\n` +
+                                    `\`${prefix}${commandName} 123456789012345678 billing\` - Creates a ticket named "billing" in the specified channel\n` +
                                     `\`${prefix}${commandName} 123456789012345678 technical-support\` - Creates a ticket for technical support`,
                             });
                         return message.reply({ embeds: [usageEmbed] });
@@ -1142,6 +1294,11 @@ module.exports = {
                     }
                     break;
 
+                case "createt":
+                    // Alias for tcreate command
+                    return message.reply(`This command has been renamed to \`${prefix}tcreate\`. Please use that instead.`);
+                    break;
+
                 case "thistory":
                     // Check permissions
                     if (!message.member.permissions.has("ManageGuild")) {
@@ -1158,19 +1315,19 @@ module.exports = {
                     }
 
                     // Create pages of 10 tickets each
-                    const page = args[0] ? parseInt(args[0]) : 1;
-                    const pageSize = 10;
-                    const totalPages = Math.ceil(history.length / pageSize);
-                    const startIndex = (page - 1) * pageSize;
-                    const endIndex = startIndex + pageSize;
-                    const pageHistory = history.slice(startIndex, endIndex);
+                    const ticketPage = args[0] ? parseInt(args[0]) : 1;
+                    const ticketPageSize = 10;
+                    const ticketTotalPages = Math.ceil(history.length / ticketPageSize);
+                    const ticketStartIndex = (ticketPage - 1) * ticketPageSize;
+                    const ticketEndIndex = ticketStartIndex + ticketPageSize;
+                    const pageHistory = history.slice(ticketStartIndex, ticketEndIndex);
 
                     // Create embed
                     const historyEmbed = new EmbedBuilder()
                         .setColor(config.colors.primary)
                         .setTitle("Ticket History")
                         .setDescription(
-                            `Showing ${pageHistory.length} of ${history.length} tickets. Page ${page}/${totalPages}`,
+                            `Showing ${pageHistory.length} of ${history.length} tickets. Page ${ticketPage}/${ticketTotalPages}`,
                         )
                         .setFooter({
                             text: `Use ${prefix}thistory [page] to view different pages`,
@@ -1186,7 +1343,7 @@ module.exports = {
                         ).toLocaleString();
 
                         historyEmbed.addFields({
-                            name: `#${startIndex + index + 1} - ${ticket.threadName}`,
+                            name: `#${ticketStartIndex + index + 1} - ${ticket.threadName}`,
                             value:
                                 `Created by: ${ticket.userName} on ${createdAt}\n` +
                                 `Closed by: ${ticket.closedByName} on ${closedAt}`,
@@ -1327,7 +1484,7 @@ module.exports = {
                     // Create update log embed
                     const updateEmbed = new EmbedBuilder()
                         .setColor(config.colors.success)
-                        .setTitle("Update Log | Updated on 14/04/2025")
+                        .setTitle("Update Log | Updated on 20/04/2025")
                         .setDescription(
                             "Keep track of the latest updates and upcoming features!",
                         )
@@ -1335,24 +1492,22 @@ module.exports = {
                             {
                                 name: "✅ Recent Updates",
                                 value:
-                                    "• Added custom ticket names with $tcreate command\n" +
-                                    "• Added developer broadcast system\n" +
-                                    "• Added Birthday celebration system with $birthday commands\n" +
-                                    "• Added Poll system with $poll and $endpoll commands\n" +
-                                    "• Added Multiplayer TicTacToe game with $tictactoe, $move, and $tend commands\n" +
+                                    
+   "•   Added sash commands of all available commands.\n" +              
+                                   "• Added Birthday celebration system\n" +
+                                    "• Added Poll system \n" +
+                                    "• Added Multiplayer TicTacToe game\n" +
                                     "• Added ticket system for support requests\n" +
                                     "• Added echo command for fun interactions",
                             },{ name: '🔜 Coming Soon', value: 
-                                '• Leveling system\n' +
-                                '• Custom reaction roles\n' +
-                                '• Server statistics tracking\n' +
-                                '• Auto-responses for common questions'
+                                '• Games.\n' 
+                               
                                   
                             },
                         )
                         .setTimestamp()
                         .setFooter({
-                            text: `Current Version: 1.1.0`,
+                            text: `Version: ${config.version}`,
                             iconURL: client.user.displayAvatarURL(),
                         });
 
@@ -1373,6 +1528,9 @@ module.exports = {
                     // Get the broadcast message
                     const broadcastMessage = args.join(" ");
                     
+                    // Debug logging
+                    console.log(`[DEBUG] Broadcast command triggered by ${message.author.tag} with message: ${broadcastMessage}`);
+                    
                     // Create the broadcast embed
                     const broadcastEmbed = new EmbedBuilder()
                         .setColor(config.colors.primary)
@@ -1380,9 +1538,8 @@ module.exports = {
                         .setDescription(broadcastMessage)
                         .setTimestamp()
                         .setFooter({ 
-                            text: `Sent by ${message.author.tag}`, 
-                            iconURL: message.author.displayAvatarURL() 
-                        });
+ iconURL: client.user.displayAvatarURL(),
+                    Version: `${config.version}`})
                     
                     // Send confirmation
                     const confirmationEmbed = new EmbedBuilder()
@@ -1397,18 +1554,36 @@ module.exports = {
                     let totalGuilds = client.guilds.cache.size;
                     
                     // Broadcast to all guilds
+                    console.log(`[DEBUG] Starting broadcast to ${client.guilds.cache.size} guilds`);
+                    
                     for (const guild of client.guilds.cache.values()) {
                         try {
+                            console.log(`[DEBUG] Processing guild: ${guild.name} (${guild.id})`);
+                            
                             // Find the first available text channel
                             const channel = guild.channels.cache
                                 .filter(ch => ch.type === 0) // 0 is GuildText channel type
                                 .sort((a, b) => a.position - b.position)
                                 .first();
                             
-                            if (channel && channel.permissionsFor(guild.members.me).has("SendMessages")) {
+                            if (!channel) {
+                                console.log(`[DEBUG] No suitable text channel found in guild: ${guild.name}`);
+                                failCount++;
+                                continue;
+                            }
+                            
+                            console.log(`[DEBUG] Selected channel: ${channel.name} (${channel.id})`);
+                            
+                            // Check bot permissions
+                            const hasPermission = channel.permissionsFor(guild.members.me).has("SendMessages");
+                            console.log(`[DEBUG] Bot has SendMessages permission: ${hasPermission}`);
+                            
+                            if (hasPermission) {
                                 await channel.send({ embeds: [broadcastEmbed] });
+                                console.log(`[DEBUG] Successfully sent broadcast to guild: ${guild.name}`);
                                 successCount++;
                             } else {
+                                console.log(`[DEBUG] Missing permissions to send in channel: ${channel.name}`);
                                 failCount++;
                             }
                         } catch (error) {

@@ -100,10 +100,12 @@ module.exports = {
             
         } catch (error) {
             console.error('Error executing help command:', error);
-            await interaction.reply({
-                content: 'There was an error executing the command! Please try again later.',
-                ephemeral: true
-            });
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: 'There was an error executing the command! Please try again later.',
+                    ephemeral: true
+                });
+            }
         }
     },
 };
