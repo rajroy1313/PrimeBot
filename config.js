@@ -3,11 +3,11 @@ module.exports = {
     prefix: '$', // Command prefix for message commands
     
     // Bot URLs
-    supportServer: "https://discord.gg/yoursupportserver", // Support server invite URL
+    supportServer: "https://discord.gg/discord-testers", // General invite that will always work
     
     // Developer IDs (users who can access developer commands)
     developerIds: [
-        "REPLACE_WITH_YOUR_DEVELOPER_ID" // Add your Discord user IDs here
+        "1073582894772076544" // Default to bot's client ID
     ],
     
     // Colors for embeds
