@@ -37,12 +37,22 @@ async function deployCommands() {
         }
 
         // Global deployment (for all servers the bot is in)
+        // Setting default_member_permissions to '0' makes commands available to everyone
+        const processedCommands = commands.map(cmd => {
+            // If default_member_permissions is not set, set it to '0' (available to everyone)
+            if (cmd.default_member_permissions === undefined) {
+                cmd.default_member_permissions = '0';
+            }
+            return cmd;
+        });
+
         const data = await rest.put(
             Routes.applicationCommands(process.env.CLIENT_ID),
-            { body: commands },
+            { body: processedCommands },
         );
 
         console.log(`Successfully reloaded ${data.length} application (/) commands.`);
+        console.log(`All commands are now accessible to all users in all servers.`);
     } catch (error) {
         console.error('Error deploying commands:', error);
     }

@@ -27,6 +27,15 @@ module.exports = {
                         return;
                     }
                     
+                    // Extra debug for echo command
+                    if (interaction.commandName === 'echo') {
+                        console.log(`ECHO COMMAND DEBUG: Starting execution`);
+                        console.log(`ECHO COMMAND DEBUG: Options: ${JSON.stringify(interaction.options.data)}`);
+                        console.log(`ECHO COMMAND DEBUG: User: ${interaction.user.tag} (${interaction.user.id})`);
+                        console.log(`ECHO COMMAND DEBUG: Channel: ${interaction.channel.name} (${interaction.channel.id})`);
+                        console.log(`ECHO COMMAND DEBUG: Guild: ${interaction.guild ? interaction.guild.name : 'DM'}`);
+                    }
+                    
                     // Execute the command
                     console.log(`SLASH COMMAND DEBUG: Executing command: ${interaction.commandName}`);
                     await command.execute(interaction);

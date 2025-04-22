@@ -1,5 +1,6 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const config = require('../config');
+const { logCommandExecution, logError } = require('../utils/logUtils');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -16,17 +17,28 @@ module.exports = {
         .addBooleanOption(option => 
             option.setName('embed')
                 .setDescription('Whether to send the message as an embed (defaults to false)')
-                .setRequired(false)),
+                .setRequired(false))
+        // No default permission requirement - accessible to all users
+        .setDMPermission(false), // Disable in DMs for security
     
     async execute(interaction) {
         try {
+            console.log('DEBUG: Echo command execution started');
+            
             // Get command options
             const message = interaction.options.getString('message');
             const channel = interaction.options.getChannel('channel') || interaction.channel;
             const useEmbed = interaction.options.getBoolean('embed') || false;
             
+            console.log(`DEBUG: Echo command options - Message: ${message.substring(0, 20)}..., Channel: ${channel.name}, Embed: ${useEmbed}`);
+            
             // Check if the bot can send messages in the target channel
-            if (!channel.permissionsFor(interaction.client.user).has('SendMessages')) {
+            const botPermissions = channel.permissionsFor(interaction.client.user);
+            
+            console.log(`DEBUG: Bot permissions in channel ${channel.name}: ${botPermissions ? 'Permissions found' : 'No permissions'}`);
+            
+            if (!botPermissions || !botPermissions.has('SendMessages')) {
+                console.log(`DEBUG: Bot doesn't have permission to send messages in ${channel.name}`);
                 return interaction.reply({ 
                     content: `I don't have permission to send messages in ${channel}.`, 
                     ephemeral: true 
@@ -34,6 +46,8 @@ module.exports = {
             }
             
             // Send the echo message
+            console.log(`DEBUG: Attempting to send echo message to ${channel.name}`);
+            
             if (useEmbed) {
                 // Create embed
                 const echoEmbed = new EmbedBuilder()
@@ -46,8 +60,10 @@ module.exports = {
                     .setTimestamp();
                 
                 await channel.send({ embeds: [echoEmbed] });
+                console.log(`DEBUG: Sent embed message to ${channel.name}`);
             } else {
                 await channel.send(message);
+                console.log(`DEBUG: Sent text message to ${channel.name}`);
             }
             
             // Confirm to the user
@@ -56,12 +72,27 @@ module.exports = {
                 ephemeral: true 
             });
             
+            console.log('DEBUG: Echo command completed successfully');
+            
         } catch (error) {
-            console.error('Error executing echo command:', error);
-            await interaction.reply({ 
-                content: 'There was an error executing the command! Please try again later.', 
-                ephemeral: true 
-            });
+            logError('Echo command', error);
+            console.error('DEBUG: Error executing echo command:', error);
+            
+            try {
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({ 
+                        content: 'There was an error executing the command! Please try again later.', 
+                        ephemeral: true 
+                    });
+                } else {
+                    await interaction.followUp({
+                        content: 'There was an error executing the command! Please try again later.',
+                        ephemeral: true
+                    });
+                }
+            } catch (replyError) {
+                console.error('DEBUG: Error sending error response:', replyError);
+            }
         }
     },
 };
