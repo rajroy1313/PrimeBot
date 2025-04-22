@@ -4,10 +4,10 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('move')
         .setDescription('Make a move in the tic-tac-toe game')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
         .addIntegerOption(option => 
             option.setName('position')
                 .setDescription('Position to place your marker (1-9)')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
                 .setRequired(true)
                 .setMinValue(1)
                 .setMaxValue(9)),
