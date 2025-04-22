@@ -1,10 +1,11 @@
-const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder , PermissionFlagsBits} = require('discord.js');
 const config = require('../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('about')
-        .setDescription('Display information about the bot'),
+        .setDescription('Display information about the bot')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
     
     async execute(interaction) {
         try {

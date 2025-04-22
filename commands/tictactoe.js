@@ -1,9 +1,10 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder , PermissionFlagsBits} = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('tictactoe')
-        .setDescription('Start a new tic-tac-toe game'),
+        .setDescription('Start a new tic-tac-toe game')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
     
     async execute(interaction) {
         try {

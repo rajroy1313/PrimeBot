@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder , PermissionFlagsBits} = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -7,6 +7,7 @@ module.exports = {
         .addStringOption(option => 
             option.setName('name')
                 .setDescription('Custom name for the ticket')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
                 .setRequired(true)),
     
     async execute(interaction) {

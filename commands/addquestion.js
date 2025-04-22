@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder , PermissionFlagsBits} = require('discord.js');
 const config = require('../config');
 
 module.exports = {
@@ -8,6 +8,7 @@ module.exports = {
         .addStringOption(option => 
             option.setName('type')
                 .setDescription('Type of question')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
                 .setRequired(true)
                 .addChoices(
                     { name: 'Truth', value: 'truth' },

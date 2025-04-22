@@ -28,7 +28,8 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('help')
-                .setDescription('Show help information for the counting game')),
+                .setDescription('Show help information for the counting game')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)),
     
     async execute(interaction) {
         try {

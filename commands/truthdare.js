@@ -1,9 +1,10 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder , PermissionFlagsBits} = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('truthdare')
-        .setDescription('Start a Truth or Dare game in the current channel'),
+        .setDescription('Start a Truth or Dare game in the current channel')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
     
     async execute(interaction) {
         try {

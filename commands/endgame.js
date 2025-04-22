@@ -3,7 +3,8 @@ const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('endgame')
-        .setDescription('End the current tic-tac-toe game'),
+        .setDescription('End the current tic-tac-toe game')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
     
     async execute(interaction) {
         try {

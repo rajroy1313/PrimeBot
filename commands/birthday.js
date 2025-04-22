@@ -70,6 +70,7 @@ module.exports = {
                 .addRoleOption(option =>
                     option.setName('role')
                         .setDescription('The role to assign on birthdays')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
                         .setRequired(true))),
     
     async execute(interaction) {

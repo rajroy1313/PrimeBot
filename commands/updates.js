@@ -1,10 +1,11 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder , PermissionFlagsBits} = require('discord.js');
 const config = require('../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('updates')
-        .setDescription('Show recent updates and upcoming features'),
+        .setDescription('Show recent updates and upcoming features')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
     
     async execute(interaction) {
         try {

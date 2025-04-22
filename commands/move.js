@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder , PermissionFlagsBits} = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -7,6 +7,7 @@ module.exports = {
         .addIntegerOption(option => 
             option.setName('position')
                 .setDescription('Position to place your marker (1-9)')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
                 .setRequired(true)
                 .setMinValue(1)
                 .setMaxValue(9)),

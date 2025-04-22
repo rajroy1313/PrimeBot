@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder , PermissionFlagsBits} = require('discord.js');
 const ms = require('ms');
 const config = require('../config');
 
@@ -6,6 +6,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('poll')
         .setDescription('Create a timed poll with options')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
         .addStringOption(option => 
             option.setName('duration')
                 .setDescription('Duration of the poll (e.g., 1h, 1d)')
