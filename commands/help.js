@@ -1,10 +1,11 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const config = require('../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
-        .setDescription('Shows a list of all available commands'),
+        .setDescription('Shows a list of all available commands')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
     
     async execute(interaction) {
         try {

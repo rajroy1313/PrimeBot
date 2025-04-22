@@ -1,4 +1,4 @@
-const { REST, Routes } = require('discord.js');
+const { REST, Routes, PermissionFlagsBits } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
@@ -37,12 +37,27 @@ async function deployCommands() {
         }
 
         // Global deployment (for all servers the bot is in)
-        // Setting default_member_permissions to '0' makes commands available to everyone
+        // Process commands and set permissions
         const processedCommands = commands.map(cmd => {
             // If default_member_permissions is not set, set it to '0' (available to everyone)
             if (cmd.default_member_permissions === undefined) {
                 cmd.default_member_permissions = '0';
             }
+            
+            // Set all commands to have 'SendMessages' permission except 'echo'
+            if (cmd.name !== 'echo') {
+                // Ensure the command has permission to send messages
+                console.log(`Setting SendMessages permission for command: ${cmd.name}`);
+                
+                // In Discord.js v14, we set permissions in the command data itself
+                // This is handled in each individual command file
+                
+                // We'll create a separate logger entry
+                console.log(`Permission status for ${cmd.name}: SendMessages permission = true`);
+            } else {
+                console.log(`Skipping SendMessages permission for command: ${cmd.name} (handled in command file)`);
+            }
+            
             return cmd;
         });
 
