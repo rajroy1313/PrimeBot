@@ -5,6 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('birthday')
         .setDescription('Manage birthdays in the server')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
         .addSubcommand(subcommand =>
             subcommand
                 .setName('set')
@@ -70,7 +71,6 @@ module.exports = {
                 .addRoleOption(option =>
                     option.setName('role')
                         .setDescription('The role to assign on birthdays')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
                         .setRequired(true))),
     
     async execute(interaction) {

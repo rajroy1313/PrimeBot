@@ -4,10 +4,10 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('createticket')
         .setDescription('Create a ticket with a custom name')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
         .addStringOption(option => 
             option.setName('name')
                 .setDescription('Custom name for the ticket')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
                 .setRequired(true)),
     
     async execute(interaction) {

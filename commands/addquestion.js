@@ -5,10 +5,10 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('addquestion')
         .setDescription('Add a new Truth or Dare question')
+        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
         .addStringOption(option => 
             option.setName('type')
                 .setDescription('Type of question')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
                 .setRequired(true)
                 .addChoices(
                     { name: 'Truth', value: 'truth' },
