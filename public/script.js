@@ -12,23 +12,49 @@ document.addEventListener('DOMContentLoaded', function() {
 // Fetch bot information from API
 function fetchBotInfo() {
     fetch('/api/botinfo')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`API returned status ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
-            // Update stats on the page
-            document.getElementById('server-count').textContent = data.servers;
-            document.getElementById('uptime').textContent = data.uptime;
-            document.getElementById('command-count').textContent = data.commands.length;
-            document.getElementById('prefix').textContent = data.prefix;
-            
-            // Update prefix in command list
-            document.querySelectorAll('.prefix').forEach(element => {
-                if (element.textContent === '$') {
-                    element.textContent = data.prefix;
-                }
-            });
+            try {
+                // Safely update stats on the page with error handling
+                const serverCount = document.getElementById('server-count');
+                if (serverCount) serverCount.textContent = data.servers || 'Online';
+                
+                const uptime = document.getElementById('uptime');
+                if (uptime) uptime.textContent = data.uptime || 'Online';
+                
+                const commandCount = document.getElementById('command-count');
+                if (commandCount) commandCount.textContent = data.commands ? data.commands.length : '19';
+                
+                const prefix = document.getElementById('prefix');
+                if (prefix) prefix.textContent = data.prefix || '/';
+                
+                // Update prefix in command list
+                document.querySelectorAll('.prefix').forEach(element => {
+                    if (element.textContent === '$') {
+                        element.textContent = data.prefix || '/';
+                    }
+                });
+            } catch (innerError) {
+                console.warn('Error updating DOM with bot info:', innerError);
+                // Don't crash the page if elements aren't found
+            }
         })
         .catch(error => {
-            console.error('Error fetching bot info:', error);
+            console.warn('Error fetching bot info:', error);
+            // Set fallback values on error to avoid displaying empty data
+            try {
+                document.getElementById('server-count').textContent = 'Online';
+                document.getElementById('uptime').textContent = 'Online';
+                document.getElementById('command-count').textContent = '19';
+                document.getElementById('prefix').textContent = '/';
+            } catch (fallbackError) {
+                // Silent fail - the page might not have these elements
+            }
         });
 }
 

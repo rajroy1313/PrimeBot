@@ -8,13 +8,32 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Bot information middleware
 app.use((req, res, next) => {
-    res.locals.botInfo = {
-        name: 'AFK Devs Bot',
-        prefix: require('./config').prefix,
-        servers: global.client ? global.client.guilds.cache.size : 'Loading...',
-        commands: ['help', 'commands', 'giveaway', 'gstart', 'end', 'gend', 'reroll', 'echo'],
-        uptime: global.client ? formatUptime(global.client.uptime) : 'Loading...'
-    };
+    try {
+        // Get actual command names from the client if available
+        let commandNames = ['help', 'commands', 'giveaway', 'end', 'reroll', 'echo'];
+        if (global.client && global.client.commands) {
+            commandNames = Array.from(global.client.commands.keys());
+        }
+        
+        // Create bot info with proper error handling
+        res.locals.botInfo = {
+            name: 'AFK Devs Bot',
+            prefix: '/',
+            servers: global.client && global.client.guilds ? global.client.guilds.cache.size : 'Loading...',
+            commands: commandNames,
+            uptime: global.client ? formatUptime(global.client.uptime) : 'Loading...'
+        };
+    } catch (error) {
+        console.error('Error setting up bot info middleware:', error);
+        // Fallback bot info
+        res.locals.botInfo = {
+            name: 'AFK Devs Bot',
+            prefix: '/',
+            servers: 'Online',
+            commands: ['help', 'about', 'giveaway'],
+            uptime: 'Online'
+        };
+    }
     next();
 });
 
@@ -42,7 +61,24 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/botinfo', (req, res) => {
-    res.json(res.locals.botInfo);
+    try {
+        // Refresh server count and uptime if possible
+        if (global.client && global.client.guilds) {
+            res.locals.botInfo.servers = global.client.guilds.cache.size;
+            res.locals.botInfo.uptime = formatUptime(global.client.uptime);
+        }
+        res.json(res.locals.botInfo);
+    } catch (error) {
+        console.error('Error serving bot info:', error);
+        // Return fallback data on error
+        res.json({
+            name: 'AFK Devs Bot',
+            prefix: '/',
+            servers: 'Online',
+            commands: ['help', 'about', 'giveaway'],
+            uptime: 'Online'
+        });
+    }
 });
 
 // Start server

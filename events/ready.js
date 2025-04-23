@@ -23,16 +23,18 @@ module.exports = {
         }
         console.log('=================================\n');
 
-        // Set bot nickname for all guilds
+        // Set bot nickname for all guilds where possible (without detailed error logging)
         client.guilds.cache.forEach((guild) => {
-            guild.members.me
-                ?.setNickname("AFK")
-                .catch((error) =>
-                    console.error(
-                        `Could not set nickname in ${guild.name}:`,
-                        error,
-                    ),
-                );
+            try {
+                // Only attempt to set nickname if we have the right permissions
+                if (guild.members?.me?.permissions?.has('ChangeNickname')) {
+                    guild.members.me.setNickname("AFK").catch(() => {
+                        // Silent fail - this is not critical functionality
+                    });
+                }
+            } catch (error) {
+                // Ignore nickname errors - they're not critical
+            }
         });
 
         // Set bot status
