@@ -4,7 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('truthdare')
         .setDescription('Start a Truth or Dare game in the current channel')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
+        ,
     
     async execute(interaction) {
         try {
@@ -18,7 +18,7 @@ module.exports = {
             console.error('Error starting Truth or Dare game:', error);
             await interaction.reply({
                 content: 'There was an error starting the game! Please try again later.',
-                ephemeral: true
+                ephemeral: false
             });
         }
     },

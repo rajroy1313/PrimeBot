@@ -4,7 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('tictactoe')
         .setDescription('Start a new tic-tac-toe game')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
+        ,
     
     async execute(interaction) {
         try {
@@ -14,7 +14,7 @@ module.exports = {
             if (existingGame) {
                 return interaction.reply({
                     content: 'There is already a game in progress in this channel. End it first with `/endgame`.',
-                    ephemeral: true
+                    ephemeral: false
                 });
             }
             
@@ -31,7 +31,7 @@ module.exports = {
             console.error('Error starting TicTacToe game:', error);
             await interaction.reply({
                 content: 'There was an error starting the game! Please try again later.',
-                ephemeral: true
+                ephemeral: false
             });
         }
     },

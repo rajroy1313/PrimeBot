@@ -4,7 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('move')
         .setDescription('Make a move in the tic-tac-toe game')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
+        
         .addIntegerOption(option => 
             option.setName('position')
                 .setDescription('Position to place your marker (1-9)')
@@ -27,7 +27,7 @@ module.exports = {
             if (!result) {
                 return interaction.reply({
                     content: 'There was an error making your move. Make sure there is an active game and it\'s your turn.',
-                    ephemeral: true
+                    ephemeral: false
                 });
             }
             
@@ -38,7 +38,7 @@ module.exports = {
             console.error('Error making TicTacToe move:', error);
             await interaction.reply({
                 content: 'There was an error making your move! Please try again later.',
-                ephemeral: true
+                ephemeral: false
             });
         }
     },

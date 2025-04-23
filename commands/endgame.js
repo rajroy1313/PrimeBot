@@ -4,7 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('endgame')
         .setDescription('End the current tic-tac-toe game')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
+        ,
     
     async execute(interaction) {
         try {
@@ -14,7 +14,7 @@ module.exports = {
             if (!game) {
                 return interaction.reply({
                     content: 'There is no active game in this channel.',
-                    ephemeral: true
+                    ephemeral: false
                 });
             }
             
@@ -23,7 +23,7 @@ module.exports = {
                 !interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
                 return interaction.reply({
                     content: 'Only the game creator or moderators can end the game.',
-                    ephemeral: true
+                    ephemeral: false
                 });
             }
             
@@ -35,7 +35,7 @@ module.exports = {
             } else {
                 await interaction.reply({
                     content: 'Failed to end the game. Please try again.',
-                    ephemeral: true
+                    ephemeral: false
                 });
             }
             
@@ -43,7 +43,7 @@ module.exports = {
             console.error('Error ending TicTacToe game:', error);
             await interaction.reply({
                 content: 'There was an error ending the game! Please try again later.',
-                ephemeral: true
+                ephemeral: false
             });
         }
     },

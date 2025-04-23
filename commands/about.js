@@ -5,7 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('about')
         .setDescription('Display information about the bot')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
+        ,
     
     async execute(interaction) {
         try {
@@ -99,7 +99,7 @@ module.exports = {
             console.error('Error displaying about information:', error);
             await interaction.reply({
                 content: 'There was an error displaying the information! Please try again later.',
-                ephemeral: true
+                ephemeral: false
             });
         }
     },

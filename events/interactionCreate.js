@@ -1,107 +1,95 @@
-const { Collection } = require('discord.js');
-const { logCommandExecution, logError } = require('../utils/logUtils');
+const { safeReply, safeExecute } = require('../utils/stabilityUtils');
 
 module.exports = {
     name: 'interactionCreate',
+    
     async execute(interaction, client) {
         try {
             // Handle slash commands
             if (interaction.isChatInputCommand()) {
-                console.log(`SLASH COMMAND DEBUG: Received slash command: ${interaction.commandName} from ${interaction.user.tag} in ${interaction.guild ? interaction.guild.name : 'DM'}`);
-                
                 const command = client.commands.get(interaction.commandName);
                 
                 if (!command) {
-                    console.error(`SLASH COMMAND DEBUG: No command matching ${interaction.commandName} was found in the commands collection!`);
-                    console.log(`SLASH COMMAND DEBUG: Available commands: ${Array.from(client.commands.keys()).join(', ')}`);
-                    return;
+                    console.warn(`Command not found: ${interaction.commandName}`);
+                    return safeReply(interaction, { 
+                        content: 'This command is not currently available.',
+                        ephemeral: false
+                    });
                 }
                 
-                try {
-                    // Log detailed command execution
-                    logCommandExecution(interaction.commandName, interaction);
-                    
-                    // Check if execute function exists
-                    if (typeof command.execute !== 'function') {
-                        console.error(`SLASH COMMAND DEBUG: Command ${interaction.commandName} doesn't have a valid execute function!`);
-                        return;
-                    }
-                    
-                    // Extra debug for echo command
-                    if (interaction.commandName === 'echo') {
-                        console.log(`ECHO COMMAND DEBUG: Starting execution`);
-                        console.log(`ECHO COMMAND DEBUG: Options: ${JSON.stringify(interaction.options.data)}`);
-                        console.log(`ECHO COMMAND DEBUG: User: ${interaction.user.tag} (${interaction.user.id})`);
-                        console.log(`ECHO COMMAND DEBUG: Channel: ${interaction.channel.name} (${interaction.channel.id})`);
-                        console.log(`ECHO COMMAND DEBUG: Guild: ${interaction.guild ? interaction.guild.name : 'DM'}`);
-                    }
-                    
-                    // Execute the command
-                    console.log(`SLASH COMMAND DEBUG: Executing command: ${interaction.commandName}`);
-                    await command.execute(interaction);
-                    console.log(`SLASH COMMAND DEBUG: Command ${interaction.commandName} executed successfully`);
-                } catch (error) {
-                    logError(`Command ${interaction.commandName}`, error);
-                    console.error(`SLASH COMMAND DEBUG: Error executing ${interaction.commandName}:`, error);
-                    
-                    // Handle error responses to users
-                    try {
-                        if (interaction.replied || interaction.deferred) {
-                            await interaction.followUp({ 
-                                content: 'There was an error while executing this command!', 
-                                ephemeral: true 
-                            }).catch(err => console.error('Could not send followUp:', err));
-                        } else {
-                            await interaction.reply({ 
-                                content: 'There was an error while executing this command!', 
-                                ephemeral: true 
-                            }).catch(err => console.error('Could not send reply:', err));
-                        }
-                    } catch (responseError) {
-                        console.error('Error sending error response:', responseError);
-                    }
-                }
-            }
-            // Handle button interactions
-            else if (interaction.isButton()) {
-                try {
-                    if (interaction.customId === 'giveaway-enter') {
-                        await client.giveawayManager.handleGiveawayEntry(interaction);
-                    }
-                    
-                    // Handle ticket creation button
-                    else if (interaction.customId === 'create-ticket') {
-                        await client.ticketManager.handleTicketCreation(interaction);
-                    }
-                    
-                    // Handle ticket close button
-                    else if (interaction.customId === 'close-ticket') {
-                        await client.ticketManager.handleTicketClose(interaction);
-                    }
-                    
-                    // Handle Truth or Dare buttons
-                    else if (interaction.customId === 'truth_button' || 
-                            interaction.customId === 'dare_button' || 
-                            interaction.customId === 'add_question') {
-                        await client.truthDareManager.handleButtonInteraction(interaction);
-                    }
-                } catch (buttonError) {
-                    console.error('Error handling button interaction:', buttonError);
-                }
+                // Log command usage
+                console.log(`[COMMAND] ${interaction.user.tag} used /${interaction.commandName} in ${interaction.guild ? interaction.guild.name : 'DM'}`);
+                
+                // Execute command with safe execution
+                await safeExecute(
+                    command.execute.bind(command), 
+                    [interaction],
+                    null,
+                    `Command "${interaction.commandName}"`
+                );
+                
+                return;
             }
             
-            // Handle Truth or Dare modal submissions
-            else if (interaction.isModalSubmit()) {
-                try {
-                    if (interaction.customId === 'add_question_modal') {
-                        await client.truthDareManager.handleModalSubmission(interaction);
+            // Handle buttons
+            if (interaction.isButton()) {
+                // Extract the custom ID parts
+                const [action, ...params] = interaction.customId.split(':');
+                
+                // Route to the appropriate handler based on the action
+                if (action === 'giveaway_enter') {
+                    await safeExecute(
+                        client.giveawayManager.handleGiveawayEntry.bind(client.giveawayManager),
+                        [interaction],
+                        null,
+                        'Giveaway entry button'
+                    );
+                } else if (action === 'ticket_create') {
+                    await safeExecute(
+                        client.ticketManager.handleTicketCreation.bind(client.ticketManager),
+                        [interaction],
+                        null,
+                        'Ticket creation button'
+                    );
+                } else if (action === 'ticket_close') {
+                    await safeExecute(
+                        client.ticketManager.handleTicketClose.bind(client.ticketManager),
+                        [interaction],
+                        null,
+                        'Ticket close button'
+                    );
+                } else if (action === 'tictactoe') {
+                    const position = params[0];
+                    if (position) {
+                        await safeExecute(
+                            client.ticTacToeManager.makeMove.bind(client.ticTacToeManager),
+                            [{ channelId: interaction.channelId, playerId: interaction.user.id, position }],
+                            null,
+                            'TicTacToe move button'
+                        );
                     }
-                } catch (modalError) {
-                    console.error('Error handling modal submission:', modalError);
                 }
+                
+                return;
             }
+            
+            // Handle select menus, modals, etc.
+            // Add more handlers as needed
+            
         } catch (error) {
             console.error('Error in interactionCreate event:', error);
+            
+            // Try to respond to the user if possible
+            try {
+                if (!interaction.replied && !interaction.deferred) {
+                    await interaction.reply({
+                        content: 'There was an error executing this interaction! Please try again later.',
+                        ephemeral: false
+                    });
+                }
+            } catch (replyError) {
+                console.error('Failed to send error response:', replyError);
+            }
         }
-    },
+    }
 };

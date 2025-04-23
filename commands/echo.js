@@ -41,7 +41,7 @@ module.exports = {
                 console.log(`DEBUG: Bot doesn't have permission to send messages in ${channel.name}`);
                 return interaction.reply({ 
                     content: `I don't have permission to send messages in ${channel}.`, 
-                    ephemeral: true 
+                    ephemeral: false 
                 });
             }
             
@@ -69,7 +69,7 @@ module.exports = {
             // Confirm to the user
             await interaction.reply({ 
                 content: `Message has been echoed in ${channel}.`, 
-                ephemeral: true 
+                ephemeral: false 
             });
             
             console.log('DEBUG: Echo command completed successfully');
@@ -82,12 +82,12 @@ module.exports = {
                 if (!interaction.replied && !interaction.deferred) {
                     await interaction.reply({ 
                         content: 'There was an error executing the command! Please try again later.', 
-                        ephemeral: true 
+                        ephemeral: false 
                     });
                 } else {
                     await interaction.followUp({
                         content: 'There was an error executing the command! Please try again later.',
-                        ephemeral: true
+                        ephemeral: false
                     });
                 }
             } catch (replyError) {

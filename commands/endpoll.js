@@ -8,7 +8,7 @@ module.exports = {
             option.setName('message_id')
                 .setDescription('The message ID of the poll to end')
                 .setRequired(true))
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
+        ,
     
     async execute(interaction) {
         try {
@@ -16,7 +16,7 @@ module.exports = {
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageMessages)) {
                 return interaction.reply({ 
                     content: 'You need the Manage Messages permission to end polls early!', 
-                    ephemeral: true 
+                    ephemeral: false 
                 });
             }
             
@@ -28,19 +28,19 @@ module.exports = {
             if (success) {
                 await interaction.reply({ 
                     content: 'Poll ended successfully!', 
-                    ephemeral: true 
+                    ephemeral: false 
                 });
             } else {
                 await interaction.reply({ 
                     content: 'Could not find an active poll with that message ID.', 
-                    ephemeral: true 
+                    ephemeral: false 
                 });
             }
         } catch (error) {
             console.error('Error ending poll:', error);
             await interaction.reply({ 
                 content: 'There was an error ending the poll! Please try again later.', 
-                ephemeral: true 
+                ephemeral: false 
             });
         }
     },

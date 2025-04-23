@@ -10,7 +10,7 @@ module.exports = {
                 .setDescription('Page number to view')
                 .setRequired(false)
                 .setMinValue(1))
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        ,
     
     async execute(interaction) {
         try {
@@ -18,7 +18,7 @@ module.exports = {
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
                 return interaction.reply({ 
                     content: 'You need the Manage Server permission to view ticket history!', 
-                    ephemeral: true 
+                    ephemeral: false 
                 });
             }
             
@@ -40,7 +40,7 @@ module.exports = {
             if (page > maxPage) {
                 return interaction.reply({ 
                     content: `Invalid page number. There are only ${maxPage} pages.`, 
-                    ephemeral: true 
+                    ephemeral: false 
                 });
             }
             
@@ -70,7 +70,7 @@ module.exports = {
             console.error('Error viewing ticket history:', error);
             await interaction.reply({ 
                 content: 'There was an error viewing the ticket history! Please try again later.', 
-                ephemeral: true 
+                ephemeral: false 
             });
         }
     },

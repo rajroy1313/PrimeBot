@@ -32,7 +32,7 @@ module.exports = {
             option.setName('support_role_3')
                 .setDescription('Additional support role')
                 .setRequired(false))
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        ,
     
     async execute(interaction) {
         try {
@@ -40,7 +40,7 @@ module.exports = {
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
                 return interaction.reply({ 
                     content: 'You need the Manage Server permission to set up ticket systems!', 
-                    ephemeral: true 
+                    ephemeral: false 
                 });
             }
             
@@ -72,14 +72,14 @@ module.exports = {
             // Confirm to the user
             await interaction.reply({ 
                 content: `Ticket panel created in ${channel}!`, 
-                ephemeral: true 
+                ephemeral: false 
             });
             
         } catch (error) {
             console.error('Error creating ticket panel:', error);
             await interaction.reply({ 
                 content: 'There was an error creating the ticket panel! Please try again later.', 
-                ephemeral: true 
+                ephemeral: false 
             });
         }
     },

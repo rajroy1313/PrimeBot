@@ -6,7 +6,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('poll')
         .setDescription('Create a timed poll with options')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
+        
         .addStringOption(option => 
             option.setName('duration')
                 .setDescription('Duration of the poll (e.g., 1h, 1d)')
@@ -34,14 +34,14 @@ module.exports = {
             if (options.length < 2) {
                 return interaction.reply({
                     content: 'You need to provide at least 2 options for the poll.',
-                    ephemeral: true
+                    ephemeral: false
                 });
             }
             
             if (options.length > 10) {
                 return interaction.reply({
                     content: 'You can provide a maximum of 10 options for the poll.',
-                    ephemeral: true
+                    ephemeral: false
                 });
             }
             
@@ -51,7 +51,7 @@ module.exports = {
             if (!duration || isNaN(duration)) {
                 return interaction.reply({
                     content: 'Please provide a valid duration (e.g., 1h, 1d).',
-                    ephemeral: true
+                    ephemeral: false
                 });
             }
             
@@ -59,7 +59,7 @@ module.exports = {
             if (duration < 10000) {
                 return interaction.reply({
                     content: 'Poll duration must be at least 10 seconds.',
-                    ephemeral: true
+                    ephemeral: false
                 });
             }
             
@@ -85,14 +85,14 @@ module.exports = {
             
             await interaction.reply({
                 embeds: [confirmEmbed],
-                ephemeral: true
+                ephemeral: false
             });
             
         } catch (error) {
             console.error('Error creating poll:', error);
             await interaction.reply({
                 content: 'There was an error creating the poll! Please try again later.',
-                ephemeral: true
+                ephemeral: false
             });
         }
     },

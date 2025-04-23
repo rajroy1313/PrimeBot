@@ -5,7 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('addquestion')
         .setDescription('Add a new Truth or Dare question')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
+        
         .addStringOption(option => 
             option.setName('type')
                 .setDescription('Type of question')
@@ -37,12 +37,12 @@ module.exports = {
                 
                 await interaction.reply({
                     embeds: [embed],
-                    ephemeral: true
+                    ephemeral: false
                 });
             } else {
                 await interaction.reply({
                     content: 'Failed to add the question. It may already exist.',
-                    ephemeral: true
+                    ephemeral: false
                 });
             }
             
@@ -50,7 +50,7 @@ module.exports = {
             console.error('Error adding Truth or Dare question:', error);
             await interaction.reply({
                 content: 'There was an error adding the question! Please try again later.',
-                ephemeral: true
+                ephemeral: false
             });
         }
     },

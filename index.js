@@ -15,6 +15,10 @@ const client = new Client({
         GatewayIntentBits.MessageContent
     ]
 });
+// Enhance client connection handling
+const enhanceConnection = require('./connection-enhancer');
+enhanceConnection(client);
+
 
 // Initialize collections for commands
 client.commands = new Collection();
@@ -134,4 +138,29 @@ process.on('SIGINT', () => {
 
 process.on('unhandledRejection', error => {
     console.error('Unhandled promise rejection:', error);
+});
+
+
+// Enhanced error handling for process events
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+    // Don't crash on unhandled rejections
+});
+
+process.on('uncaughtException', (error) => {
+    console.error('Uncaught Exception:', error);
+    // Log the error but don't exit unless absolutely necessary
+    if (error.code === 'ECONNRESET' || error.code === 'ETIMEDOUT' || error.code === 'ENOTFOUND') {
+        console.log('Network error occurred, but the bot will continue running');
+    } else if (error.message && error.message.includes('getaddrinfo')) {
+        console.log('DNS resolution error occurred, but the bot will continue running');
+    } else if (error.code === 'TOKEN_INVALID') {
+        console.error('Invalid token. The bot must restart with a valid token');
+        process.exit(1);
+    }
+    // For other errors, log but don't crash
+});
+
+process.on('warning', (warning) => {
+    console.warn('Warning:', warning.name, warning.message);
 });

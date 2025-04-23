@@ -5,7 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('birthday')
         .setDescription('Manage birthdays in the server')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
+        
         .addSubcommand(subcommand =>
             subcommand
                 .setName('set')
@@ -90,7 +90,7 @@ module.exports = {
                         !interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
                         return interaction.reply({ 
                             content: 'You need the Manage Server permission to set birthdays for others!', 
-                            ephemeral: true 
+                            ephemeral: false 
                         });
                     }
                     
@@ -116,7 +116,7 @@ module.exports = {
                     } else {
                         return interaction.reply({ 
                             content: 'Failed to set the birthday. Please make sure the date is valid.', 
-                            ephemeral: true 
+                            ephemeral: false 
                         });
                     }
                 }
@@ -129,7 +129,7 @@ module.exports = {
                         !interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
                         return interaction.reply({ 
                             content: 'You need the Manage Server permission to remove birthdays for others!', 
-                            ephemeral: true 
+                            ephemeral: false 
                         });
                     }
                     
@@ -147,7 +147,7 @@ module.exports = {
                     } else {
                         return interaction.reply({ 
                             content: `No birthday was set for ${targetUser.id === interaction.user.id ? 'you' : targetUser.username}.`, 
-                            ephemeral: true 
+                            ephemeral: false 
                         });
                     }
                 }
@@ -201,7 +201,7 @@ module.exports = {
                     if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
                         return interaction.reply({ 
                             content: 'You need the Manage Server permission to set the birthday channel!', 
-                            ephemeral: true 
+                            ephemeral: false 
                         });
                     }
                     
@@ -219,7 +219,7 @@ module.exports = {
                     } else {
                         return interaction.reply({ 
                             content: 'Failed to set the birthday announcement channel.', 
-                            ephemeral: true 
+                            ephemeral: false 
                         });
                     }
                 }
@@ -229,7 +229,7 @@ module.exports = {
                     if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
                         return interaction.reply({ 
                             content: 'You need the Manage Server permission to set the birthday role!', 
-                            ephemeral: true 
+                            ephemeral: false 
                         });
                     }
                     
@@ -247,7 +247,7 @@ module.exports = {
                     } else {
                         return interaction.reply({ 
                             content: 'Failed to set the birthday role.', 
-                            ephemeral: true 
+                            ephemeral: false 
                         });
                     }
                 }
@@ -257,7 +257,7 @@ module.exports = {
             console.error('Error executing birthday command:', error);
             return interaction.reply({
                 content: 'There was an error executing the command! Please try again later.',
-                ephemeral: true
+                ephemeral: false
             });
         }
     },

@@ -8,7 +8,7 @@ module.exports = {
             option.setName('message_id')
                 .setDescription('The message ID of the giveaway to reroll')
                 .setRequired(true))
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        ,
     
     async execute(interaction) {
         try {
@@ -16,7 +16,7 @@ module.exports = {
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
                 return interaction.reply({ 
                     content: 'You need the Manage Server permission to reroll giveaways!', 
-                    ephemeral: true 
+                    ephemeral: false 
                 });
             }
 
@@ -28,19 +28,19 @@ module.exports = {
             if (success) {
                 await interaction.reply({ 
                     content: 'Giveaway rerolled successfully!', 
-                    ephemeral: true 
+                    ephemeral: false 
                 });
             } else {
                 await interaction.reply({ 
                     content: 'Could not find a completed giveaway with that message ID.', 
-                    ephemeral: true 
+                    ephemeral: false 
                 });
             }
         } catch (error) {
             console.error('Error rerolling giveaway:', error);
             await interaction.reply({ 
                 content: 'There was an error rerolling the giveaway! Please try again later.', 
-                ephemeral: true 
+                ephemeral: false 
             });
         }
     },

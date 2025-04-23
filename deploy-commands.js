@@ -39,23 +39,13 @@ async function deployCommands() {
         // Global deployment (for all servers the bot is in)
         // Process commands and set permissions
         const processedCommands = commands.map(cmd => {
-            // If default_member_permissions is not set, set it to '0' (available to everyone)
-            if (cmd.default_member_permissions === undefined) {
-                cmd.default_member_permissions = '0';
-            }
-            
-            // Set all commands to have 'SendMessages' permission except 'echo'
+            // Make all commands available to everyone (except echo which handles its own permissions)
             if (cmd.name !== 'echo') {
-                // Ensure the command has permission to send messages
-                console.log(`Setting SendMessages permission for command: ${cmd.name}`);
-                
-                // In Discord.js v14, we set permissions in the command data itself
-                // This is handled in each individual command file
-                
-                // We'll create a separate logger entry
-                console.log(`Permission status for ${cmd.name}: SendMessages permission = true`);
+                // Set default_member_permissions to '0' (available to everyone)
+                cmd.default_member_permissions = '0';
+                console.log(`Making command visible to all members: ${cmd.name}`);
             } else {
-                console.log(`Skipping SendMessages permission for command: ${cmd.name} (handled in command file)`);
+                console.log(`Skipping permission update for command: ${cmd.name} (handled in command file)`);
             }
             
             return cmd;

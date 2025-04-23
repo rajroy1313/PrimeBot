@@ -5,7 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
         .setDescription('Shows a list of all available commands')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
+        ,
     
     async execute(interaction) {
         try {
@@ -104,7 +104,7 @@ module.exports = {
             if (!interaction.replied && !interaction.deferred) {
                 await interaction.reply({
                     content: 'There was an error executing the command! Please try again later.',
-                    ephemeral: true
+                    ephemeral: false
                 });
             }
         }

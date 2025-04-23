@@ -32,7 +32,7 @@ module.exports = {
             option.setName('description')
                 .setDescription('Optional description/details for the giveaway')
                 .setRequired(false))    
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild),
+        ,
     
     async execute(interaction) {
         try {
@@ -40,7 +40,7 @@ module.exports = {
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
                 return interaction.reply({ 
                     content: 'You need the Manage Server permission to create giveaways!', 
-                    ephemeral: true 
+                    ephemeral: false 
                 });
             }
 
@@ -58,7 +58,7 @@ module.exports = {
             if (!ms_duration) {
                 return interaction.reply({ 
                     content: 'Please provide a valid duration format (e.g., 1m, 1h, 1d)!', 
-                    ephemeral: true 
+                    ephemeral: false 
                 });
             }
 
@@ -69,7 +69,7 @@ module.exports = {
                 } catch (e) {
                     return interaction.reply({ 
                         content: 'Please provide a valid URL for the thumbnail image!', 
-                        ephemeral: true 
+                        ephemeral: false 
                     });
                 }
             }
@@ -101,14 +101,14 @@ module.exports = {
 
             await interaction.reply({ 
                 embeds: [detailsEmbed], 
-                ephemeral: true 
+                ephemeral: false 
             });
             
         } catch (error) {
             console.error('Error creating giveaway:', error);
             await interaction.reply({ 
                 content: 'There was an error creating the giveaway! Please try again later.', 
-                ephemeral: true 
+                ephemeral: false 
             });
         }
     },

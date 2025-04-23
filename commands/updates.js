@@ -5,7 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('updates')
         .setDescription('Show recent updates and upcoming features')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages),
+        ,
     
     async execute(interaction) {
         try {
@@ -49,7 +49,7 @@ module.exports = {
             console.error('Error displaying updates:', error);
             await interaction.reply({
                 content: 'There was an error displaying the update information! Please try again later.',
-                ephemeral: true
+                ephemeral: false
             });
         }
     },

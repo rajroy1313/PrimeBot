@@ -5,7 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('counting')
         .setDescription('Manage counting games')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
+        
         .addSubcommand(subcommand =>
             subcommand
                 .setName('start')
@@ -29,8 +29,7 @@ module.exports = {
         .addSubcommand(subcommand =>
             subcommand
                 .setName('help')
-                .setDescription('Show help information for the counting game')
-        .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)),
+                .setDescription('Show help information for the counting game')),
     
     async execute(interaction) {
         try {
@@ -43,7 +42,7 @@ module.exports = {
                     if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
                         return interaction.reply({
                             content: 'You need the Manage Channels permission to start counting games!',
-                            ephemeral: true
+                            ephemeral: false
                         });
                     }
                     
@@ -52,7 +51,7 @@ module.exports = {
                     if (existingGame) {
                         return interaction.reply({
                             content: 'There is already a counting game in this channel. End it first with `/counting end`.',
-                            ephemeral: true
+                            ephemeral: false
                         });
                     }
                     
@@ -64,21 +63,21 @@ module.exports = {
                     if (startNumber < 0) {
                         return interaction.reply({
                             content: 'The starting number must be 0 or greater.',
-                            ephemeral: true
+                            ephemeral: false
                         });
                     }
                     
                     if (goalNumber <= startNumber) {
                         return interaction.reply({
                             content: 'The goal number must be greater than the starting number.',
-                            ephemeral: true
+                            ephemeral: false
                         });
                     }
                     
                     if (goalNumber > 1000000) {
                         return interaction.reply({
                             content: 'The goal number cannot be greater than 1,000,000.',
-                            ephemeral: true
+                            ephemeral: false
                         });
                     }
                     
@@ -96,7 +95,7 @@ module.exports = {
                     } else {
                         await interaction.reply({
                             content: 'Failed to start the counting game. Please try again later.',
-                            ephemeral: true
+                            ephemeral: false
                         });
                     }
                     
@@ -110,7 +109,7 @@ module.exports = {
                     if (!game) {
                         return interaction.reply({
                             content: 'There is no active counting game in this channel.',
-                            ephemeral: true
+                            ephemeral: false
                         });
                     }
                     
@@ -126,7 +125,7 @@ module.exports = {
                     if (!interaction.member.permissions.has(PermissionFlagsBits.ManageChannels)) {
                         return interaction.reply({
                             content: 'You need the Manage Channels permission to end counting games!',
-                            ephemeral: true
+                            ephemeral: false
                         });
                     }
                     
@@ -136,7 +135,7 @@ module.exports = {
                     if (!game) {
                         return interaction.reply({
                             content: 'There is no active counting game in this channel.',
-                            ephemeral: true
+                            ephemeral: false
                         });
                     }
                     
@@ -148,7 +147,7 @@ module.exports = {
                     } else {
                         await interaction.reply({
                             content: 'Failed to end the counting game. Please try again later.',
-                            ephemeral: true
+                            ephemeral: false
                         });
                     }
                     
@@ -168,7 +167,7 @@ module.exports = {
             console.error('Error handling counting command:', error);
             await interaction.reply({
                 content: 'There was an error executing the command! Please try again later.',
-                ephemeral: true
+                ephemeral: false
             });
         }
     },
