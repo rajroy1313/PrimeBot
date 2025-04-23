@@ -23,112 +23,153 @@ async function safeExecute(fn, args = [], defaultValue = null, errorContext = 'U
 }
 
 /**
- * Safe version of discord.js's interaction.reply
- * @param {Interaction} interaction - Discord interaction object
- * @param {Object} options - Reply options
- * @returns {Promise<void>}
+ * Safely reply to an interaction with error handling
+ * @param {Interaction} interaction - The Discord interaction
+ * @param {Object} replyOptions - Options for the reply
+ * @returns {Promise<Message|void>} The reply message or void on error
  */
-async function safeReply(interaction, options) {
+async function safeReply(interaction, replyOptions) {
     try {
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp(options);
+        if (!interaction) return;
+        
+        // Check if the interaction can be replied to
+        if (interaction.replied) {
+            return await interaction.followUp(replyOptions).catch(() => null);
+        } else if (interaction.deferred) {
+            return await interaction.editReply(replyOptions).catch(() => null);
         } else {
-            await interaction.reply(options);
+            return await interaction.reply(replyOptions).catch(() => null);
         }
     } catch (error) {
         console.error('Error replying to interaction:', error);
+        
+        // Attempt a fallback reply if possible
         try {
-            // Try one more time with a simplified message
             if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({ 
-                    content: 'There was an error executing the command. Please try again later.',
-                    ephemeral: false 
-                });
+                return await interaction.reply({ 
+                    content: 'An error occurred while processing this command.',
+                    ephemeral: true 
+                }).catch(() => null);
             }
-        } catch (secondError) {
-            console.error('Failed to send error message:', secondError);
+        } catch (fallbackError) {
+            // Silent fail - we've done our best
         }
     }
 }
 
 /**
- * Safely access a Discord API entity with error handling
- * @param {Function} accessor - Function to access the entity
- * @param {any} defaultValue - Value to return if access fails
- * @returns {any} The accessed entity or default value
+ * Safely access nested object properties
+ * @param {Object} obj - The object to access
+ * @param {string} path - Path to the property, dot-separated
+ * @param {any} defaultValue - Value to return if the property is not found
+ * @returns {any} The property value or default value
  */
-function safeAccess(accessor, defaultValue = null) {
-    try {
-        return accessor();
-    } catch (error) {
-        console.error('Error accessing Discord entity:', error);
-        return defaultValue;
+function safeAccess(obj, path, defaultValue = null) {
+    if (!obj || !path) return defaultValue;
+    
+    const keys = path.split('.');
+    let result = obj;
+    
+    for (const key of keys) {
+        if (result === null || result === undefined || typeof result !== 'object') {
+            return defaultValue;
+        }
+        result = result[key];
     }
+    
+    return result !== undefined ? result : defaultValue;
 }
 
 /**
- * Set interval with built-in error handling
+ * Creates a safer version of setInterval that doesn't stack
  * @param {Function} callback - Function to execute
  * @param {number} delay - Delay in milliseconds
- * @param {string} taskName - Name of the task for logging
- * @returns {NodeJS.Timeout} Interval ID
+ * @returns {Object} Interval controller with start/stop methods
  */
-function safeInterval(callback, delay, taskName = 'scheduled task') {
-    return setInterval(() => {
-        try {
-            callback();
-        } catch (error) {
-            console.error(`Error in ${taskName}:`, error);
-            // Continue running the interval despite errors
+function safeInterval(callback, delay) {
+    let intervalId = null;
+    let running = false;
+    
+    const controller = {
+        start: function() {
+            if (intervalId) return;
+            
+            intervalId = setInterval(async () => {
+                if (running) return; // Prevent overlap
+                
+                running = true;
+                try {
+                    await callback();
+                } catch (error) {
+                    console.error('Error in interval callback:', error);
+                } finally {
+                    running = false;
+                }
+            }, delay);
+        },
+        
+        stop: function() {
+            if (intervalId) {
+                clearInterval(intervalId);
+                intervalId = null;
+            }
+        },
+        
+        isRunning: function() {
+            return intervalId !== null;
         }
-    }, delay);
+    };
+    
+    return controller;
 }
 
 /**
- * Create a promise that resolves after a timeout
+ * Set a timeout that returns a promise
  * @param {number} ms - Milliseconds to wait
- * @returns {Promise<void>}
+ * @returns {Promise<void>} Promise that resolves after the timeout
  */
 function timeout(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 /**
- * Execute a function with retries on failure
- * @param {Function} fn - Function to execute
+ * Execute a function with automatic retries on failure
+ * @param {Function} fn - The function to execute
  * @param {Object} options - Retry options
  * @returns {Promise<any>} The function result
  */
-async function withRetry(fn, { maxRetries = 3, delay = 1000, backoff = 2, errorFilter = null } = {}) {
-    let lastError;
+async function withRetry(fn, options = {}) {
+    const { 
+        maxRetries = 3, 
+        initialDelay = 1000, 
+        maxDelay = 10000,
+        factor = 2,
+        retryCondition = isRetryableError
+    } = options;
     
-    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    let attempt = 0;
+    let delay = initialDelay;
+    
+    while (true) {
         try {
             return await fn();
         } catch (error) {
-            lastError = error;
+            attempt++;
             
-            // Skip retries if the error filter says so
-            if (errorFilter && !errorFilter(error)) {
+            if (attempt >= maxRetries || !retryCondition(error)) {
                 throw error;
             }
             
-            console.warn(`Attempt ${attempt} failed, retrying in ${delay}ms...`);
+            console.warn(`Retry attempt ${attempt}/${maxRetries} after error:`, error);
             
-            // Wait before the next attempt
-            if (attempt < maxRetries) {
-                await timeout(delay);
-                delay *= backoff; // Exponential backoff
-            }
+            await timeout(delay);
+            delay = Math.min(delay * factor, maxDelay);
         }
     }
-    
-    // All retries failed
-    throw lastError;
 }
 
 /**
- * Check if a request error is retryable
+ * Determine if an error is retryable
  * @param {Error} error - The error to check
  * @returns {boolean} Whether the error is retryable
  */

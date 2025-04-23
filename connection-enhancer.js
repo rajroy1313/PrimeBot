@@ -50,7 +50,7 @@ function enhanceConnection(client) {
     });
     
     // Monitor the WebSocket connection
-    safeInterval(() => {
+    const wsMonitor = safeInterval(() => {
         if (client.ws.status === 0) {
             console.log('WebSocket connection is down, attempting to reconnect...');
             client.destroy();
@@ -58,7 +58,8 @@ function enhanceConnection(client) {
                 client.login(process.env.DISCORD_TOKEN).catch(console.error);
             }, 5000);
         }
-    }, 60000, 'WebSocket connection monitor');
+    }, 60000);
+    wsMonitor.start();
     
     // Add heartbeat monitoring
     let lastHeartbeatAck = Date.now();
@@ -76,7 +77,7 @@ function enhanceConnection(client) {
     });
     
     // Check for stale connections
-    safeInterval(() => {
+    const heartbeatMonitor = safeInterval(() => {
         const now = Date.now();
         if (now - lastHeartbeatAck > 3 * 60 * 1000) { // 3 minutes without heartbeat
             console.warn('No heartbeat received for 3 minutes, reconnecting...');
@@ -85,7 +86,8 @@ function enhanceConnection(client) {
                 client.login(process.env.DISCORD_TOKEN).catch(console.error);
             }, 5000);
         }
-    }, 60000, 'Heartbeat monitor');
+    }, 60000);
+    heartbeatMonitor.start();
     
     console.log('Enhanced Discord client with improved connection handling');
 }
