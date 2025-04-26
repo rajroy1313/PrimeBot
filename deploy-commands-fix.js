@@ -1,19 +1,33 @@
 const { REST, Routes, PermissionFlagsBits } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
-const dotenv = require('dotenv');
 
-// Make sure .env is loaded
-const result = dotenv.config();
-if (result.error) {
-    console.error("Error loading .env file:", result.error);
-    process.exit(1);
+// Directly read from .env file and set environment variables
+try {
+    const envFile = fs.readFileSync('.env', 'utf8');
+    const envVars = envFile.split('\n');
+    
+    for (const line of envVars) {
+        // Skip comments and empty lines
+        if (line.startsWith('#') || line.trim() === '') continue;
+        
+        // Parse key-value pairs
+        const match = line.match(/^([^=]+)=(.*)$/);
+        if (match) {
+            const key = match[1].trim();
+            const value = match[2].trim();
+            process.env[key] = value;
+            console.log(`Set environment variable: ${key}`);
+        }
+    }
+} catch (error) {
+    console.error('Error loading .env file manually:', error.message);
 }
 
-// Print environment variables to debug
+// Verify environment variables
 console.log("Environment variables loaded:");
-console.log("CLIENT_ID:", process.env.CLIENT_ID ? "✓ Found" : "✗ Missing");
-console.log("DISCORD_TOKEN:", process.env.DISCORD_TOKEN ? "✓ Found" : "✗ Missing");
+console.log("CLIENT_ID:", process.env.CLIENT_ID || "Not found");
+console.log("DISCORD_TOKEN:", process.env.DISCORD_TOKEN ? "Found (redacted)" : "Not found");
 
 // Get command files
 const commandsPath = path.join(__dirname, 'commands');
