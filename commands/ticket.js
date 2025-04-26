@@ -4,6 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('ticket')
         .setDescription('Create a ticket panel for support requests')
+		.setDefaultMemberPermissions('0')
         .addChannelOption(option => 
             option.setName('channel')
                 .setDescription('The channel to place the ticket panel in (defaults to current channel)')

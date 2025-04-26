@@ -6,6 +6,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('giveaway')
         .setDescription('Create a new giveaway')
+		.setDefaultMemberPermissions('0')
         .addStringOption(option => 
             option.setName('duration')
                 .setDescription('Duration of the giveaway (1m, 1h, 1d, etc.)')

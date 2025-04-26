@@ -5,6 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('birthday')
         .setDescription('Manage birthdays in the server')
+		.setDefaultMemberPermissions('0')
         
         .addSubcommand(subcommand =>
             subcommand

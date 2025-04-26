@@ -4,6 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('end')
         .setDescription('End a giveaway early')
+		.setDefaultMemberPermissions('0')
         .addStringOption(option => 
             option.setName('message_id')
                 .setDescription('The message ID of the giveaway to end')

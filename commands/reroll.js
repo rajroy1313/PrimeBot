@@ -4,6 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('reroll')
         .setDescription('Reroll a giveaway to select new winners')
+		.setDefaultMemberPermissions('0')
         .addStringOption(option => 
             option.setName('message_id')
                 .setDescription('The message ID of the giveaway to reroll')

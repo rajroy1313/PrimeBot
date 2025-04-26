@@ -4,6 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('createticket')
         .setDescription('Create a ticket with a custom name')
+		.setDefaultMemberPermissions('0')
         
         .addStringOption(option => 
             option.setName('name')

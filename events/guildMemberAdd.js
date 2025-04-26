@@ -5,6 +5,12 @@ module.exports = {
     name: 'guildMemberAdd',
     async execute(member, client) {
         try {
+            // Check if this is the support server
+            if (config.welcome.supportServerId && member.guild.id !== config.welcome.supportServerId) {
+                // Skip welcome messages for non-support servers
+                return;
+            }
+            
             // SERVER WELCOME MESSAGE
             // Get the welcome channel (either from config or find the first available channel)
             let welcomeChannel;

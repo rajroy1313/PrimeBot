@@ -4,6 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('endgame')
         .setDescription('End the current tic-tac-toe game')
+		.setDefaultMemberPermissions('0')
         ,
     
     async execute(interaction) {

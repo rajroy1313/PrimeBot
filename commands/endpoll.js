@@ -4,6 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('endpoll')
         .setDescription('End a poll early')
+		.setDefaultMemberPermissions('0')
         .addStringOption(option => 
             option.setName('message_id')
                 .setDescription('The message ID of the poll to end')

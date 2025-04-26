@@ -34,7 +34,10 @@ module.exports = {
         sendDM: true,
         
         // Additional welcome banner image URL (set to null for no image)
-        bannerUrl: 'https://i.imgur.com/hxGEQJh.png'
+        bannerUrl: 'https://i.imgur.com/hxGEQJh.png',
+        
+        // Support server ID - welcome messages will only be sent to this server
+        supportServerId: null // Set this to your support server ID when ready
     },
     
     // Giveaway settings

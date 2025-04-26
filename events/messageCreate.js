@@ -1538,8 +1538,9 @@ module.exports = {
                         .setDescription(broadcastMessage)
                         .setTimestamp()
                         .setFooter({ 
- iconURL: client.user.displayAvatarURL(),
-                    Version: `${config.version}`})
+                            text: `Version: ${config.version}`,
+                            iconURL: client.user.displayAvatarURL()
+                        })
                     
                     // Send confirmation
                     const confirmationEmbed = new EmbedBuilder()

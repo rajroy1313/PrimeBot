@@ -121,39 +121,77 @@ class EmojiManager {
     }
     
     /**
-     * Create an embed for displaying all emojis
-     * @returns {EmbedBuilder} The emoji list embed
+     * Create an embed for displaying all emojis with pagination
+     * @param {number} page - The page number to display (starting at 1)
+     * @returns {Object} Object containing embed, pagination info and components
      */
-    createEmojiListEmbed() {
+    createEmojiListEmbed(page = 1) {
+        const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+        const emojisPerPage = 5; // Show 5 emojis per page
+        const emojiEntries = Array.from(this.emojis.entries());
+        
+        // Calculate pagination info
+        const totalEmojis = emojiEntries.length;
+        const totalPages = Math.max(1, Math.ceil(totalEmojis / emojisPerPage));
+        
+        // Ensure page is within valid range
+        page = Math.max(1, Math.min(page, totalPages));
+        
+        // Calculate start and end indices for the current page
+        const startIndex = (page - 1) * emojisPerPage;
+        const endIndex = Math.min(startIndex + emojisPerPage, totalEmojis);
+        
+        // Get the emojis for the current page
+        const pageEmojis = emojiEntries.slice(startIndex, endIndex);
+        
+        // Create the embed
         const embed = new EmbedBuilder()
             .setColor(config.colors.primary)
             .setTitle('📋 Custom Emoji List')
-            .setDescription(this.emojis.size > 0 ? 'Here are all the available custom emojis:' : 'No custom emojis have been added yet.');
+            .setDescription(totalEmojis > 0 
+                ? `Here are custom emojis (Page ${page}/${totalPages}):`
+                : 'No custom emojis have been added yet.');
         
-        // Add fields for each emoji (max 25 fields per embed)
-        let emojiCount = 0;
-        let currentField = '';
-        
-        for (const [name, emoji] of this.emojis.entries()) {
-            const emojiEntry = `**${name}**: ${emoji}\n`;
+        // Add emojis to the embed
+        if (pageEmojis.length > 0) {
+            let emojiDisplay = '';
             
-            // If adding this entry would exceed field value limit, create a new field
-            if (currentField.length + emojiEntry.length > 1024) {
-                embed.addFields({ name: `Emojis ${emojiCount - 9} to ${emojiCount}`, value: currentField });
-                currentField = emojiEntry;
-            } else {
-                currentField += emojiEntry;
+            for (const [name, emoji] of pageEmojis) {
+                emojiDisplay += `**${name}**: ${emoji}\n`;
             }
             
-            emojiCount++;
+            embed.addFields({ 
+                name: `Showing ${startIndex + 1} to ${endIndex} of ${totalEmojis} emojis`, 
+                value: emojiDisplay 
+            });
         }
         
-        // Add the last field if there's anything left
-        if (currentField.length > 0) {
-            embed.addFields({ name: `Emojis ${Math.max(0, emojiCount - 9)} to ${emojiCount}`, value: currentField });
+        // Create buttons for pagination
+        const components = [];
+        
+        if (totalPages > 1) {
+            const prevButton = new ButtonBuilder()
+                .setCustomId('emoji_prev_page')
+                .setLabel('⬅️ Previous')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(page === 1);
+                
+            const nextButton = new ButtonBuilder()
+                .setCustomId('emoji_next_page')
+                .setLabel('Next ➡️')
+                .setStyle(ButtonStyle.Secondary)
+                .setDisabled(page === totalPages);
+                
+            const row = new ActionRowBuilder().addComponents(prevButton, nextButton);
+            components.push(row);
         }
         
-        return embed;
+        return {
+            embed,
+            currentPage: page,
+            totalPages,
+            components: components.length > 0 ? components : null
+        };
     }
 }
 

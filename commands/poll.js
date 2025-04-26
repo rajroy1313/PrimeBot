@@ -6,6 +6,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('poll')
         .setDescription('Create a timed poll with options')
+		.setDefaultMemberPermissions('0')
         
         .addStringOption(option => 
             option.setName('duration')

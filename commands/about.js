@@ -5,6 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('about')
         .setDescription('Display information about the bot')
+		.setDefaultMemberPermissions('0')
         ,
     
     async execute(interaction) {

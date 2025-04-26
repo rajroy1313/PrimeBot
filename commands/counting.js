@@ -5,6 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('counting')
         .setDescription('Manage counting games')
+		.setDefaultMemberPermissions('0')
         
         .addSubcommand(subcommand =>
             subcommand

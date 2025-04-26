@@ -5,6 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('updates')
         .setDescription('Show recent updates and upcoming features')
+		.setDefaultMemberPermissions('0')
         ,
     
     async execute(interaction) {

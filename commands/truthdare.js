@@ -4,6 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('truthdare')
         .setDescription('Start a Truth or Dare game in the current channel')
+		.setDefaultMemberPermissions('0')
         ,
     
     async execute(interaction) {

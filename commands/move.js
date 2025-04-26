@@ -4,6 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('move')
         .setDescription('Make a move in the tic-tac-toe game')
+		.setDefaultMemberPermissions('0')
         
         .addIntegerOption(option => 
             option.setName('position')

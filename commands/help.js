@@ -5,6 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('help')
         .setDescription('Shows a list of all available commands')
+		.setDefaultMemberPermissions('0')
         ,
     
     async execute(interaction) {

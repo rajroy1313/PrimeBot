@@ -5,6 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('tickethistory')
         .setDescription('View ticket history')
+		.setDefaultMemberPermissions('0')
         .addIntegerOption(option => 
             option.setName('page')
                 .setDescription('Page number to view')
