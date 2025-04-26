@@ -86,6 +86,27 @@ module.exports = {
                                 'TicTacToe move button'
                             );
                         }
+                    } else if (interaction.customId === 'truth_button') {
+                        await safeExecute(
+                            client.truthDareManager.handleButtonInteraction.bind(client.truthDareManager),
+                            [interaction, 'truth'],
+                            null,
+                            'Truth button'
+                        );
+                    } else if (interaction.customId === 'dare_button') {
+                        await safeExecute(
+                            client.truthDareManager.handleButtonInteraction.bind(client.truthDareManager),
+                            [interaction, 'dare'],
+                            null,
+                            'Dare button'
+                        );
+                    } else if (interaction.customId === 'add_question') {
+                        await safeExecute(
+                            client.truthDareManager.handleAddQuestion.bind(client.truthDareManager),
+                            [interaction],
+                            null,
+                            'Add question button'
+                        );
                     } else if (action === 'emoji_prev_page' || action === 'emoji_next_page') {
                         // These are handled elsewhere, just acknowledge the interaction
                         if (!interaction.replied) {
