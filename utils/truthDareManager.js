@@ -373,14 +373,23 @@ class TruthDareManager {
     }
     
     /**
+     * Handler for add_question button for easy reference from interactionCreate
+     * @param {Interaction} interaction - The button interaction 
+     */
+    async handleAddQuestion(interaction) {
+        return this.handleAddQuestionButton(interaction);
+    }
+    
+    /**
      * Handle button interaction for Truth or Dare
      * @param {Interaction} interaction - The button interaction
+     * @param {string} type - Optional type override ('truth' or 'dare')
      */
-    async handleButtonInteraction(interaction) {
+    async handleButtonInteraction(interaction, type = null) {
         try {
-            if (interaction.customId === 'truth_button') {
+            if (type === 'truth' || interaction.customId === 'truth_button') {
                 await this.handleTruthButton(interaction);
-            } else if (interaction.customId === 'dare_button') {
+            } else if (type === 'dare' || interaction.customId === 'dare_button') {
                 await this.handleDareButton(interaction);
             } else if (interaction.customId === 'add_question') {
                 await this.handleAddQuestionButton(interaction);

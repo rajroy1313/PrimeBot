@@ -62,14 +62,14 @@ module.exports = {
                             null,
                             'Giveaway entry button'
                         );
-                    } else if (action === 'ticket_create') {
+                    } else if (action === 'create-ticket' || interaction.customId === 'create-ticket') {
                         await safeExecute(
                             client.ticketManager.handleTicketCreation.bind(client.ticketManager),
                             [interaction],
                             null,
                             'Ticket creation button'
                         );
-                    } else if (action === 'ticket_close') {
+                    } else if (action === 'close-ticket' || interaction.customId === 'close-ticket') {
                         await safeExecute(
                             client.ticketManager.handleTicketClose.bind(client.ticketManager),
                             [interaction],
@@ -137,7 +137,21 @@ module.exports = {
                 return;
             }
             
-            // Handle select menus, modals, etc.
+            // Handle modal submissions
+            if (interaction.isModalSubmit()) {
+                // Route to appropriate handler based on customId
+                if (interaction.customId === 'add_question_modal') {
+                    await safeExecute(
+                        client.truthDareManager.handleModalSubmission.bind(client.truthDareManager),
+                        [interaction],
+                        null,
+                        'Truth or Dare modal submission'
+                    );
+                }
+                return;
+            }
+            
+            // Handle select menus and other interaction types
             // Add more handlers as needed
             
         } catch (error) {

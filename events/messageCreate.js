@@ -1493,7 +1493,7 @@ module.exports = {
                                 name: "✅ Recent Updates",
                                 value:
                                     
-   "•   Added sash commands of all available commands.\n" +              
+   "•   Added slash commands of all available commands.\n" +              
                                    "• Added Birthday celebration system\n" +
                                     "• Added Poll system \n" +
                                     "• Added Multiplayer TicTacToe game\n" +
