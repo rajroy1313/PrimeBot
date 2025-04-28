@@ -41,7 +41,7 @@ module.exports = {
                 const supportServerButton = new ButtonBuilder()
                     .setLabel("Support Server")
                     .setStyle(ButtonStyle.Link)
-                    .setURL(config.supportServer.inviteUrl);
+                    .setURL(config.supportServer);
 
                 const row = new ActionRowBuilder().addComponents(inviteButton, supportServerButton);
 

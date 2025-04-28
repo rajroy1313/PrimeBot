@@ -1,5 +1,7 @@
 const { safeReply, safeExecute } = require('../utils/stabilityUtils');
 const interactionDebugger = require('../utils/interactionDebugger');
+const { EmbedBuilder } = require('discord.js');
+const config = require('../config');
 
 module.exports = {
     name: 'interactionCreate',
@@ -117,11 +119,118 @@ module.exports = {
                         if (!interaction.replied) {
                             await interaction.deferUpdate().catch(console.error);
                         }
-                    } else if (interaction.customId === 'broadcast_confirm' || interaction.customId === 'broadcast_cancel') {
-                        // These are handled in the broadcast.js command, just acknowledge if not already handled
-                        if (!interaction.replied) {
-                            await interaction.deferUpdate().catch(console.error);
+                    } else if (interaction.customId === 'broadcast_confirm') {
+                        console.log('[BROADCAST] Broadcast confirmation button clicked');
+                        // Handle broadcast confirmation - this now directly processes the broadcast
+                        // Get the broadcast embed from the original message
+                        const originalMessage = interaction.message;
+                        const broadcastEmbed = originalMessage.embeds.length > 1 ? originalMessage.embeds[1] : null;
+                        
+                        if (!broadcastEmbed) {
+                            await interaction.update({
+                                content: 'Error: Could not find broadcast embed. Broadcast cancelled.',
+                                embeds: [],
+                                components: []
+                            });
+                            return;
                         }
+                        
+                        // Update the message to show that broadcasting has started
+                        await interaction.update({
+                            content: '📣 Broadcasting message to all servers...',
+                            embeds: [broadcastEmbed],
+                            components: []
+                        });
+                        
+                        // Track statistics
+                        let successCount = 0;
+                        let failCount = 0;
+                        let totalGuilds = client.guilds.cache.size;
+                        let processingMessage = '';
+                        
+                        // Broadcast to all guilds
+                        console.log(`[BROADCAST] Starting broadcast to ${totalGuilds} guilds`);
+                        
+                        // Process each guild
+                        let processedCount = 0;
+                        for (const guild of client.guilds.cache.values()) {
+                            try {
+                                console.log(`[BROADCAST] Processing guild: ${guild.name} (${guild.id})`);
+                                processedCount++;
+                                
+                                // Find the first available text channel
+                                const channel = guild.channels.cache
+                                    .filter(ch => ch.type === 0) // 0 is GuildText channel type
+                                    .sort((a, b) => a.position - b.position)
+                                    .first();
+                                
+                                if (!channel) {
+                                    console.log(`[BROADCAST] No suitable text channel found in guild: ${guild.name}`);
+                                    failCount++;
+                                    continue;
+                                }
+                                
+                                console.log(`[BROADCAST] Selected channel: ${channel.name} (${channel.id})`);
+                                
+                                // Check bot permissions
+                                const hasPermission = channel.permissionsFor(guild.members.me).has("SendMessages");
+                                console.log(`[BROADCAST] Bot has SendMessages permission: ${hasPermission}`);
+                                
+                                if (hasPermission) {
+                                    await channel.send({ embeds: [broadcastEmbed] });
+                                    console.log(`[BROADCAST] Successfully sent broadcast to guild: ${guild.name}`);
+                                    successCount++;
+                                } else {
+                                    console.log(`[BROADCAST] Missing permissions to send in channel: ${channel.name}`);
+                                    failCount++;
+                                }
+                                
+                                // Update progress every 5 guilds or when done
+                                if (processedCount % 5 === 0 || processedCount === totalGuilds) {
+                                    processingMessage = `Processing: ${processedCount}/${totalGuilds} servers (${successCount} successful, ${failCount} failed)`;
+                                    
+                                    try {
+                                        await interaction.editReply({
+                                            content: `📣 Broadcasting message to all servers...\n${processingMessage}`,
+                                            embeds: [broadcastEmbed],
+                                            components: []
+                                        });
+                                    } catch (e) {
+                                        console.error('[BROADCAST] Failed to update progress:', e);
+                                    }
+                                }
+                                
+                            } catch (error) {
+                                console.error(`[BROADCAST] Error broadcasting to guild ${guild.name}:`, error);
+                                failCount++;
+                            }
+                        }
+                        
+                        // Update with final results
+                        const resultEmbed = new EmbedBuilder()
+                            .setColor(config.colors.success)
+                            .setTitle("📣 Broadcast Results")
+                            .setDescription(`Message has been broadcast to servers.`)
+                            .addFields(
+                                { name: "✅ Success", value: `${successCount} servers`, inline: true },
+                                { name: "❌ Failed", value: `${failCount} servers`, inline: true },
+                                { name: "📊 Total", value: `${totalGuilds} servers`, inline: true }
+                            )
+                            .setTimestamp();
+                            
+                        await interaction.editReply({
+                            content: "Broadcast complete!",
+                            embeds: [resultEmbed, broadcastEmbed],
+                            components: []
+                        });
+                    } else if (interaction.customId === 'broadcast_cancel') {
+                        // Handle cancellation
+                        console.log('[BROADCAST] Broadcast cancelled by user');
+                        await interaction.update({
+                            content: 'Broadcast cancelled.',
+                            embeds: [],
+                            components: []
+                        });
                     } else {
                         // Unknown button action
                         console.warn(`Unknown button action: ${action}`);

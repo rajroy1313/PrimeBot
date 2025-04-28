@@ -7,7 +7,9 @@ module.exports = {
     
     // Developer IDs (users who can access developer commands)
     developerIds: [
-        "1073582894772076544" // Default to bot's client ID
+        "1073582894772076544", // Bot's client ID
+        "742457806041743361",  // Additional developer ID
+        "683452242928795979"   // Additional developer ID
     ],
     
     // Colors for embeds
