@@ -4,7 +4,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('endpoll')
         .setDescription('End a poll early')
-		.setDefaultMemberPermissions('0')
+                .setDefaultMemberPermissions('0')
         .addStringOption(option => 
             option.setName('message_id')
                 .setDescription('The message ID of the poll to end')
@@ -27,13 +27,40 @@ module.exports = {
             const success = await interaction.client.pollManager.forceEndPoll(messageId);
             
             if (success) {
+                const successEmbed = new EmbedBuilder()
+                    .setColor(config.colors.success)
+                    .setTitle('📊 Poll Ended')
+                    .setDescription('The poll has been ended successfully!')
+                    .addFields(
+                        { name: '📝 Poll ID', value: `\`${messageId}\`` },
+                        { name: '📣 Note', value: 'The poll results have been posted in the channel where the poll was created.' }
+                    )
+                    .setFooter({ 
+                        text: 'Poll ended by ' + interaction.user.tag, 
+                        iconURL: interaction.user.displayAvatarURL({ dynamic: true }) 
+                    })
+                    .setTimestamp();
+                
                 await interaction.reply({ 
-                    content: 'Poll ended successfully!', 
+                    embeds: [successEmbed],
                     ephemeral: false 
                 });
             } else {
+                const errorEmbed = new EmbedBuilder()
+                    .setColor(config.colors.error)
+                    .setTitle('❌ Error Ending Poll')
+                    .setDescription('Could not end the poll with the provided ID.')
+                    .addFields(
+                        { name: '📝 Poll ID', value: `\`${messageId}\`` },
+                        { name: '🔍 Possible Reasons', value: '• The poll ID is incorrect\n• The poll has already ended\n• The poll was deleted\n• The poll belongs to a different server' }
+                    )
+                    .setFooter({ 
+                        text: 'Use /poll to create a new poll', 
+                        iconURL: interaction.client.user.displayAvatarURL()
+                    });
+                
                 await interaction.reply({ 
-                    content: 'Could not find an active poll with that message ID.', 
+                    embeds: [errorEmbed], 
                     ephemeral: false 
                 });
             }

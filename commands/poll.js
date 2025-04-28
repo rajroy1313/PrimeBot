@@ -6,7 +6,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('poll')
         .setDescription('Create a timed poll with options')
-		.setDefaultMemberPermissions('0')
+                .setDefaultMemberPermissions('0')
         
         .addStringOption(option => 
             option.setName('duration')
@@ -76,13 +76,19 @@ module.exports = {
             // Confirm to the user
             const confirmEmbed = new EmbedBuilder()
                 .setColor(config.colors.success)
-                .setTitle('Poll Created')
+                .setTitle('📊 Poll Created')
                 .setDescription(`Your poll has been created in ${interaction.channel}!`)
                 .addFields(
-                    { name: 'Question', value: question },
-                    { name: 'Duration', value: durationStr },
-                    { name: 'Options', value: options.map((opt, i) => `${i+1}. ${opt}`).join('\n') }
-                );
+                    { name: '❓ Question', value: question },
+                    { name: '⏱️ Duration', value: `Poll will end in **${durationStr}** (<t:${Math.floor((Date.now() + duration) / 1000)}:R>)` },
+                    { name: '🔢 Options', value: options.map((opt, i) => `${interaction.client.pollManager.getOptionEmoji(i)} **${opt}**`).join('\n') },
+                    { name: '📝 Poll ID', value: `\`${pollMessage.id}\` *(Save this ID if you need to end the poll early with \`/endpoll\`)*` }
+                )
+                .setFooter({ 
+                    text: `Created by ${interaction.user.tag}`, 
+                    iconURL: interaction.user.displayAvatarURL({ dynamic: true }) 
+                })
+                .setTimestamp();
             
             await interaction.reply({
                 embeds: [confirmEmbed],

@@ -75,16 +75,31 @@ class PollManager {
         const endedPolls = [];
         
         for (const [messageId, poll] of this.polls.entries()) {
-            if (poll.endTime <= now) {
+            // Only process polls that are not yet ended and have reached their end time
+            if (!poll.ended && poll.endTime <= now) {
                 endedPolls.push(messageId);
             }
         }
         
+        if (endedPolls.length > 0) {
+            console.log(`[POLLS] Found ${endedPolls.length} ended polls to process.`);
+        }
+        
         for (const messageId of endedPolls) {
             try {
-                await this.endPoll(messageId);
+                const poll = this.polls.get(messageId);
+                if (!poll) continue;
+                
+                console.log(`[POLLS] Processing ended poll: ${poll.question} (ID: ${messageId})`);
+                const success = await this.endPoll(messageId);
+                
+                if (success) {
+                    console.log(`[POLLS] Successfully ended poll ${messageId}`);
+                } else {
+                    console.log(`[POLLS] Failed to end poll ${messageId}, will retry next cycle`);
+                }
             } catch (error) {
-                console.error(`Error ending poll ${messageId}:`, error);
+                console.error(`[POLLS] Error ending poll ${messageId}:`, error);
             }
         }
     }
@@ -205,18 +220,45 @@ class PollManager {
             const totalVotes = results.reduce((sum, result) => sum + result.votes, 0);
             
             // Create results embed
-            const resultLines = results.map(result => {
+            const resultLines = results.map((result, index) => {
                 const percentage = totalVotes > 0 ? Math.round((result.votes / totalVotes) * 100) : 0;
                 const progressBar = this.getProgressBar(percentage);
-                return `${result.emoji} **${result.option}**\n${progressBar} ${result.votes} votes (${percentage}%)`;
+                
+                // Add a crown emoji to winners (could be multiple if tied)
+                const isWinner = index === 0 || (index > 0 && result.votes === results[0].votes);
+                const winnerPrefix = isWinner ? '👑 ' : '';
+                
+                return `${winnerPrefix}${result.emoji} **${result.option}**\n${progressBar} ${result.votes} votes (${percentage}%)`;
             });
+            
+            // Calculate winners (options with the highest votes)
+            const highestVotes = results.length > 0 ? results[0].votes : 0;
+            const winners = results
+                .filter(result => result.votes === highestVotes && result.votes > 0)
+                .map(result => result.option);
+            
+            // Create a winner announcement field
+            let winnerField = { name: 'Winner', value: 'No votes were cast in this poll.' };
+            
+            if (winners.length === 1 && winners[0] && highestVotes > 0) {
+                winnerField = { 
+                    name: '🏆 Winner', 
+                    value: `**${winners[0]}** with ${highestVotes} vote${highestVotes !== 1 ? 's' : ''}!` 
+                };
+            } else if (winners.length > 1 && highestVotes > 0) {
+                winnerField = { 
+                    name: '🏆 Tied Winners', 
+                    value: `**${winners.join('** and **')}** with ${highestVotes} vote${highestVotes !== 1 ? 's' : ''} each!` 
+                };
+            }
             
             const resultsEmbed = new EmbedBuilder()
                 .setColor(config.colors.primary)
                 .setTitle(`📊 Poll Results: ${poll.question}`)
                 .setDescription(resultLines.join('\n\n'))
                 .addFields(
-                    { name: 'Total Votes', value: `${totalVotes} vote${totalVotes !== 1 ? 's' : ''}` }
+                    winnerField,
+                    { name: '📊 Total Votes', value: `${totalVotes} vote${totalVotes !== 1 ? 's' : ''}` }
                 )
                 .setFooter({ 
                     text: `Poll ended`, 
@@ -267,12 +309,29 @@ class PollManager {
      * @returns {Promise<boolean>} Whether the poll was successfully ended
      */
     async forceEndPoll(messageId) {
+        console.log(`[POLLS] Force ending poll with ID: ${messageId}`);
+        
         const poll = this.polls.get(messageId);
-        if (!poll || poll.ended) {
+        if (!poll) {
+            console.log(`[POLLS] Poll ${messageId} not found in active polls`);
             return false;
         }
         
-        return await this.endPoll(messageId);
+        if (poll.ended) {
+            console.log(`[POLLS] Poll ${messageId} is already ended`);
+            return false;
+        }
+        
+        console.log(`[POLLS] Found active poll to force end: "${poll.question}"`);
+        const success = await this.endPoll(messageId);
+        
+        if (success) {
+            console.log(`[POLLS] Successfully force-ended poll ${messageId}`);
+        } else {
+            console.log(`[POLLS] Failed to force-end poll ${messageId}`);
+        }
+        
+        return success;
     }
 }
 
