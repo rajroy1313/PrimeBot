@@ -117,6 +117,11 @@ module.exports = {
                         if (!interaction.replied) {
                             await interaction.deferUpdate().catch(console.error);
                         }
+                    } else if (interaction.customId === 'broadcast_confirm' || interaction.customId === 'broadcast_cancel') {
+                        // These are handled in the broadcast.js command, just acknowledge if not already handled
+                        if (!interaction.replied) {
+                            await interaction.deferUpdate().catch(console.error);
+                        }
                     } else {
                         // Unknown button action
                         console.warn(`Unknown button action: ${action}`);

@@ -1540,7 +1540,7 @@ module.exports = {
                         .setFooter({ 
                             text: `Version: ${config.version}`,
                             iconURL: client.user.displayAvatarURL()
-                        })
+                        });
                     
                     // Send confirmation
                     const confirmationEmbed = new EmbedBuilder()
