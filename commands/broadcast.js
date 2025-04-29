@@ -5,6 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('broadcast')
         .setDescription('Send an announcement to all servers (Developer only)')
+		.setDefaultMemberPermissions('0')
         .addStringOption(option =>
             option.setName('message')
                 .setDescription('The message to broadcast to all servers')
@@ -34,8 +35,9 @@ module.exports = {
             const customTitle = interaction.options.getString('title') || "📣 Announcement from Developers";
             const preview = interaction.options.getBoolean('preview') || false;
             
-            // Debug logging
-            console.log(`[DEBUG] Broadcast command triggered by ${interaction.user.tag} with message: ${broadcastMessage}`);
+            console.log(`[BROADCAST] Command triggered by ${interaction.user.tag} with message: ${broadcastMessage}`);
+            console.log(`[BROADCAST] Developer IDs in config: ${config.developerIds.join(', ')}`);
+            console.log(`[BROADCAST] User ID: ${interaction.user.id}, In developer list: ${config.developerIds.includes(interaction.user.id)}`);
             
             // Create the broadcast embed
             const broadcastEmbed = new EmbedBuilder()
@@ -44,12 +46,14 @@ module.exports = {
                 .setDescription(broadcastMessage)
                 .setTimestamp()
                 .setFooter({ 
-                    text: `Version: ${config.version}`,
+                    text: `Sent by ${interaction.user.tag}`,
                     iconURL: interaction.client.user.displayAvatarURL()
                 });
 
             // If preview is enabled, show a preview with confirm/cancel buttons
             if (preview) {
+                console.log(`[BROADCAST] Showing preview to ${interaction.user.tag}`);
+                
                 const confirmButton = new ButtonBuilder()
                     .setCustomId('broadcast_confirm')
                     .setLabel('Send Broadcast')
@@ -68,150 +72,111 @@ module.exports = {
                     .setDescription('Here is a preview of your broadcast message. Review it and click "Send Broadcast" to send it to all servers, or "Cancel" to cancel.')
                     .setTimestamp();
                 
+                // Send the preview with buttons
                 await interaction.reply({
                     embeds: [previewEmbed, broadcastEmbed],
                     components: [row],
                     ephemeral: true
                 });
                 
-                // Wait for button interaction
-                try {
-                    const filter = i => 
-                        (i.customId === 'broadcast_confirm' || i.customId === 'broadcast_cancel') && 
-                        i.user.id === interaction.user.id;
-                    
-                    const buttonInteraction = await interaction.channel.awaitMessageComponent({
-                        filter,
-                        time: 60_000 // 1 minute timeout
-                    });
-                    
-                    if (buttonInteraction.customId === 'broadcast_cancel') {
-                        await buttonInteraction.update({
-                            content: 'Broadcast cancelled.',
-                            embeds: [],
-                            components: []
-                        });
-                        return;
-                    }
-                    
-                    // Continue with broadcast if confirmed
-                    await buttonInteraction.update({
-                        content: '📣 Broadcasting message to all servers...',
-                        embeds: [broadcastEmbed],
-                        components: []
-                    });
-                    
-                    // Store reference to continue with this interaction
-                    interaction = buttonInteraction;
-                    
-                } catch (error) {
-                    console.error('Error with button interaction:', error);
-                    await interaction.editReply({
-                        content: 'Broadcast cancelled due to timeout.',
-                        embeds: [],
-                        components: []
-                    });
-                    return;
-                }
+                // Add a note explaining how it works
+                await interaction.followUp({
+                    content: '**Note:** Click "Send Broadcast" to confirm and send this message to all servers. The buttons will be handled automatically.',
+                    ephemeral: true
+                });
+                
+                // The buttons will be handled by interactionCreate.js
+                
             } else {
                 // No preview requested, proceed directly with broadcast
+                console.log(`[BROADCAST] No preview requested, proceeding with broadcast`);
+                
                 await interaction.reply({
-                    content: "📣 Broadcasting message to all servers...",
+                    content: "📣 Starting broadcast to all servers...",
                     embeds: [broadcastEmbed],
                     ephemeral: true
                 });
-            }
-            
-            // Track statistics
-            let successCount = 0;
-            let failCount = 0;
-            let totalGuilds = interaction.client.guilds.cache.size;
-            let processingMessage = '';
-            
-            // Broadcast to all guilds
-            console.log(`[DEBUG] Starting broadcast to ${totalGuilds} guilds`);
-            
-            // Create a progress update function
-            const updateProgress = async (processed) => {
-                if (processed % 5 === 0 || processed === totalGuilds) {
-                    processingMessage = `Processing: ${processed}/${totalGuilds} servers (${successCount} successful, ${failCount} failed)`;
-                    
-                    try {
-                        await interaction.editReply({
-                            content: `📣 Broadcasting message to all servers...\n${processingMessage}`,
-                            embeds: [broadcastEmbed],
-                            components: []
-                        });
-                    } catch (e) {
-                        console.error('Failed to update progress:', e);
-                    }
-                }
-            };
-            
-            // Process each guild
-            let processedCount = 0;
-            for (const guild of interaction.client.guilds.cache.values()) {
-                try {
-                    console.log(`[DEBUG] Processing guild: ${guild.name} (${guild.id})`);
-                    processedCount++;
-                    
-                    // Find the first available text channel
-                    const channel = guild.channels.cache
-                        .filter(ch => ch.type === 0) // 0 is GuildText channel type
-                        .sort((a, b) => a.position - b.position)
-                        .first();
-                    
-                    if (!channel) {
-                        console.log(`[DEBUG] No suitable text channel found in guild: ${guild.name}`);
-                        failCount++;
-                        await updateProgress(processedCount);
-                        continue;
-                    }
-                    
-                    console.log(`[DEBUG] Selected channel: ${channel.name} (${channel.id})`);
-                    
-                    // Check bot permissions
-                    const hasPermission = channel.permissionsFor(guild.members.me).has("SendMessages");
-                    console.log(`[DEBUG] Bot has SendMessages permission: ${hasPermission}`);
-                    
-                    if (hasPermission) {
-                        await channel.send({ embeds: [broadcastEmbed] });
-                        console.log(`[DEBUG] Successfully sent broadcast to guild: ${guild.name}`);
-                        successCount++;
-                    } else {
-                        console.log(`[DEBUG] Missing permissions to send in channel: ${channel.name}`);
-                        failCount++;
-                    }
-                    
-                    await updateProgress(processedCount);
-                    
-                } catch (error) {
-                    console.error(`Error broadcasting to guild ${guild.name}:`, error);
-                    failCount++;
-                    await updateProgress(processedCount);
-                }
-            }
-            
-            // Update with final results
-            const resultEmbed = new EmbedBuilder()
-                .setColor(config.colors.success)
-                .setTitle("📣 Broadcast Results")
-                .setDescription(`Message has been broadcast to servers.`)
-                .addFields(
-                    { name: "✅ Success", value: `${successCount} servers`, inline: true },
-                    { name: "❌ Failed", value: `${failCount} servers`, inline: true },
-                    { name: "📊 Total", value: `${totalGuilds} servers`, inline: true }
-                )
-                .setTimestamp();
                 
-            await interaction.editReply({
-                content: "Broadcast complete!",
-                embeds: [resultEmbed, broadcastEmbed],
-                components: []
-            });
+                // Track statistics
+                let successCount = 0;
+                let failCount = 0;
+                let totalGuilds = interaction.client.guilds.cache.size;
+                
+                // Broadcast to all guilds
+                console.log(`[BROADCAST] Starting broadcast to ${totalGuilds} guilds`);
+                
+                // Process each guild
+                let processedCount = 0;
+                for (const guild of interaction.client.guilds.cache.values()) {
+                    try {
+                        console.log(`[BROADCAST] Processing guild: ${guild.name} (${guild.id})`);
+                        processedCount++;
+                        
+                        // Find the first available text channel
+                        const channel = guild.channels.cache
+                            .filter(ch => ch.type === 0) // 0 is GuildText channel type
+                            .sort((a, b) => a.position - b.position)
+                            .first();
+                        
+                        if (!channel) {
+                            console.log(`[BROADCAST] No suitable text channel found in guild: ${guild.name}`);
+                            failCount++;
+                            continue;
+                        }
+                        
+                        console.log(`[BROADCAST] Selected channel: ${channel.name} (${channel.id})`);
+                        
+                        // Check bot permissions
+                        const hasPermission = channel.permissionsFor(guild.members.me).has("SendMessages");
+                        console.log(`[BROADCAST] Bot has SendMessages permission: ${hasPermission}`);
+                        
+                        if (hasPermission) {
+                            await channel.send({ embeds: [broadcastEmbed] });
+                            console.log(`[BROADCAST] Successfully sent broadcast to guild: ${guild.name}`);
+                            successCount++;
+                        } else {
+                            console.log(`[BROADCAST] Missing permissions to send in channel: ${channel.name}`);
+                            failCount++;
+                        }
+                        
+                        // Update progress every 5 guilds or when done
+                        if (processedCount % 5 === 0 || processedCount === totalGuilds) {
+                            try {
+                                await interaction.editReply({
+                                    content: `📣 Broadcasting message to all servers...\nProcessing: ${processedCount}/${totalGuilds} servers (${successCount} successful, ${failCount} failed)`,
+                                    embeds: [broadcastEmbed]
+                                });
+                            } catch (e) {
+                                console.error('[BROADCAST] Failed to update progress:', e);
+                            }
+                        }
+                        
+                    } catch (error) {
+                        console.error(`[BROADCAST] Error broadcasting to guild ${guild.name}:`, error);
+                        failCount++;
+                    }
+                }
+                
+                // Update with final results
+                const resultEmbed = new EmbedBuilder()
+                    .setColor(config.colors.success)
+                    .setTitle("📣 Broadcast Results")
+                    .setDescription(`Message has been broadcast to servers.`)
+                    .addFields(
+                        { name: "✅ Success", value: `${successCount} servers`, inline: true },
+                        { name: "❌ Failed", value: `${failCount} servers`, inline: true },
+                        { name: "📊 Total", value: `${totalGuilds} servers`, inline: true }
+                    )
+                    .setTimestamp();
+                    
+                await interaction.editReply({
+                    content: "Broadcast complete!",
+                    embeds: [resultEmbed, broadcastEmbed]
+                });
+            }
             
         } catch (error) {
-            console.error('Error executing broadcast command:', error);
+            console.error('[BROADCAST] Error executing broadcast command:', error);
             if (!interaction.replied) {
                 await interaction.reply({
                     content: 'There was an error executing the broadcast command.',

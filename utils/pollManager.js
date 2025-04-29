@@ -180,37 +180,74 @@ class PollManager {
     async endPoll(messageId) {
         const poll = this.polls.get(messageId);
         if (!poll || poll.ended) {
+            console.log(`[POLLS] Cannot end poll ${messageId}: poll not found or already ended`);
             return false;
         }
         
         try {
+            console.log(`[POLLS] Ending poll ${messageId}: "${poll.question}"`);
+            
             const channel = await this.client.channels.fetch(poll.channelId);
             if (!channel) {
+                console.log(`[POLLS] Cannot end poll ${messageId}: channel not found`);
                 throw new Error('Channel not found.');
             }
             
-            const message = await channel.messages.fetch(messageId).catch(() => null);
+            const message = await channel.messages.fetch(messageId).catch((err) => {
+                console.error(`[POLLS] Error fetching poll message: ${err.message}`);
+                return null;
+            });
             
             if (!message) {
                 // Remove the poll if the message doesn't exist anymore
+                console.log(`[POLLS] Poll message ${messageId} not found, removing from active polls`);
                 this.polls.delete(messageId);
                 this.savePolls();
                 return false;
             }
+            
+            // Ensure reactions are fetched (Discord.js sometimes caches incomplete reactions)
+            await message.reactions.fetch();
+            console.log(`[POLLS] Fetched ${message.reactions.cache.size} reactions from poll message`);
             
             // Count votes
             const results = [];
             
             for (let i = 0; i < poll.options.length; i++) {
                 const emoji = this.getOptionEmoji(i);
-                const reaction = message.reactions.cache.get(emoji);
-                const count = reaction ? reaction.count - 1 : 0; // Subtract 1 to exclude the bot's reaction
+                let reaction = message.reactions.cache.get(emoji);
                 
-                results.push({
-                    option: poll.options[i],
-                    emoji,
-                    votes: count
-                });
+                if (reaction) {
+                    // Fetch users who reacted (to get accurate count)
+                    try {
+                        // Force reaction users to be fetched 
+                        await reaction.users.fetch();
+                        // Updated count (subtract 1 for the bot's reaction)
+                        const count = reaction.count > 0 ? reaction.count - 1 : 0;
+                        console.log(`[POLLS] Option "${poll.options[i]}" (${emoji}) has ${count} votes`);
+                        
+                        results.push({
+                            option: poll.options[i],
+                            emoji,
+                            votes: count
+                        });
+                    } catch (err) {
+                        console.error(`[POLLS] Error fetching reaction users for ${emoji}: ${err.message}`);
+                        // Still add the option to results even if fetching users failed
+                        results.push({
+                            option: poll.options[i],
+                            emoji,
+                            votes: reaction.count > 0 ? reaction.count - 1 : 0
+                        });
+                    }
+                } else {
+                    console.log(`[POLLS] No reaction found for option "${poll.options[i]}" (${emoji})`);
+                    results.push({
+                        option: poll.options[i],
+                        emoji,
+                        votes: 0
+                    });
+                }
             }
             
             // Sort by votes (highest first)
@@ -218,6 +255,7 @@ class PollManager {
             
             // Calculate total votes
             const totalVotes = results.reduce((sum, result) => sum + result.votes, 0);
+            console.log(`[POLLS] Total votes: ${totalVotes}`);
             
             // Create results embed
             const resultLines = results.map((result, index) => {
@@ -237,15 +275,22 @@ class PollManager {
                 .filter(result => result.votes === highestVotes && result.votes > 0)
                 .map(result => result.option);
             
-            // Create a winner announcement field
-            let winnerField = { name: 'Winner', value: 'No votes were cast in this poll.' };
+            console.log(`[POLLS] Winners: ${winners.length > 0 ? winners.join(', ') : 'None'} with ${highestVotes} votes`);
             
-            if (winners.length === 1 && winners[0] && highestVotes > 0) {
+            // Create a winner announcement field
+            let winnerField;
+            
+            if (totalVotes === 0) {
+                winnerField = { name: 'No Votes', value: 'No votes were cast in this poll.' };
+            } else if (winners.length === 0) {
+                // This should rarely happen, but just in case
+                winnerField = { name: 'No Winner', value: 'There was an issue determining the winner.' };
+            } else if (winners.length === 1) {
                 winnerField = { 
                     name: '🏆 Winner', 
                     value: `**${winners[0]}** with ${highestVotes} vote${highestVotes !== 1 ? 's' : ''}!` 
                 };
-            } else if (winners.length > 1 && highestVotes > 0) {
+            } else {
                 winnerField = { 
                     name: '🏆 Tied Winners', 
                     value: `**${winners.join('** and **')}** with ${highestVotes} vote${highestVotes !== 1 ? 's' : ''} each!` 
@@ -267,6 +312,7 @@ class PollManager {
                 .setTimestamp();
             
             // Send the results
+            console.log(`[POLLS] Sending poll results to channel ${channel.name}`);
             await channel.send({ embeds: [resultsEmbed] });
             
             // Mark the poll as ended
@@ -274,9 +320,10 @@ class PollManager {
             this.polls.set(messageId, poll);
             this.savePolls();
             
+            console.log(`[POLLS] Poll ${messageId} successfully ended`);
             return true;
         } catch (error) {
-            console.error('Error ending poll:', error);
+            console.error('[POLLS] Error ending poll:', error);
             return false;
         }
     }
