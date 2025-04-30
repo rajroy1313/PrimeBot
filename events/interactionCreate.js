@@ -15,36 +15,15 @@ module.exports = {
             // Log interaction for debugging
             interactionDebugger.logInteraction(interaction, 'Incoming Interaction');
             
-            // Handle slash commands
+            // Slash commands have been disabled
             if (interaction.isChatInputCommand()) {
-                const command = client.commands.get(interaction.commandName);
+                console.log(`[COMMAND] Ignoring slash command /${interaction.commandName} from ${interaction.user.tag} (slash commands disabled)`);
+                interactionDebugger.logInteraction(interaction, 'Slash Commands Disabled');
                 
-                if (!command) {
-                    console.warn(`Command not found: ${interaction.commandName}`);
-                    interactionDebugger.logInteraction(interaction, 'Command Not Found');
-                    return safeReply(interaction, { 
-                        content: 'This command is not currently available.',
-                        ephemeral: false
-                    });
-                }
-                
-                // Log command usage
-                console.log(`[COMMAND] ${interaction.user.tag} used /${interaction.commandName} in ${interaction.guild ? interaction.guild.name : 'DM'}`);
-                
-                // Execute command with safe execution
-                try {
-                    await safeExecute(
-                        command.execute.bind(command), 
-                        [interaction],
-                        null,
-                        `Command "${interaction.commandName}"`
-                    );
-                } catch (cmdError) {
-                    interactionDebugger.debugInteractionError(interaction, cmdError, `Command "${interaction.commandName}"`);
-                    throw cmdError; // Re-throw to be caught by the outer try/catch
-                }
-                
-                return;
+                return safeReply(interaction, { 
+                    content: 'Slash commands have been disabled for this bot.',
+                    ephemeral: true
+                });
             }
             
             // Handle buttons

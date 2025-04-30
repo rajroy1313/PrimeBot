@@ -23,37 +23,9 @@ enhanceConnection(client);
 // Initialize collections for commands
 client.commands = new Collection();
 
-// Load slash commands from the commands directory
-const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-
-console.log(`\n===== LOADING SLASH COMMANDS =====`);
-console.log(`Found ${commandFiles.length} command files in the commands directory`);
-
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    try {
-        const command = require(filePath);
-        
-        // Set a new item in the Collection with the key as the command name and the value as the exported module
-        if ('data' in command && 'execute' in command) {
-            console.log(`SUCCESS: Loading slash command from ${file}: ${command.data.name}`);
-            client.commands.set(command.data.name, command);
-        } else {
-            console.error(`WARNING: The command at ${file} is missing required "data" or "execute" property.`);
-            if (!('data' in command)) {
-                console.error(`  - Missing 'data' property in ${file}`);
-            }
-            if (!('execute' in command)) {
-                console.error(`  - Missing 'execute' property in ${file}`);
-            }
-        }
-    } catch (error) {
-        console.error(`ERROR: Failed to load command from ${file}:`, error);
-    }
-}
-
-console.log(`Loaded ${client.commands.size} slash commands successfully`);
+// SLASH COMMANDS DISABLED (as requested by user)
+console.log(`\n===== SLASH COMMANDS DISABLED =====`);
+console.log(`Slash commands have been disabled as requested.`);
 console.log(`============================\n`);
 
 // Load event handlers

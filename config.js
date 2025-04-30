@@ -4,12 +4,13 @@ module.exports = {
     
     // Bot URLs
     supportServer: "https://discord.gg/discord-testers", // General invite that will always work
-    
+  
     // Developer IDs (users who can access developer commands)
     developerIds: [
-        "1073582894772076544", // Bot's client ID
-        "742457806041743361",  // Additional developer ID
-        "683452242928795979"   // Additional developer ID
+        "1310654136290639894", // Bot's client ID
+        "1215935165909254195",  // Developer ID
+        "1099412072094449814",  // Developer ID
+        "1156234554613157968"   // Developer ID
     ],
     
     // Colors for embeds
