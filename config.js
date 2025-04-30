@@ -19,7 +19,11 @@ module.exports = {
         success: '#57F287', // Green color for success messages
         error: '#ED4245',   // Red color for error messages
         warning: '#FEE75C',  // Yellow color for warning messages
-        Gold: "#FFD700"
+        Gold: "#FFD700",
+        bronze: "#CD7F32",   // Bronze color for lower level badges
+        silver: "#C0C0C0",   // Silver color for mid-level badges
+        gold: "#FFD700",     // Gold color for high-level badges
+        platinum: "#E5E4E2"  // Platinum color for highest level badges
     },
     
     // Welcome system configuration
@@ -40,7 +44,7 @@ module.exports = {
         bannerUrl: 'https://i.imgur.com/hxGEQJh.png',
         
         // Support server ID - welcome messages will only be sent to this server
-        supportServerId: null // Set this to your support server ID when ready
+        supportServerId: "1317411980625313893" // AFK Devs server ID
     },
     
     // Giveaway settings
@@ -51,10 +55,61 @@ module.exports = {
         checkInterval: 10000, // Check for ended giveaways every 10 seconds
     },
     
+    // Leveling system configuration
+    leveling: {
+        // Support server ID where leveling is active (should match welcome.supportServerId)
+        supportServerId: "1317411980625313893", // AFK Devs server ID
+        
+        // Channel where level-up messages are sent (null = the channel where message was sent)
+        levelUpChannelId: null,
+        
+        // XP settings
+        xpPerMessage: 15,       // Base XP per message
+        xpCooldown: 60000,      // Cooldown between XP gains (1 minute)
+        minMessageLength: 3,     // Minimum message length to earn XP
+        maxRandomBonus: 10,     // Random bonus XP (0-10)
+        
+        // Level up formula: level = Math.floor(baseMultiplier * Math.sqrt(xp / baseMultiplier))
+        baseMultiplier: 100,    // Affects XP curve
+        
+        // Badges configuration
+        badges: {
+            // Level-based badges
+            levelBadges: [
+                { level: 5, name: "Newcomer", emoji: "🔰", color: "bronze", description: "Reached level 5" },
+                { level: 10, name: "Active Member", emoji: "⭐", color: "bronze", description: "Reached level 10" },
+                { level: 15, name: "Dedicated", emoji: "🌟", color: "silver", description: "Reached level 15" },
+                { level: 20, name: "Enthusiast", emoji: "💫", color: "silver", description: "Reached level 20" },
+                { level: 30, name: "Expert", emoji: "🏆", color: "gold", description: "Reached level 30" },
+                { level: 50, name: "Veteran", emoji: "👑", color: "gold", description: "Reached level 50" },
+                { level: 75, name: "Legend", emoji: "🔮", color: "platinum", description: "Reached level 75" },
+                { level: 100, name: "Community Hero", emoji: "⚡", color: "platinum", description: "Reached level 100" }
+            ],
+            
+            // Achievement badges (manually awarded)
+            achievementBadges: [
+                { id: "helper", name: "Helpful Hand", emoji: "🤝", color: "primary", description: "Helped other members solve problems" },
+                { id: "contributor", name: "Contributor", emoji: "🛠️", color: "success", description: "Contributed to community projects" },
+                { id: "event", name: "Event Participant", emoji: "🎉", color: "warning", description: "Participated in community events" },
+                { id: "creative", name: "Creative Mind", emoji: "🎨", color: "primary", description: "Shared creative content" },
+                { id: "moderator", name: "Community Guardian", emoji: "🛡️", color: "error", description: "Helped maintain community standards" }
+            ],
+            
+            // Special badges (rare, manually awarded)
+            specialBadges: [
+                { id: "founder", name: "Community Founder", emoji: "🏛️", color: "gold", description: "Founding member of the community" },
+                { id: "innovator", name: "Innovator", emoji: "💡", color: "gold", description: "Introduced innovative ideas or projects" },
+                { id: "patron", name: "Generous Patron", emoji: "💖", color: "gold", description: "Supported the community financially" }
+            ]
+        }
+    },
+    
     // Permission levels for commands
     permissions: {
         GIVEAWAY_CREATE: 'MANAGE_GUILD', // Permission needed to create giveaways
         GIVEAWAY_END: 'MANAGE_GUILD',    // Permission needed to end giveaways
-        GIVEAWAY_REROLL: 'MANAGE_GUILD'  // Permission needed to reroll giveaways
+        GIVEAWAY_REROLL: 'MANAGE_GUILD',  // Permission needed to reroll giveaways
+        BADGES_AWARD: 'MANAGE_GUILD',    // Permission needed to award badges
+        BADGES_REVOKE: 'MANAGE_GUILD'    // Permission needed to revoke badges
     }
 };
