@@ -74,6 +74,10 @@ client.countingManager = new CountingManager(client);
 const TruthDareManager = require('./utils/truthDareManager');
 client.truthDareManager = new TruthDareManager(client);
 
+// Initialize leveling and badges manager
+const LevelingManager = require('./utils/levelingManager');
+client.levelingManager = new LevelingManager(client);
+
 // Make client globally available for the website
 global.client = client;
 

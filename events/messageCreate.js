@@ -313,6 +313,9 @@ module.exports = {
                 const processed = await client.countingManager.processCountingMessage(message);
                 if (processed) return; // Message was processed as a count
                 
+                // Process message for XP and leveling (only in support server)
+                await client.levelingManager.processMessage(message);
+                
                 return; // Not a command or counting-related message
             }
 
