@@ -1887,42 +1887,78 @@ module.exports = {
                         let currentPage = leaderboardData.currentPage;
                         
                         collector.on('collect', async interaction => {
-                            // Calculate new page
-                            if (interaction.customId === 'lb_prev_page') {
-                                currentPage = Math.max(1, currentPage - 1);
-                            } else {
-                                currentPage = Math.min(leaderboardData.maxPage, currentPage + 1);
+                            try {
+                                // Calculate new page
+                                if (interaction.customId === 'lb_prev_page') {
+                                    currentPage = Math.max(1, currentPage - 1);
+                                } else {
+                                    currentPage = Math.min(leaderboardData.maxPage, currentPage + 1);
+                                }
+                                
+                                // Get updated leaderboard
+                                const newLeaderboardData = await client.levelingManager.createLeaderboardEmbed(
+                                    message.guild.id, 
+                                    currentPage
+                                );
+                                
+                                // Update message with error handling
+                                if (!interaction.replied && !interaction.deferred) {
+                                    await interaction.update({
+                                        embeds: [newLeaderboardData.embed],
+                                        components: newLeaderboardData.maxPage > 1 ? [
+                                            new ActionRowBuilder().addComponents(
+                                                new ButtonBuilder()
+                                                    .setCustomId('lb_prev_page')
+                                                    .setLabel('Previous')
+                                                    .setStyle(ButtonStyle.Secondary)
+                                                    .setDisabled(currentPage <= 1),
+                                                new ButtonBuilder()
+                                                    .setCustomId('lb_next_page')
+                                                    .setLabel('Next')
+                                                    .setStyle(ButtonStyle.Secondary)
+                                                    .setDisabled(currentPage >= newLeaderboardData.maxPage)
+                                            )
+                                        ] : []
+                                    });
+                                }
+                            } catch (paginationError) {
+                                console.error('Error updating leaderboard pagination:', paginationError);
+                                // Try to edit the original message as a fallback
+                                try {
+                                    // Get updated leaderboard for fallback
+                                    const fallbackData = await client.levelingManager.createLeaderboardEmbed(
+                                        message.guild.id, 
+                                        currentPage
+                                    );
+                                    
+                                    await leaderboardReply.edit({
+                                        embeds: [fallbackData.embed],
+                                        components: fallbackData.maxPage > 1 ? [
+                                            new ActionRowBuilder().addComponents(
+                                                new ButtonBuilder()
+                                                    .setCustomId('lb_prev_page')
+                                                    .setLabel('Previous')
+                                                    .setStyle(ButtonStyle.Secondary)
+                                                    .setDisabled(currentPage <= 1),
+                                                new ButtonBuilder()
+                                                    .setCustomId('lb_next_page')
+                                                    .setLabel('Next')
+                                                    .setStyle(ButtonStyle.Secondary)
+                                                    .setDisabled(currentPage >= fallbackData.maxPage)
+                                            )
+                                        ] : []
+                                    });
+                                } catch (fallbackError) {
+                                    console.error('Failed to update leaderboard pagination via fallback:', fallbackError);
+                                }
                             }
-                            
-                            // Get updated leaderboard
-                            const newLeaderboardData = await client.levelingManager.createLeaderboardEmbed(
-                                message.guild.id, 
-                                currentPage
-                            );
-                            
-                            // Update message
-                            await interaction.update({
-                                embeds: [newLeaderboardData.embed],
-                                components: newLeaderboardData.maxPage > 1 ? [
-                                    new ActionRowBuilder().addComponents(
-                                        new ButtonBuilder()
-                                            .setCustomId('lb_prev_page')
-                                            .setLabel('Previous')
-                                            .setStyle(ButtonStyle.Secondary)
-                                            .setDisabled(currentPage <= 1),
-                                        new ButtonBuilder()
-                                            .setCustomId('lb_next_page')
-                                            .setLabel('Next')
-                                            .setStyle(ButtonStyle.Secondary)
-                                            .setDisabled(currentPage >= newLeaderboardData.maxPage)
-                                    )
-                                ] : []
-                            });
                         });
                         
                         collector.on('end', () => {
                             // Remove components when collector expires
-                            leaderboardReply.edit({ components: [] }).catch(console.error);
+                            leaderboardReply.edit({ components: [] }).catch(error => {
+                                console.error('Error removing leaderboard pagination buttons after timeout:', error);
+                            });
                         });
                     }
                     break;

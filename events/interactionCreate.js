@@ -108,6 +108,16 @@ module.exports = {
                             console.error('Error acknowledging command pagination interaction:', error);
                             // Don't throw here to prevent the entire interaction from failing
                         }
+                    } else if (action === 'lb_prev_page' || action === 'lb_next_page') {
+                        // These are handled elsewhere, just acknowledge the interaction
+                        try {
+                            if (!interaction.replied && !interaction.deferred) {
+                                await interaction.deferUpdate();
+                            }
+                        } catch (error) {
+                            console.error('Error acknowledging leaderboard pagination interaction:', error);
+                            // Don't throw here to prevent the entire interaction from failing
+                        }
                     } else if (interaction.customId === 'broadcast_confirm') {
                         console.log('[BROADCAST] Broadcast confirmation button clicked');
                         // Handle broadcast confirmation - this now directly processes the broadcast
