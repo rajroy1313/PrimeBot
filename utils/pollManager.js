@@ -206,38 +206,46 @@ class PollManager {
                 return false;
             }
             
-            // Ensure reactions are fetched (Discord.js sometimes caches incomplete reactions)
+            // Ensure ALL reactions are completely fetched (Discord.js sometimes caches incomplete reactions)
             await message.reactions.fetch();
             console.log(`[POLLS] Fetched ${message.reactions.cache.size} reactions from poll message`);
             
             // Count votes
             const results = [];
             
+            // Manually fetch all reactions with full collection of users
             for (let i = 0; i < poll.options.length; i++) {
                 const emoji = this.getOptionEmoji(i);
                 let reaction = message.reactions.cache.get(emoji);
                 
                 if (reaction) {
-                    // Fetch users who reacted (to get accurate count)
+                    // Fetch ALL users who reacted to get accurate count (using fetchReactionUsers helper)
                     try {
-                        // Force reaction users to be fetched 
-                        await reaction.users.fetch();
-                        // Updated count (subtract 1 for the bot's reaction)
+                        console.log(`[POLLS] Fetching ALL users for reaction ${emoji}...`);
+                        // Force a complete fetch of all reaction users
+                        const reactionUsers = await this.fetchAllReactionUsers(reaction);
+                        
+                        // Get accurate count (exclude the bot)
+                        const botId = this.client.user.id;
+                        const userCount = reactionUsers.filter(user => user.id !== botId).size;
+                        
+                        console.log(`[POLLS] Option "${poll.options[i]}" (${emoji}) has ${userCount} votes (from complete fetch)`);
+                        
+                        results.push({
+                            option: poll.options[i],
+                            emoji,
+                            votes: userCount
+                        });
+                    } catch (err) {
+                        console.error(`[POLLS] Error fetching reaction users for ${emoji}: ${err.message}`);
+                        // Fallback to basic count if full fetch fails
                         const count = reaction.count > 0 ? reaction.count - 1 : 0;
-                        console.log(`[POLLS] Option "${poll.options[i]}" (${emoji}) has ${count} votes`);
+                        console.log(`[POLLS] Falling back to basic count: ${count} votes`);
                         
                         results.push({
                             option: poll.options[i],
                             emoji,
                             votes: count
-                        });
-                    } catch (err) {
-                        console.error(`[POLLS] Error fetching reaction users for ${emoji}: ${err.message}`);
-                        // Still add the option to results even if fetching users failed
-                        results.push({
-                            option: poll.options[i],
-                            emoji,
-                            votes: reaction.count > 0 ? reaction.count - 1 : 0
                         });
                     }
                 } else {
@@ -257,23 +265,28 @@ class PollManager {
             const totalVotes = results.reduce((sum, result) => sum + result.votes, 0);
             console.log(`[POLLS] Total votes: ${totalVotes}`);
             
-            // Create results embed
+            // Calculate winners first (options with the highest votes)
+            const highestVotes = results.length > 0 ? results[0].votes : 0;
+            const winningResults = results.filter(result => result.votes === highestVotes && result.votes > 0);
+            const winners = winningResults.map(result => result.option);
+            
+            console.log(`[POLLS] Identified winners: ${winners.join(', ')} with ${highestVotes} votes`);
+            
+            // Create results embed with enhanced winner display
             const resultLines = results.map((result, index) => {
                 const percentage = totalVotes > 0 ? Math.round((result.votes / totalVotes) * 100) : 0;
                 const progressBar = this.getProgressBar(percentage);
                 
-                // Add a crown emoji to winners (could be multiple if tied)
-                const isWinner = index === 0 || (index > 0 && result.votes === results[0].votes);
-                const winnerPrefix = isWinner ? '👑 ' : '';
+                // Add a crown emoji and make winners bold with gold color
+                const isWinner = result.votes === highestVotes && result.votes > 0;
                 
-                return `${winnerPrefix}${result.emoji} **${result.option}**\n${progressBar} ${result.votes} votes (${percentage}%)`;
+                // Enhanced winner formatting
+                if (isWinner) {
+                    return `👑 ${result.emoji} **${result.option}** 👑\n${progressBar} **${result.votes} votes (${percentage}%)**`;
+                } else {
+                    return `${result.emoji} **${result.option}**\n${progressBar} ${result.votes} votes (${percentage}%)`;
+                }
             });
-            
-            // Calculate winners (options with the highest votes)
-            const highestVotes = results.length > 0 ? results[0].votes : 0;
-            const winners = results
-                .filter(result => result.votes === highestVotes && result.votes > 0)
-                .map(result => result.option);
             
             console.log(`[POLLS] Winners: ${winners.length > 0 ? winners.join(', ') : 'None'} with ${highestVotes} votes`);
             
@@ -297,8 +310,11 @@ class PollManager {
                 };
             }
             
+            // Use special gold color for polls with winners, otherwise use primary color
+            const embedColor = winners.length > 0 ? config.colors.Gold : config.colors.primary;
+            
             const resultsEmbed = new EmbedBuilder()
-                .setColor(config.colors.primary)
+                .setColor(embedColor)
                 .setTitle(`📊 Poll Results: ${poll.question}`)
                 .setDescription(resultLines.join('\n\n'))
                 .addFields(
@@ -306,7 +322,7 @@ class PollManager {
                     { name: '📊 Total Votes', value: `${totalVotes} vote${totalVotes !== 1 ? 's' : ''}` }
                 )
                 .setFooter({ 
-                    text: `Poll ended`, 
+                    text: `Poll ended • Results are final`, 
                     iconURL: null 
                 })
                 .setTimestamp();
@@ -379,6 +395,53 @@ class PollManager {
         }
         
         return success;
+    }
+    
+    /**
+     * Fetch all users who reacted with a specific reaction
+     * This works around Discord API limitations by fetching users in batches
+     * @param {MessageReaction} reaction - The reaction to fetch users for
+     * @returns {Promise<Collection>} Collection of users who reacted
+     */
+    async fetchAllReactionUsers(reaction) {
+        try {
+            const { users } = reaction;
+            let allUsers = users.cache.clone();
+            let lastId = null;
+            let hasMore = true;
+            let fetchCount = 0;
+            
+            // Fetch users in batches of 100 until we get them all
+            while (hasMore && fetchCount < 10) { // Limit to 10 fetches (1000 users) to prevent abuse
+                fetchCount++;
+                console.log(`[POLLS] Fetching reaction users batch ${fetchCount}, current size: ${allUsers.size}`);
+                
+                const options = { limit: 100 };
+                if (lastId) options.after = lastId;
+                
+                const newUsers = await users.fetch(options);
+                
+                if (newUsers.size === 0) {
+                    hasMore = false;
+                    break;
+                }
+                
+                allUsers = allUsers.concat(newUsers);
+                lastId = newUsers.last().id;
+                
+                // If we got less than the requested limit, we've reached the end
+                if (newUsers.size < 100) {
+                    hasMore = false;
+                }
+            }
+            
+            console.log(`[POLLS] Completed reaction users fetch with ${allUsers.size} total users`);
+            return allUsers;
+        } catch (error) {
+            console.error('[POLLS] Error fetching all reaction users:', error);
+            // Return what we have in cache
+            return reaction.users.cache;
+        }
     }
 }
 

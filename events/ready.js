@@ -41,7 +41,7 @@ module.exports = {
         client.user.setPresence({
             activities: [
                 {
-                    name: `${client.guilds.cache.size} servers | /help`,
+                    name: `${client.guilds.cache.size} servers | $help`,
                     type: ActivityType.Watching,
                 },
             ],
@@ -54,7 +54,7 @@ module.exports = {
                 client.user.setPresence({
                     activities: [
                         {
-                            name: `${client.guilds.cache.size} servers | /help`,
+                            name: `${client.guilds.cache.size} servers | $help`,
                             type: ActivityType.Watching,
                         },
                     ],

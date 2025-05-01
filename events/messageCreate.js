@@ -1934,10 +1934,23 @@ module.exports = {
                     
                     const userData = guildData.get(targetSetUser.id);
                     
+                    // Store the old level for badge check
+                    const oldLevel = userData.level;
+                    
                     // Update user data
                     userData.level = newLevel;
                     userData.messages = messagesNeeded;
                     userData.xp = newLevel * 100; // Simplified XP calculation
+                    
+                    // Check for new badges if level increased
+                    if (newLevel > oldLevel) {
+                        const newBadges = client.levelingManager.checkForNewBadges(userData, oldLevel, newLevel);
+                        
+                        // Log badge updates
+                        if (newBadges.length > 0) {
+                            console.log(`[LEVELING] User ${targetSetUser.tag} earned ${newBadges.length} new badges from level update`);
+                        }
+                    }
                     
                     // Save data
                     client.levelingManager.saveLevels();
