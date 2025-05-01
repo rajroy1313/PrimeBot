@@ -3,6 +3,7 @@ const {
     ButtonBuilder,
     ButtonStyle,
     ActionRowBuilder,
+    PermissionsBitField,
 } = require("discord.js");
 const config = require("../config");
 
@@ -2012,6 +2013,233 @@ module.exports = {
                     
                     // Send the message
                     message.reply({ embeds: [badgesData.embed] });
+                    break;
+                    
+                case "award-badge":
+                case "awardbadge":
+                case "give-badge":
+                    // Only available to admins with proper permissions
+                    if (!message.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+                        message.reply("You don't have permission to award badges.");
+                        return;
+                    }
+                    
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
+                        return;
+                    }
+                    
+                    // Validate arguments: $award-badge @user [type] [badge_id]
+                    if (args.length < 2 || message.mentions.users.size === 0) {
+                        const badgeListEmbed = new EmbedBuilder()
+                            .setColor(config.colors.primary)
+                            .setTitle("🏅 Badge Award System")
+                            .setDescription("Award badges to members of the community.")
+                            .addFields(
+                                { 
+                                    name: "Usage", 
+                                    value: "`$award-badge @user [type] [badge_id]`\n\n**Types:** `achievement` or `special`" 
+                                },
+                                {
+                                    name: "Achievement Badges",
+                                    value: config.leveling.badges.achievementBadges
+                                        .map(b => `\`${b.id}\` - ${b.emoji} **${b.name}** - ${b.description}`)
+                                        .join('\n')
+                                },
+                                {
+                                    name: "Special Badges",
+                                    value: config.leveling.badges.specialBadges
+                                        .map(b => `\`${b.id}\` - ${b.emoji} **${b.name}** - ${b.description}`)
+                                        .join('\n')
+                                }
+                            )
+                            .setFooter({ 
+                                text: "Level badges are automatically awarded based on user levels.", 
+                                iconURL: client.user.displayAvatarURL() 
+                            });
+                            
+                        message.reply({ embeds: [badgeListEmbed] });
+                        return;
+                    }
+                    
+                    const targetBadgeUser = message.mentions.users.first();
+                    const badgeType = args[1].toLowerCase();
+                    const badgeId = args[2];
+                    
+                    // Validate badge type
+                    if (badgeType !== 'achievement' && badgeType !== 'special') {
+                        message.reply("Invalid badge type. Use `achievement` or `special`.");
+                        return;
+                    }
+                    
+                    // Award the badge
+                    const awardResult = await client.levelingManager.awardBadge({
+                        guildId: message.guild.id,
+                        userId: targetBadgeUser.id,
+                        badgeType,
+                        badgeId
+                    });
+                    
+                    if (awardResult.success) {
+                        // Create success embed
+                        const successEmbed = new EmbedBuilder()
+                            .setColor(config.colors.success)
+                            .setTitle("Badge Awarded!")
+                            .setDescription(`${targetBadgeUser} has been awarded the ${awardResult.badge.emoji} **${awardResult.badge.name}** badge!`)
+                            .addFields({
+                                name: "Badge Details",
+                                value: `${awardResult.badge.emoji} **${awardResult.badge.name}** - ${awardResult.badge.description}`
+                            })
+                            .setThumbnail(targetBadgeUser.displayAvatarURL({ dynamic: true }))
+                            .setFooter({ 
+                                text: `Awarded by ${message.author.tag}`, 
+                                iconURL: message.author.displayAvatarURL({ dynamic: true }) 
+                            })
+                            .setTimestamp();
+                            
+                        message.reply({ embeds: [successEmbed] });
+                    } else {
+                        message.reply(`Error: ${awardResult.message}`);
+                    }
+                    break;
+                    
+                case "revoke-badge":
+                case "revokebadge":
+                case "remove-badge":
+                    // Only available to admins with proper permissions
+                    if (!message.member.permissions.has(PermissionsBitField.Flags.ManageGuild)) {
+                        message.reply("You don't have permission to revoke badges.");
+                        return;
+                    }
+                    
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
+                        return;
+                    }
+                    
+                    // Validate arguments: $revoke-badge @user [badge_id]
+                    if (args.length < 1 || message.mentions.users.size === 0) {
+                        message.reply("**Usage:** `$revoke-badge @user [badge_id]`");
+                        return;
+                    }
+                    
+                    const targetRevokeBadgeUser = message.mentions.users.first();
+                    const badgeIdToRevoke = args[1];
+                    
+                    if (!badgeIdToRevoke) {
+                        message.reply("You must specify a badge ID to revoke.");
+                        return;
+                    }
+                    
+                    // Check if user exists in leveling system
+                    if (!client.levelingManager.userLevels.has(message.guild.id) || 
+                        !client.levelingManager.userLevels.get(message.guild.id).has(targetRevokeBadgeUser.id)) {
+                        message.reply("This user has no badges or is not in the leveling system.");
+                        return;
+                    }
+                    
+                    // Get user data
+                    const guildBadgeData = client.levelingManager.userLevels.get(message.guild.id);
+                    const userBadgeData = guildBadgeData.get(targetRevokeBadgeUser.id);
+                    
+                    // Find the badge to revoke
+                    const badgeIndex = userBadgeData.badges.findIndex(badge => badge.id === badgeIdToRevoke);
+                    
+                    if (badgeIndex === -1) {
+                        message.reply("This user does not have this badge.");
+                        return;
+                    }
+                    
+                    // Store badge info before removing
+                    const revokedBadge = userBadgeData.badges[badgeIndex];
+                    
+                    // Remove the badge
+                    userBadgeData.badges.splice(badgeIndex, 1);
+                    
+                    // Save changes
+                    client.levelingManager.saveLevels();
+                    
+                    // Create success embed
+                    const revokeEmbed = new EmbedBuilder()
+                        .setColor(config.colors.error)
+                        .setTitle("Badge Revoked")
+                        .setDescription(`${targetRevokeBadgeUser}'s ${revokedBadge.emoji} **${revokedBadge.name}** badge has been revoked.`)
+                        .setThumbnail(targetRevokeBadgeUser.displayAvatarURL({ dynamic: true }))
+                        .setFooter({ 
+                            text: `Revoked by ${message.author.tag}`, 
+                            iconURL: message.author.displayAvatarURL({ dynamic: true }) 
+                        })
+                        .setTimestamp();
+                        
+                    message.reply({ embeds: [revokeEmbed] });
+                    break;
+                    
+                case "view-badges":
+                case "viewbadges":
+                case "listbadges":
+                case "badgelist":
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
+                        return;
+                    }
+                    
+                    // Create embeds for each badge category
+                    const levelBadgesEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("🌟 Level Badges")
+                        .setDescription("Badges automatically awarded for reaching specific levels")
+                        .setThumbnail(client.user.displayAvatarURL({ dynamic: true }));
+                        
+                    let levelBadgesFields = [];
+                    for (const badge of config.leveling.badges.levelBadges) {
+                        levelBadgesFields.push({
+                            name: `${badge.emoji} ${badge.name} (Level ${badge.level})`,
+                            value: badge.description,
+                            inline: true
+                        });
+                    }
+                    
+                    levelBadgesEmbed.addFields(levelBadgesFields);
+                    
+                    const achievementBadgesEmbed = new EmbedBuilder()
+                        .setColor(config.colors.warning)
+                        .setTitle("🏆 Achievement Badges")
+                        .setDescription("Badges awarded for specific contributions and achievements")
+                        .setThumbnail(client.user.displayAvatarURL({ dynamic: true }));
+                        
+                    let achievementBadgesFields = [];
+                    for (const badge of config.leveling.badges.achievementBadges) {
+                        achievementBadgesFields.push({
+                            name: `${badge.emoji} ${badge.name} (ID: ${badge.id})`,
+                            value: badge.description,
+                            inline: true
+                        });
+                    }
+                    
+                    achievementBadgesEmbed.addFields(achievementBadgesFields);
+                    
+                    const specialBadgesEmbed = new EmbedBuilder()
+                        .setColor(config.colors.gold)
+                        .setTitle("💎 Special Badges")
+                        .setDescription("Rare badges for extraordinary contributions")
+                        .setThumbnail(client.user.displayAvatarURL({ dynamic: true }));
+                        
+                    let specialBadgesFields = [];
+                    for (const badge of config.leveling.badges.specialBadges) {
+                        specialBadgesFields.push({
+                            name: `${badge.emoji} ${badge.name} (ID: ${badge.id})`,
+                            value: badge.description,
+                            inline: true
+                        });
+                    }
+                    
+                    specialBadgesEmbed.addFields(specialBadgesFields);
+                    
+                    // Send all embeds
+                    message.reply({ embeds: [levelBadgesEmbed, achievementBadgesEmbed, specialBadgesEmbed] });
                     break;
 
                 default:
