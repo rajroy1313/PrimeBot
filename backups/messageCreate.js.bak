@@ -169,49 +169,30 @@ module.exports = {
                             let currentEmojiPage = currentPage;
                             
                             collector.on('collect', async interaction => {
-                                try {
-                                    // Calculate the new page based on the current tracked page
-                                    let newPage = currentEmojiPage;
-                                    if (interaction.customId === 'emoji_prev_page') {
-                                        newPage = Math.max(1, currentEmojiPage - 1);
-                                    } else if (interaction.customId === 'emoji_next_page') {
-                                        newPage = Math.min(totalPages, currentEmojiPage + 1);
-                                    }
-                                    
-                                    // Update the current page for future interactions
-                                    currentEmojiPage = newPage;
-                                    
-                                    // Get the updated emoji list
-                                    const updatedList = client.emojiManager.createEmojiListEmbed(newPage);
-                                    
-                                    // Update the message with error handling
-                                    if (!interaction.replied && !interaction.deferred) {
-                                        await interaction.update({ 
-                                            embeds: [updatedList.embed], 
-                                            components: updatedList.components || []
-                                        });
-                                    }
-                                } catch (paginationError) {
-                                    console.error('Error updating emoji pagination:', paginationError);
-                                    // Try to edit the original message as a fallback
-                                    try {
-                                        // Get the updated emoji list
-                                        const updatedList = client.emojiManager.createEmojiListEmbed(currentEmojiPage);
-                                        await reply.edit({
-                                            embeds: [updatedList.embed],
-                                            components: updatedList.components || []
-                                        });
-                                    } catch (fallbackError) {
-                                        console.error('Failed to update emoji pagination via fallback:', fallbackError);
-                                    }
+                                // Calculate the new page based on the current tracked page
+                                let newPage = currentEmojiPage;
+                                if (interaction.customId === 'emoji_prev_page') {
+                                    newPage = Math.max(1, currentEmojiPage - 1);
+                                } else if (interaction.customId === 'emoji_next_page') {
+                                    newPage = Math.min(totalPages, currentEmojiPage + 1);
                                 }
+                                
+                                // Update the current page for future interactions
+                                currentEmojiPage = newPage;
+                                
+                                // Get the updated emoji list
+                                const updatedList = client.emojiManager.createEmojiListEmbed(newPage);
+                                
+                                // Update the message
+                                await interaction.update({ 
+                                    embeds: [updatedList.embed], 
+                                    components: updatedList.components || []
+                                });
                             });
                             
                             collector.on('end', () => {
                                 // Remove buttons when collector expires
-                                reply.edit({ components: [] }).catch(error => {
-                                    console.error('Error removing emoji pagination buttons after timeout:', error);
-                                });
+                                reply.edit({ components: [] }).catch(console.error);
                             });
                         }
                         
@@ -492,122 +473,68 @@ module.exports = {
                         let currentPage = commandPage;
                         
                         collector.on('collect', async interaction => {
-                            try {
-                                // Calculate the new page based on the current tracked page
-                                let newPage = currentPage;
-                                if (interaction.customId === 'command_prev_page') {
-                                    newPage = Math.max(1, currentPage - 1);
-                                } else if (interaction.customId === 'command_next_page') {
-                                    newPage = Math.min(totalPages, currentPage + 1);
-                                }
-                                
-                                // Update the current page for future interactions
-                                currentPage = newPage;
-                                
-                                // Get updated commands (in case server-specific commands need to be filtered)
-                                let updatedCommands = [...allCommands]; // Start with all commands
-                                
-                                // Get the commands for the new page
-                                const newPageCommands = updatedCommands.slice(
-                                    (newPage - 1) * commandsPerPage, 
-                                    Math.min(newPage * commandsPerPage, totalCommands)
-                                );
-                                
-                                // Create the new embed
-                                const newEmbed = new EmbedBuilder()
-                                    .setColor(config.colors.Gold)
-                                    .setTitle("Available Commands")
-                                    .setDescription(`Here are commands you can use (Page ${newPage}/${totalPages}):`)
-                                    .addFields(...newPageCommands)
-                                    .setTimestamp()
-                                    .setFooter({
-                                        text: `Page ${newPage}/${totalPages} • Use buttons below to navigate • Version: ${config.version}`,
-                                        iconURL: message.author.displayAvatarURL({
-                                            dynamic: true,
-                                        }),
-                                    });
-                                
-                                // Create new buttons with updated disabled states
-                                const newButtons = [];
-                                
-                                const newPrevButton = new ButtonBuilder()
-                                    .setCustomId('command_prev_page')
-                                    .setLabel('⬅️ Previous')
-                                    .setStyle(ButtonStyle.Secondary)
-                                    .setDisabled(newPage === 1);
-                                
-                                const newNextButton = new ButtonBuilder()
-                                    .setCustomId('command_next_page')
-                                    .setLabel('Next ➡️')
-                                    .setStyle(ButtonStyle.Secondary)
-                                    .setDisabled(newPage === totalPages);
-                                
-                                newButtons.push(newPrevButton, newNextButton);
-                                const newRow = new ActionRowBuilder().addComponents(newButtons);
-                                
-                                // Update the message with error handling
-                                if (!interaction.replied && !interaction.deferred) {
-                                    await interaction.update({ 
-                                        embeds: [newEmbed], 
-                                        components: [newRow]
-                                    });
-                                }
-                            } catch (paginationError) {
-                                console.error('Error updating command pagination:', paginationError);
-                                // Try to edit the original message as a fallback
-                                try {
-                                    // Create new embed and components based on the current page
-                                    const updatedCommands = [...allCommands];
-                                    const pageCommands = updatedCommands.slice(
-                                        (currentPage - 1) * commandsPerPage, 
-                                        Math.min(currentPage * commandsPerPage, totalCommands)
-                                    );
-                                    
-                                    const fallbackEmbed = new EmbedBuilder()
-                                        .setColor(config.colors.Gold)
-                                        .setTitle("Available Commands")
-                                        .setDescription(`Here are commands you can use (Page ${currentPage}/${totalPages}):`)
-                                        .addFields(...pageCommands)
-                                        .setTimestamp()
-                                        .setFooter({
-                                            text: `Page ${currentPage}/${totalPages} • Use buttons below to navigate • Version: ${config.version}`,
-                                            iconURL: message.author.displayAvatarURL({
-                                                dynamic: true,
-                                            }),
-                                        });
-                                    
-                                    // Create buttons
-                                    const buttons = [];
-                                    const prevButton = new ButtonBuilder()
-                                        .setCustomId('command_prev_page')
-                                        .setLabel('⬅️ Previous')
-                                        .setStyle(ButtonStyle.Secondary)
-                                        .setDisabled(currentPage === 1);
-                                    
-                                    const nextButton = new ButtonBuilder()
-                                        .setCustomId('command_next_page')
-                                        .setLabel('Next ➡️')
-                                        .setStyle(ButtonStyle.Secondary)
-                                        .setDisabled(currentPage === totalPages);
-                                    
-                                    buttons.push(prevButton, nextButton);
-                                    const row = new ActionRowBuilder().addComponents(buttons);
-                                    
-                                    await reply.edit({
-                                        embeds: [fallbackEmbed],
-                                        components: [row]
-                                    });
-                                } catch (fallbackError) {
-                                    console.error('Failed to update command pagination via fallback:', fallbackError);
-                                }
+                            // Calculate the new page based on the current tracked page
+                            let newPage = currentPage;
+                            if (interaction.customId === 'command_prev_page') {
+                                newPage = Math.max(1, currentPage - 1);
+                            } else if (interaction.customId === 'command_next_page') {
+                                newPage = Math.min(totalPages, currentPage + 1);
                             }
+                            
+                            // Update the current page for future interactions
+                            currentPage = newPage;
+                            
+                            // Get updated commands (in case server-specific commands need to be filtered)
+                            let updatedCommands = [...allCommands]; // Start with all commands
+                            
+                            // Get the commands for the new page
+                            const newPageCommands = updatedCommands.slice(
+                                (newPage - 1) * commandsPerPage, 
+                                Math.min(newPage * commandsPerPage, totalCommands)
+                            );
+                            
+                            // Create the new embed
+                            const newEmbed = new EmbedBuilder()
+                                .setColor(config.colors.Gold)
+                                .setTitle("Available Commands")
+                                .setDescription(`Here are commands you can use (Page ${newPage}/${totalPages}):`)
+                                .addFields(...newPageCommands)
+                                .setTimestamp()
+                                .setFooter({
+                                    text: `Page ${newPage}/${totalPages} • Use buttons below to navigate • Version: ${config.version}`,
+                                    iconURL: message.author.displayAvatarURL({
+                                        dynamic: true,
+                                    }),
+                                });
+                            
+                            // Create new buttons with updated disabled states
+                            const newButtons = [];
+                            
+                            const newPrevButton = new ButtonBuilder()
+                                .setCustomId('command_prev_page')
+                                .setLabel('⬅️ Previous')
+                                .setStyle(ButtonStyle.Secondary)
+                                .setDisabled(newPage === 1);
+                            
+                            const newNextButton = new ButtonBuilder()
+                                .setCustomId('command_next_page')
+                                .setLabel('Next ➡️')
+                                .setStyle(ButtonStyle.Secondary)
+                                .setDisabled(newPage === totalPages);
+                            
+                            newButtons.push(newPrevButton, newNextButton);
+                            const newRow = new ActionRowBuilder().addComponents(newButtons);
+                            
+                            // Update the message
+                            await interaction.update({ 
+                                embeds: [newEmbed], 
+                                components: [newRow]
+                            });
                         });
                         
                         collector.on('end', () => {
                             // Remove buttons when collector expires
-                            reply.edit({ components: [] }).catch(error => {
-                                console.error('Error removing command pagination buttons after timeout:', error);
-                            });
+                            reply.edit({ components: [] }).catch(console.error);
                         });
                     }
                     

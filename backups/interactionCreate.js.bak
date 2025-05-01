@@ -90,23 +90,13 @@ module.exports = {
                         );
                     } else if (action === 'emoji_prev_page' || action === 'emoji_next_page') {
                         // These are handled elsewhere, just acknowledge the interaction
-                        try {
-                            if (!interaction.replied && !interaction.deferred) {
-                                await interaction.deferUpdate();
-                            }
-                        } catch (error) {
-                            console.error('Error acknowledging emoji pagination interaction:', error);
-                            // Don't throw here to prevent the entire interaction from failing
+                        if (!interaction.replied) {
+                            await interaction.deferUpdate().catch(console.error);
                         }
                     } else if (action === 'command_prev_page' || action === 'command_next_page') {
                         // These are handled elsewhere, just acknowledge the interaction
-                        try {
-                            if (!interaction.replied && !interaction.deferred) {
-                                await interaction.deferUpdate();
-                            }
-                        } catch (error) {
-                            console.error('Error acknowledging command pagination interaction:', error);
-                            // Don't throw here to prevent the entire interaction from failing
+                        if (!interaction.replied) {
+                            await interaction.deferUpdate().catch(console.error);
                         }
                     } else if (interaction.customId === 'broadcast_confirm') {
                         console.log('[BROADCAST] Broadcast confirmation button clicked');
