@@ -188,45 +188,6 @@ function isRetryableError(error) {
     return false;
 }
 
-/**
- * Safely handle a pagination interaction with error handling
- * @param {Interaction} interaction - The Discord interaction
- * @param {Object} updateOptions - The options to update the message with
- * @param {Message} originalMessage - The original message for fallback editing
- * @param {string} context - Context for logging errors
- * @returns {Promise<boolean>} Whether the update was successful
- */
-async function safePaginationUpdate(interaction, updateOptions, originalMessage, context = 'pagination') {
-    try {
-        // Check if the interaction can be updated
-        if (!interaction.replied && !interaction.deferred) {
-            await interaction.update(updateOptions);
-            return true;
-        } else {
-            console.warn(`${context}: Interaction already replied/deferred, trying fallback`);
-            // Try fallback with the original message
-            if (originalMessage) {
-                await originalMessage.edit(updateOptions);
-                return true;
-            }
-        }
-        return false;
-    } catch (error) {
-        console.error(`Error in ${context} update:`, error);
-        
-        // Try fallback with the original message
-        try {
-            if (originalMessage) {
-                await originalMessage.edit(updateOptions);
-                return true;
-            }
-        } catch (fallbackError) {
-            console.error(`Failed to update ${context} via fallback:`, fallbackError);
-        }
-        return false;
-    }
-}
-
 module.exports = {
     safeExecute,
     safeReply,
@@ -234,6 +195,5 @@ module.exports = {
     safeInterval,
     timeout,
     withRetry,
-    isRetryableError,
-    safePaginationUpdate
+    isRetryableError
 };
