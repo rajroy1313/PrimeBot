@@ -1942,9 +1942,12 @@ module.exports = {
                     userData.messages = messagesNeeded;
                     userData.xp = newLevel * 100; // Simplified XP calculation
                     
+                    // Initialize variables to track badge updates
+                    let newBadges = [];
+                    
                     // Check for new badges if level increased
                     if (newLevel > oldLevel) {
-                        const newBadges = client.levelingManager.checkForNewBadges(userData, oldLevel, newLevel);
+                        newBadges = client.levelingManager.checkForNewBadges(userData, oldLevel, newLevel);
                         
                         // Log badge updates
                         if (newBadges.length > 0) {
@@ -1952,18 +1955,38 @@ module.exports = {
                         }
                     }
                     
-                    // Save data
+                    // Save data - critical to ensure changes are persisted
                     client.levelingManager.saveLevels();
+                    console.log(`[LEVELING] Saved level data for ${targetSetUser.tag}: Level ${newLevel}, Messages: ${messagesNeeded}, XP: ${userData.xp}`);
                     
-                    // Send confirmation
+                    // Create detailed confirmation embed
                     const setLevelEmbed = new EmbedBuilder()
                         .setColor(config.colors.success)
                         .setTitle("Level Updated")
                         .setDescription(`${targetSetUser}'s level has been set to **Level ${newLevel}**!`)
+                        .addFields(
+                            { name: "Change", value: `Level ${oldLevel} → **Level ${newLevel}**`, inline: true },
+                            { name: "XP", value: `${userData.xp} XP`, inline: true },
+                            { name: "Message Count", value: `${messagesNeeded}`, inline: true }
+                        )
+                        .setThumbnail(targetSetUser.displayAvatarURL({ dynamic: true }))
+                        .setTimestamp()
                         .setFooter({
                             text: `Set by ${message.author.tag}`,
                             iconURL: message.author.displayAvatarURL({ dynamic: true })
                         });
+                    
+                    // Add badge information if new badges were earned
+                    if (newBadges.length > 0) {
+                        const badgeList = newBadges.map(badge => 
+                            `${badge.emoji} **${badge.name}** - ${badge.description}`
+                        ).join('\n');
+                        
+                        setLevelEmbed.addFields({
+                            name: '🏅 New Badge' + (newBadges.length > 1 ? 's' : '') + ' Earned!',
+                            value: badgeList
+                        });
+                    }
                     
                     message.reply({ embeds: [setLevelEmbed] });
                     break;
