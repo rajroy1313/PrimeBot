@@ -374,6 +374,14 @@ module.exports = {
                         { name: `${prefix}chelp`, value: "Show help for the counting game" },
                         { name: `${prefix}truthdare`, value: "Start a Truth or Dare game with interactive buttons" },
                         { name: `${prefix}qadd [truth/dare] [question]`, value: "Add a custom truth or dare question to the collection" },
+                        
+                        // Leveling System Commands (support server only)
+                        { name: `${prefix}leaderboard [page]`, value: "Shows the community XP leaderboard (support server only)" },
+                        { name: `${prefix}rank [@user]`, value: "Shows your or another user's level and XP (support server only)" },
+                        { name: `${prefix}profile [@user]`, value: "Shows detailed stats and badges (support server only)" },
+                        { name: `${prefix}badges [@user]`, value: "Shows available and earned badges (support server only)" },
+                        { name: `${prefix}level [@user]`, value: "Alias for rank command (support server only)" },
+                        { name: `${prefix}exp [@user]`, value: "Alias for rank command (support server only)" },
                     ];
                     
                     // Settings for pagination
@@ -1733,6 +1741,230 @@ module.exports = {
                     } else {
                         return message.reply("This question already exists or is invalid.");
                     }
+                    break;
+                    
+                // Leveling System Commands
+                case "leaderboard":
+                case "levels":
+                case "lb":
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
+                        return;
+                    }
+                    
+                    // Get page number if provided
+                    let leaderboardPage = 1;
+                    if (args.length > 0) {
+                        const requestedPage = parseInt(args[0]);
+                        if (!isNaN(requestedPage) && requestedPage > 0) {
+                            leaderboardPage = requestedPage;
+                        }
+                    }
+                    
+                    // Get the leaderboard embed
+                    const leaderboardData = await client.levelingManager.createLeaderboardEmbed(
+                        message.guild.id, 
+                        leaderboardPage
+                    );
+                    
+                    // Send the message
+                    const leaderboardReply = await message.reply({ 
+                        embeds: [leaderboardData.embed],
+                        components: leaderboardData.maxPage > 1 ? [
+                            new ActionRowBuilder().addComponents(
+                                new ButtonBuilder()
+                                    .setCustomId('lb_prev_page')
+                                    .setLabel('Previous')
+                                    .setStyle(ButtonStyle.Secondary)
+                                    .setDisabled(leaderboardData.currentPage <= 1),
+                                new ButtonBuilder()
+                                    .setCustomId('lb_next_page')
+                                    .setLabel('Next')
+                                    .setStyle(ButtonStyle.Secondary)
+                                    .setDisabled(leaderboardData.currentPage >= leaderboardData.maxPage)
+                            )
+                        ] : []
+                    });
+                    
+                    // Handle pagination if there are multiple pages
+                    if (leaderboardData.maxPage > 1) {
+                        const filter = i => 
+                            (i.customId === 'lb_prev_page' || i.customId === 'lb_next_page') && 
+                            i.user.id === message.author.id;
+                            
+                        const collector = leaderboardReply.createMessageComponentCollector({ 
+                            filter, 
+                            time: 300000 // 5 minutes
+                        });
+                        
+                        // Track current page
+                        let currentPage = leaderboardData.currentPage;
+                        
+                        collector.on('collect', async interaction => {
+                            // Calculate new page
+                            if (interaction.customId === 'lb_prev_page') {
+                                currentPage = Math.max(1, currentPage - 1);
+                            } else {
+                                currentPage = Math.min(leaderboardData.maxPage, currentPage + 1);
+                            }
+                            
+                            // Get updated leaderboard
+                            const newLeaderboardData = await client.levelingManager.createLeaderboardEmbed(
+                                message.guild.id, 
+                                currentPage
+                            );
+                            
+                            // Update message
+                            await interaction.update({
+                                embeds: [newLeaderboardData.embed],
+                                components: newLeaderboardData.maxPage > 1 ? [
+                                    new ActionRowBuilder().addComponents(
+                                        new ButtonBuilder()
+                                            .setCustomId('lb_prev_page')
+                                            .setLabel('Previous')
+                                            .setStyle(ButtonStyle.Secondary)
+                                            .setDisabled(currentPage <= 1),
+                                        new ButtonBuilder()
+                                            .setCustomId('lb_next_page')
+                                            .setLabel('Next')
+                                            .setStyle(ButtonStyle.Secondary)
+                                            .setDisabled(currentPage >= newLeaderboardData.maxPage)
+                                    )
+                                ] : []
+                            });
+                        });
+                        
+                        collector.on('end', () => {
+                            // Remove components when collector expires
+                            leaderboardReply.edit({ components: [] }).catch(console.error);
+                        });
+                    }
+                    break;
+                    
+                case "rank":
+                case "profile":
+                case "exp":
+                case "level":
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
+                        return;
+                    }
+                    
+                    // Check if user is specified
+                    let targetUser = message.author;
+                    if (args.length > 0 && message.mentions.users.size > 0) {
+                        targetUser = message.mentions.users.first();
+                    }
+                    
+                    // Get user's profile
+                    const profileData = await client.levelingManager.createProfileEmbed(
+                        message.guild.id,
+                        targetUser.id
+                    );
+                    
+                    if (!profileData) {
+                        message.reply("Could not retrieve user profile data.");
+                        return;
+                    }
+                    
+                    // Send the profile
+                    message.reply({ embeds: [profileData.embed] });
+                    break;
+                    
+                case "set-level":
+                case "setlevel":
+                    // Only available to developers
+                    if (!config.developerIds.includes(message.author.id)) {
+                        return; // Silently ignore for non-developers
+                    }
+                    
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
+                        return;
+                    }
+                    
+                    // Validate arguments: $set-level @user [level]
+                    if (args.length < 2 || message.mentions.users.size === 0) {
+                        message.reply("**Usage:** `$set-level @user [level]`");
+                        return;
+                    }
+                    
+                    const targetSetUser = message.mentions.users.first();
+                    const newLevel = parseInt(args[1]);
+                    
+                    if (isNaN(newLevel) || newLevel < 0 || newLevel > 100) {
+                        message.reply("Level must be a number between 0 and 100.");
+                        return;
+                    }
+                    
+                    // Calculate messages needed for this level
+                    const messagesNeeded = client.levelingManager.calculateRequiredMessages(newLevel);
+                    
+                    // Get or create guild data
+                    if (!client.levelingManager.userLevels.has(message.guild.id)) {
+                        client.levelingManager.userLevels.set(message.guild.id, new Map());
+                    }
+                    
+                    const guildData = client.levelingManager.userLevels.get(message.guild.id);
+                    
+                    // Get or create user data
+                    if (!guildData.has(targetSetUser.id)) {
+                        guildData.set(targetSetUser.id, {
+                            xp: 0,
+                            level: 0,
+                            messages: 0,
+                            lastMessage: Date.now(),
+                            badges: []
+                        });
+                    }
+                    
+                    const userData = guildData.get(targetSetUser.id);
+                    
+                    // Update user data
+                    userData.level = newLevel;
+                    userData.messages = messagesNeeded;
+                    userData.xp = newLevel * 100; // Simplified XP calculation
+                    
+                    // Save data
+                    client.levelingManager.saveLevels();
+                    
+                    // Send confirmation
+                    const setLevelEmbed = new EmbedBuilder()
+                        .setColor(config.colors.success)
+                        .setTitle("Level Updated")
+                        .setDescription(`${targetSetUser}'s level has been set to **Level ${newLevel}**!`)
+                        .setFooter({
+                            text: `Set by ${message.author.tag}`,
+                            iconURL: message.author.displayAvatarURL({ dynamic: true })
+                        });
+                    
+                    message.reply({ embeds: [setLevelEmbed] });
+                    break;
+                    
+                case "badges":
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
+                        return;
+                    }
+                    
+                    // Get user if specified
+                    let badgesUser = null;
+                    if (args.length > 0 && message.mentions.users.size > 0) {
+                        badgesUser = message.mentions.users.first();
+                    }
+                    
+                    // Create badges embed
+                    const badgesData = await client.levelingManager.createBadgesEmbed(
+                        message.guild.id,
+                        badgesUser ? badgesUser.id : message.author.id
+                    );
+                    
+                    // Send the message
+                    message.reply({ embeds: [badgesData.embed] });
                     break;
 
                 default:
