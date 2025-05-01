@@ -339,8 +339,8 @@ module.exports = {
                         }
                     }
                     
-                    // Define all commands with their descriptions
-                    const allCommands = [
+                    // Define basic commands available in all servers
+                    let allCommands = [
                         { name: `${prefix}help [page]`, value: "Shows this list of commands" },
                         { name: `${prefix}commands [page]`, value: "Alias for help command" },
                         { name: `${prefix}giveaway`, value: "Shows all giveaway commands" },
@@ -374,15 +374,23 @@ module.exports = {
                         { name: `${prefix}chelp`, value: "Show help for the counting game" },
                         { name: `${prefix}truthdare`, value: "Start a Truth or Dare game with interactive buttons" },
                         { name: `${prefix}qadd [truth/dare] [question]`, value: "Add a custom truth or dare question to the collection" },
-                        
-                        // Leveling System Commands (support server only)
-                        { name: `${prefix}leaderboard [page]`, value: "Shows the community XP leaderboard (support server only)" },
-                        { name: `${prefix}rank [@user]`, value: "Shows your or another user's level and XP (support server only)" },
-                        { name: `${prefix}profile [@user]`, value: "Shows detailed stats and badges (support server only)" },
-                        { name: `${prefix}badges [@user]`, value: "Shows available and earned badges (support server only)" },
-                        { name: `${prefix}level [@user]`, value: "Alias for rank command (support server only)" },
-                        { name: `${prefix}exp [@user]`, value: "Alias for rank command (support server only)" },
                     ];
+                    
+                    // If we're in the support server, add the leveling commands to the list
+                    if (message.guild && message.guild.id === config.leveling.supportServerId) {
+                        // Leveling System Commands (only shown in support server)
+                        const levelingCommands = [
+                            { name: `${prefix}leaderboard [page]`, value: "Shows the community XP leaderboard" },
+                            { name: `${prefix}rank [@user]`, value: "Shows your or another user's level and XP" },
+                            { name: `${prefix}profile [@user]`, value: "Shows detailed stats and badges" },
+                            { name: `${prefix}badges [@user]`, value: "Shows available and earned badges" },
+                            { name: `${prefix}level [@user]`, value: "Alias for rank command" },
+                            { name: `${prefix}exp [@user]`, value: "Alias for rank command" },
+                        ];
+                        
+                        // Add leveling commands to the main commands list
+                        allCommands = [...allCommands, ...levelingCommands];
+                    }
                     
                     // Settings for pagination
                     const commandsPerPage = 5; // 5 commands per page as requested
@@ -475,8 +483,11 @@ module.exports = {
                             // Update the current page for future interactions
                             currentPage = newPage;
                             
+                            // Get updated commands (in case server-specific commands need to be filtered)
+                            let updatedCommands = [...allCommands]; // Start with all commands
+                            
                             // Get the commands for the new page
-                            const newPageCommands = allCommands.slice(
+                            const newPageCommands = updatedCommands.slice(
                                 (newPage - 1) * commandsPerPage, 
                                 Math.min(newPage * commandsPerPage, totalCommands)
                             );
