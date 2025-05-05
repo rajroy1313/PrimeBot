@@ -1616,46 +1616,100 @@ module.exports = {
                         return;
                     }
                     
-                    // Validate arguments
+                    // Parse command arguments
+                    let broadcastMessage = "";
+                    let imageUrl = null;
+                    let embedColor = config.colors.primary;
+                    
+                    // Check for color flag first
+                    const colorFlag = args.findIndex(arg => arg.startsWith("--color="));
+                    if (colorFlag !== -1) {
+                        const colorValue = args[colorFlag].split("=")[1];
+                        if (colorValue) {
+                            embedColor = colorValue;
+                            args.splice(colorFlag, 1); // Remove the flag from args
+                        }
+                    }
+                    
+                    // Check for image flag
+                    const imageFlag = args.findIndex(arg => arg.startsWith("--image="));
+                    if (imageFlag !== -1) {
+                        imageUrl = args[imageFlag].split("=")[1];
+                        args.splice(imageFlag, 1); // Remove the flag from args
+                    }
+                    
+                    // Remaining args form the message
                     if (args.length < 1) {
-                        return message.reply("Please provide a message to broadcast.");
+                        return message.reply("Please provide a message to broadcast. Usage: !broadcast [message] --image=URL --color=HEX");
                     }
                     
                     // Get the broadcast message
-                    const broadcastMessage = args.join(" ");
+                    broadcastMessage = args.join(" ");
                     
                     // Debug logging
-                    console.log(`[DEBUG] Broadcast command triggered by ${message.author.tag} with message: ${broadcastMessage}`);
+                    console.log(`[BROADCAST] Command triggered by ${message.author.tag} with message: ${broadcastMessage}`);
+                    console.log(`[BROADCAST] Image: ${imageUrl}, Color: ${embedColor}`);
                     
-                    // Create the broadcast embed
+                    // Create the broadcast embed with modern styling
                     const broadcastEmbed = new EmbedBuilder()
-                        .setColor(config.colors.primary)
+                        .setColor(embedColor)
                         .setTitle("📣 Announcement from Developers")
                         .setDescription(broadcastMessage)
                         .setTimestamp()
                         .setFooter({ 
-                            text: `Version: ${config.version}`,
+                            text: `Sent by ${message.author.tag} • ${client.user.username}`,
                             iconURL: client.user.displayAvatarURL()
                         });
                     
+                    // Add image if provided
+                    if (imageUrl) {
+                        if (imageUrl.match(/\.(jpeg|jpg|gif|png)$/)) {
+                            broadcastEmbed.setImage(imageUrl);
+                            console.log(`[BROADCAST] Added image: ${imageUrl}`);
+                        } else {
+                            console.log(`[BROADCAST] Invalid image URL format: ${imageUrl}`);
+                        }
+                    }
+                    
+                    // Add server count
+                    broadcastEmbed.addFields(
+                        { name: '📊 Servers', value: `This announcement is being sent to ${client.guilds.cache.size} servers.`, inline: false }
+                    );
+                    
+                    // Create progress bar function
+                    function createProgressBar(percentage) {
+                        const barLength = 20;
+                        const filledLength = Math.round((percentage / 100) * barLength);
+                        const emptyLength = barLength - filledLength;
+                        
+                        const filled = '█'.repeat(filledLength);
+                        const empty = '░'.repeat(emptyLength);
+                        
+                        return `[${filled}${empty}]`;
+                    }
+                    
                     // Send confirmation
                     const confirmationEmbed = new EmbedBuilder()
-                        .setColor(config.colors.success)
-                        .setDescription("📣 Broadcasting message to all servers...");
+                        .setColor(config.colors.warning)
+                        .setTitle("📣 Broadcast Started")
+                        .setDescription("Broadcasting announcement to all servers. Please wait...");
                     
-                    await message.reply({ embeds: [confirmationEmbed] });
+                    const statusMessage = await message.reply({ embeds: [confirmationEmbed] });
                     
                     // Track statistics
                     let successCount = 0;
                     let failCount = 0;
                     let totalGuilds = client.guilds.cache.size;
+                    let processedCount = 0;
+                    const startTime = Date.now();
                     
                     // Broadcast to all guilds
-                    console.log(`[DEBUG] Starting broadcast to ${client.guilds.cache.size} guilds`);
+                    console.log(`[BROADCAST] Starting broadcast to ${client.guilds.cache.size} guilds`);
                     
                     for (const guild of client.guilds.cache.values()) {
                         try {
-                            console.log(`[DEBUG] Processing guild: ${guild.name} (${guild.id})`);
+                            console.log(`[BROADCAST] Processing guild: ${guild.name} (${guild.id})`);
+                            processedCount++;
                             
                             // Find the first available text channel
                             const channel = guild.channels.cache
@@ -1664,24 +1718,43 @@ module.exports = {
                                 .first();
                             
                             if (!channel) {
-                                console.log(`[DEBUG] No suitable text channel found in guild: ${guild.name}`);
+                                console.log(`[BROADCAST] No suitable text channel found in guild: ${guild.name}`);
                                 failCount++;
                                 continue;
                             }
                             
-                            console.log(`[DEBUG] Selected channel: ${channel.name} (${channel.id})`);
+                            console.log(`[BROADCAST] Selected channel: ${channel.name} (${channel.id})`);
                             
                             // Check bot permissions
                             const hasPermission = channel.permissionsFor(guild.members.me).has("SendMessages");
-                            console.log(`[DEBUG] Bot has SendMessages permission: ${hasPermission}`);
+                            console.log(`[BROADCAST] Bot has SendMessages permission: ${hasPermission}`);
                             
                             if (hasPermission) {
                                 await channel.send({ embeds: [broadcastEmbed] });
-                                console.log(`[DEBUG] Successfully sent broadcast to guild: ${guild.name}`);
+                                console.log(`[BROADCAST] Successfully sent broadcast to guild: ${guild.name}`);
                                 successCount++;
                             } else {
-                                console.log(`[DEBUG] Missing permissions to send in channel: ${channel.name}`);
+                                console.log(`[BROADCAST] Missing permissions to send in channel: ${channel.name}`);
                                 failCount++;
+                            }
+                            
+                            // Update progress every 5 guilds
+                            if (processedCount % 5 === 0 || processedCount === totalGuilds) {
+                                try {
+                                    // Calculate progress
+                                    const progressPercent = Math.round((processedCount / totalGuilds) * 100);
+                                    const progressBar = createProgressBar(progressPercent);
+                                    const elapsedTime = Math.round((Date.now() - startTime) / 1000);
+                                    
+                                    const progressEmbed = new EmbedBuilder()
+                                        .setColor(config.colors.warning)
+                                        .setTitle("📣 Broadcasting in Progress...")
+                                        .setDescription(`${progressBar} ${progressPercent}% Complete\n\nProgress: ${processedCount}/${totalGuilds} servers\n✅ Success: ${successCount} | ❌ Failed: ${failCount}\n⏱️ Time elapsed: ${elapsedTime}s`);
+                                        
+                                    await statusMessage.edit({ embeds: [progressEmbed] });
+                                } catch (e) {
+                                    console.error('[BROADCAST] Failed to update progress:', e);
+                                }
                             }
                         } catch (error) {
                             console.error(`Error broadcasting to guild ${guild.name}:`, error);
@@ -1689,18 +1762,32 @@ module.exports = {
                         }
                     }
                     
-                    // Send status report
+                    // Calculate completion metrics
+                    const completionTime = Math.round((Date.now() - startTime) / 1000);
+                    const successRate = totalGuilds > 0 ? Math.round((successCount / totalGuilds) * 100) : 0;
+                    
+                    // Send status report with modern design
                     const reportEmbed = new EmbedBuilder()
                         .setColor(config.colors.success)
                         .setTitle("📣 Broadcast Complete")
-                        .setDescription(`Message has been sent to servers.`)
+                        .setDescription(`Your announcement has been broadcast to ${successCount} out of ${totalGuilds} servers.`)
                         .addFields(
-                            { name: "Success", value: `${successCount} servers`, inline: true },
-                            { name: "Failed", value: `${failCount} servers`, inline: true },
-                            { name: "Total", value: `${totalGuilds} servers`, inline: true }
-                        );
+                            { name: "✅ Success", value: `${successCount} servers`, inline: true },
+                            { name: "❌ Failed", value: `${failCount} servers`, inline: true },
+                            { name: "📊 Success Rate", value: `${successRate}%`, inline: true },
+                            { name: "⏰ Time Taken", value: `${completionTime} seconds`, inline: true },
+                            { name: "💬 Potential Reach", value: `Message potentially reached all members across ${successCount} servers`, inline: false }
+                        )
+                        .setTimestamp()
+                        .setFooter({ text: `Broadcast ID: ${Date.now().toString(36)}` });
                     
-                    await message.channel.send({ embeds: [reportEmbed] });
+                    await statusMessage.edit({ embeds: [reportEmbed] });
+                    
+                    // Also send the broadcast message itself for reference
+                    await message.channel.send({ 
+                        content: "✅ Broadcast successfully completed!", 
+                        embeds: [broadcastEmbed] 
+                    });
                     break;
                 
                 case "cstart":

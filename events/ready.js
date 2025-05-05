@@ -28,7 +28,7 @@ module.exports = {
             try {
                 // Only attempt to set nickname if we have the right permissions
                 if (guild.members?.me?.permissions?.has('ChangeNickname')) {
-                    guild.members.me.setNickname("AFK").catch(() => {
+                    guild.members.me.setNickname("PrimeBot").catch(() => {
                         // Silent fail - this is not critical functionality
                     });
                 }
