@@ -163,10 +163,15 @@ module.exports = {
                         // Track statistics
                         let successCount = 0;
                         let failCount = 0;
+                        let skippedOptOut = 0;
                         let totalGuilds = client.guilds.cache.size;
                         
-                        // Broadcast to all guilds
-                        console.log(`[BROADCAST] Starting broadcast to ${totalGuilds} guilds`);
+                        // Get count of receptive servers
+                        const receptiveServers = client.serverSettingsManager ? 
+                            client.serverSettingsManager.getBroadcastReceptionCount() : totalGuilds;
+                            
+                        // Broadcast to guilds that haven't opted out
+                        console.log(`[BROADCAST] Starting broadcast to ${receptiveServers} guilds that haven't opted out (total: ${totalGuilds})`);
                         
                         // Helper function for progress bar
                         function createProgressBar(percentage) {
@@ -188,6 +193,13 @@ module.exports = {
                             try {
                                 console.log(`[BROADCAST] Processing guild: ${guild.name} (${guild.id})`);
                                 processedCount++;
+                                
+                                // Check if the guild has opted out of broadcasts
+                                if (client.serverSettingsManager && !client.serverSettingsManager.receivesBroadcasts(guild.id)) {
+                                    console.log(`[BROADCAST] Guild ${guild.name} has opted out of broadcasts, skipping`);
+                                    skippedOptOut++;
+                                    continue;
+                                }
                                 
                                 // Find the first available text channel
                                 const channel = guild.channels.cache
@@ -225,7 +237,7 @@ module.exports = {
                                         const elapsedTime = Math.round((Date.now() - startTime) / 1000);
                                         
                                         await interaction.editReply({
-                                            content: `📣 Broadcasting message to all servers...\n${progressBar} ${progressPercent}% Complete\n\nProgress: ${processedCount}/${totalGuilds} servers\n✅ Success: ${successCount} | ❌ Failed: ${failCount}\n⏱️ Time elapsed: ${elapsedTime}s`,
+                                            content: `📣 Broadcasting message to servers...\n${progressBar} ${progressPercent}% Complete\n\nProgress: ${processedCount}/${totalGuilds} servers\n✅ Success: ${successCount} | ❌ Failed: ${failCount} | 🔕 Opted Out: ${skippedOptOut}\n⏱️ Time elapsed: ${elapsedTime}s`,
                                             embeds: [broadcastEmbed],
                                             components: []
                                         });

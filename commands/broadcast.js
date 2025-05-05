@@ -255,8 +255,10 @@ Progress: ${processedCount}/${totalGuilds} servers
                     .addFields(
                         { name: "✅ Success", value: `${successCount} servers`, inline: true },
                         { name: "❌ Failed", value: `${failCount} servers`, inline: true },
+                        { name: "🔕 Opted Out", value: `${skippedOptOut} servers`, inline: true },
                         { name: "📊 Success Rate", value: `${successRate}%`, inline: true },
                         { name: "⏰ Time Taken", value: `${completionTime} seconds`, inline: true },
+                        { name: "📝 Opt-Out Note", value: "Servers can configure broadcast preferences with `/broadcastsettings toggle`", inline: false },
                         { name: "💬 Potential Reach", value: `Message potentially reached all members across ${successCount} servers`, inline: false }
                     )
                     .setTimestamp()
