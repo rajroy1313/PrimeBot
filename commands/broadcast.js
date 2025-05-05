@@ -1,11 +1,28 @@
 const { SlashCommandBuilder, EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
 const config = require('../config');
+const ms = require('ms');
+
+/**
+ * Creates a visual progress bar for the broadcast progress
+ * @param {number} percentage - The percentage complete (0-100)
+ * @returns {string} A text-based progress bar
+ */
+function createProgressBar(percentage) {
+    const barLength = 20;
+    const filledLength = Math.round((percentage / 100) * barLength);
+    const emptyLength = barLength - filledLength;
+    
+    const filled = '█'.repeat(filledLength);
+    const empty = '░'.repeat(emptyLength);
+    
+    return `[${filled}${empty}]`;
+}
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('broadcast')
         .setDescription('Send an announcement to all servers (Developer only)')
-		.setDefaultMemberPermissions('0')
+        .setDefaultMemberPermissions('0')
         .addStringOption(option =>
             option.setName('message')
                 .setDescription('The message to broadcast to all servers')
@@ -14,6 +31,24 @@ module.exports = {
             option.setName('title')
                 .setDescription('The title for the announcement (optional)')
                 .setRequired(false))
+        .addStringOption(option =>
+            option.setName('image')
+                .setDescription('Optional image URL to include in the announcement')
+                .setRequired(false))
+        .addStringOption(option =>
+            option.setName('color')
+                .setDescription('Color of the embed (hex code or color name)')
+                .setRequired(false)
+                .addChoices(
+                    { name: '🔴 Red', value: '#FF0000' },
+                    { name: '🟢 Green', value: '#00FF00' },
+                    { name: '🔵 Blue', value: '#0000FF' },
+                    { name: '🟡 Yellow', value: '#FFFF00' },
+                    { name: '🟣 Purple', value: '#800080' },
+                    { name: '🟠 Orange', value: '#FFA500' },
+                    { name: '⚫ Black', value: '#000000' },
+                    { name: '⚪ White', value: '#FFFFFF' }
+                ))
         .addBooleanOption(option =>
             option.setName('preview')
                 .setDescription('Preview the announcement before sending it')
@@ -33,22 +68,39 @@ module.exports = {
             // Get command options
             const broadcastMessage = interaction.options.getString('message');
             const customTitle = interaction.options.getString('title') || "📣 Announcement from Developers";
+            const imageUrl = interaction.options.getString('image');
+            const embedColor = interaction.options.getString('color') || config.colors.primary;
             const preview = interaction.options.getBoolean('preview') || false;
             
             console.log(`[BROADCAST] Command triggered by ${interaction.user.tag} with message: ${broadcastMessage}`);
             console.log(`[BROADCAST] Developer IDs in config: ${config.developerIds.join(', ')}`);
             console.log(`[BROADCAST] User ID: ${interaction.user.id}, In developer list: ${config.developerIds.includes(interaction.user.id)}`);
             
-            // Create the broadcast embed
+            // Create the broadcast embed with modern styling
             const broadcastEmbed = new EmbedBuilder()
-                .setColor(config.colors.primary)
+                .setColor(embedColor)
                 .setTitle(customTitle)
                 .setDescription(broadcastMessage)
                 .setTimestamp()
                 .setFooter({ 
-                    text: `Sent by ${interaction.user.tag}`,
+                    text: `Sent by ${interaction.user.tag} • ${interaction.client.user.username}`,
                     iconURL: interaction.client.user.displayAvatarURL()
                 });
+                
+            // Add image if provided
+            if (imageUrl) {
+                if (imageUrl.match(/\.(jpeg|jpg|gif|png)$/)) {
+                    broadcastEmbed.setImage(imageUrl);
+                    console.log(`[BROADCAST] Added image: ${imageUrl}`);
+                } else {
+                    console.log(`[BROADCAST] Invalid image URL format: ${imageUrl}`);
+                }
+            }
+            
+            // Add server count
+            broadcastEmbed.addFields(
+                { name: '📊 Servers', value: `This announcement is being sent to ${interaction.client.guilds.cache.size} servers.`, inline: false }
+            );
 
             // If preview is enabled, show a preview with confirm/cancel buttons
             if (preview) {
@@ -70,6 +122,10 @@ module.exports = {
                     .setColor(config.colors.warning)
                     .setTitle('📣 Broadcast Preview')
                     .setDescription('Here is a preview of your broadcast message. Review it and click "Send Broadcast" to send it to all servers, or "Cancel" to cancel.')
+                    .addFields(
+                        { name: '💬 Visibility', value: 'This broadcast will be sent to the first available text channel in each server.', inline: false },
+                        { name: '⏰ Timing', value: `Estimated time to complete: ${Math.ceil(interaction.client.guilds.cache.size * 0.5)} seconds`, inline: false }
+                    )
                     .setTimestamp();
                 
                 // Send the preview with buttons
@@ -142,8 +198,18 @@ module.exports = {
                         // Update progress every 5 guilds or when done
                         if (processedCount % 5 === 0 || processedCount === totalGuilds) {
                             try {
+                                // Calculate progress percentage
+                                const progressPercent = Math.round((processedCount / totalGuilds) * 100);
+                                const progressBar = createProgressBar(progressPercent);
+                                const elapsedTime = Math.round((Date.now() - interaction.createdTimestamp) / 1000);
+                                
                                 await interaction.editReply({
-                                    content: `📣 Broadcasting message to all servers...\nProcessing: ${processedCount}/${totalGuilds} servers (${successCount} successful, ${failCount} failed)`,
+                                    content: `📣 Broadcasting message to all servers...
+${progressBar} ${progressPercent}% Complete
+
+Progress: ${processedCount}/${totalGuilds} servers
+✅ Success: ${successCount} | ❌ Failed: ${failCount}
+⏱️ Time elapsed: ${elapsedTime}s`,
                                     embeds: [broadcastEmbed]
                                 });
                             } catch (e) {
@@ -157,20 +223,27 @@ module.exports = {
                     }
                 }
                 
-                // Update with final results
+                // Calculate completion metrics
+                const completionTime = Math.round((Date.now() - interaction.createdTimestamp) / 1000);
+                const successRate = totalGuilds > 0 ? Math.round((successCount / totalGuilds) * 100) : 0;
+                
+                // Update with final results - modern design
                 const resultEmbed = new EmbedBuilder()
                     .setColor(config.colors.success)
-                    .setTitle("📣 Broadcast Results")
-                    .setDescription(`Message has been broadcast to servers.`)
+                    .setTitle("📣 Broadcast Complete")
+                    .setDescription(`Your announcement has been broadcast to ${successCount} out of ${totalGuilds} servers.`)
                     .addFields(
                         { name: "✅ Success", value: `${successCount} servers`, inline: true },
                         { name: "❌ Failed", value: `${failCount} servers`, inline: true },
-                        { name: "📊 Total", value: `${totalGuilds} servers`, inline: true }
+                        { name: "📊 Success Rate", value: `${successRate}%`, inline: true },
+                        { name: "⏰ Time Taken", value: `${completionTime} seconds`, inline: true },
+                        { name: "💬 Potential Reach", value: `Message potentially reached all members across ${successCount} servers`, inline: false }
                     )
-                    .setTimestamp();
+                    .setTimestamp()
+                    .setFooter({ text: `Broadcast ID: ${Date.now().toString(36)}` });
                     
                 await interaction.editReply({
-                    content: "Broadcast complete!",
+                    content: "✅ Broadcast successfully completed!",
                     embeds: [resultEmbed, broadcastEmbed]
                 });
             }
