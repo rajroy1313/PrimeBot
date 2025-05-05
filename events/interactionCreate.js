@@ -254,19 +254,22 @@ module.exports = {
                         
                         // Calculate completion metrics
                         const completionTime = Math.round((Date.now() - startTime) / 1000);
-                        const successRate = totalGuilds > 0 ? Math.round((successCount / totalGuilds) * 100) : 0;
+                        const eligibleServers = totalGuilds - skippedOptOut;
+                        const successRate = eligibleServers > 0 ? Math.round((successCount / eligibleServers) * 100) : 0;
                         
                         // Update with final results - modern design
                         const resultEmbed = new EmbedBuilder()
                             .setColor(config.colors.success)
                             .setTitle("📣 Broadcast Complete")
-                            .setDescription(`Your announcement has been broadcast to ${successCount} out of ${totalGuilds} servers.`)
+                            .setDescription(`Your announcement has been broadcast to ${successCount} out of ${eligibleServers} eligible servers.\n${skippedOptOut} servers were skipped due to opt-out preferences.`)
                             .addFields(
                                 { name: "✅ Success", value: `${successCount} servers`, inline: true },
                                 { name: "❌ Failed", value: `${failCount} servers`, inline: true },
+                                { name: "🔕 Opted Out", value: `${skippedOptOut} servers`, inline: true },
                                 { name: "📊 Success Rate", value: `${successRate}%`, inline: true },
                                 { name: "⏰ Time Taken", value: `${completionTime} seconds`, inline: true },
-                                { name: "💬 Potential Reach", value: `Message potentially reached all members across ${successCount} servers`, inline: false }
+                                { name: "💬 Potential Reach", value: `Message potentially reached all members across ${successCount} servers`, inline: false },
+                                { name: "📝 Opt-Out Note", value: "Servers can configure broadcast preferences with `/broadcastsettings toggle`", inline: false }
                             )
                             .setTimestamp()
                             .setFooter({ text: `Broadcast ID: ${Date.now().toString(36)}` });
