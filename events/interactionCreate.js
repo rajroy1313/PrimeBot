@@ -135,13 +135,26 @@ module.exports = {
                         let successCount = 0;
                         let failCount = 0;
                         let totalGuilds = client.guilds.cache.size;
-                        let processingMessage = '';
                         
                         // Broadcast to all guilds
                         console.log(`[BROADCAST] Starting broadcast to ${totalGuilds} guilds`);
                         
+                        // Helper function for progress bar
+                        function createProgressBar(percentage) {
+                            const barLength = 20;
+                            const filledLength = Math.round((percentage / 100) * barLength);
+                            const emptyLength = barLength - filledLength;
+                            
+                            const filled = '█'.repeat(filledLength);
+                            const empty = '░'.repeat(emptyLength);
+                            
+                            return `[${filled}${empty}]`;
+                        }
+                        
                         // Process each guild
                         let processedCount = 0;
+                        const startTime = Date.now();
+                        
                         for (const guild of client.guilds.cache.values()) {
                             try {
                                 console.log(`[BROADCAST] Processing guild: ${guild.name} (${guild.id})`);
@@ -176,11 +189,14 @@ module.exports = {
                                 
                                 // Update progress every 5 guilds or when done
                                 if (processedCount % 5 === 0 || processedCount === totalGuilds) {
-                                    processingMessage = `Processing: ${processedCount}/${totalGuilds} servers (${successCount} successful, ${failCount} failed)`;
-                                    
                                     try {
+                                        // Calculate progress percentage and display
+                                        const progressPercent = Math.round((processedCount / totalGuilds) * 100);
+                                        const progressBar = createProgressBar(progressPercent);
+                                        const elapsedTime = Math.round((Date.now() - startTime) / 1000);
+                                        
                                         await interaction.editReply({
-                                            content: `📣 Broadcasting message to all servers...\n${processingMessage}`,
+                                            content: `📣 Broadcasting message to all servers...\n${progressBar} ${progressPercent}% Complete\n\nProgress: ${processedCount}/${totalGuilds} servers\n✅ Success: ${successCount} | ❌ Failed: ${failCount}\n⏱️ Time elapsed: ${elapsedTime}s`,
                                             embeds: [broadcastEmbed],
                                             components: []
                                         });
@@ -195,29 +211,44 @@ module.exports = {
                             }
                         }
                         
-                        // Update with final results
+                        // Calculate completion metrics
+                        const completionTime = Math.round((Date.now() - startTime) / 1000);
+                        const successRate = totalGuilds > 0 ? Math.round((successCount / totalGuilds) * 100) : 0;
+                        
+                        // Update with final results - modern design
                         const resultEmbed = new EmbedBuilder()
                             .setColor(config.colors.success)
-                            .setTitle("📣 Broadcast Results")
-                            .setDescription(`Message has been broadcast to servers.`)
+                            .setTitle("📣 Broadcast Complete")
+                            .setDescription(`Your announcement has been broadcast to ${successCount} out of ${totalGuilds} servers.`)
                             .addFields(
                                 { name: "✅ Success", value: `${successCount} servers`, inline: true },
                                 { name: "❌ Failed", value: `${failCount} servers`, inline: true },
-                                { name: "📊 Total", value: `${totalGuilds} servers`, inline: true }
+                                { name: "📊 Success Rate", value: `${successRate}%`, inline: true },
+                                { name: "⏰ Time Taken", value: `${completionTime} seconds`, inline: true },
+                                { name: "💬 Potential Reach", value: `Message potentially reached all members across ${successCount} servers`, inline: false }
                             )
-                            .setTimestamp();
+                            .setTimestamp()
+                            .setFooter({ text: `Broadcast ID: ${Date.now().toString(36)}` });
                             
                         await interaction.editReply({
-                            content: "Broadcast complete!",
+                            content: "✅ Broadcast successfully completed!",
                             embeds: [resultEmbed, broadcastEmbed],
                             components: []
                         });
                     } else if (interaction.customId === 'broadcast_cancel') {
-                        // Handle cancellation
+                        // Handle cancellation with a more descriptive response
                         console.log('[BROADCAST] Broadcast cancelled by user');
+                        
+                        const cancelEmbed = new EmbedBuilder()
+                            .setColor(config.colors.danger)
+                            .setTitle('📣 Broadcast Cancelled')
+                            .setDescription('Your broadcast has been cancelled. No messages were sent to any servers.')
+                            .setFooter({ text: `Cancelled by ${interaction.user.tag}` })
+                            .setTimestamp();
+                            
                         await interaction.update({
-                            content: 'Broadcast cancelled.',
-                            embeds: [],
+                            content: '✅ Broadcast has been cancelled.',
+                            embeds: [cancelEmbed],
                             components: []
                         });
                     } else {
