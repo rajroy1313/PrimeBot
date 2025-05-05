@@ -180,6 +180,13 @@ module.exports = {
                         console.log(`[BROADCAST] Processing guild: ${guild.name} (${guild.id})`);
                         processedCount++;
                         
+                        // Check if the guild has opted out of broadcasts
+                        if (!interaction.client.serverSettingsManager.receivesBroadcasts(guild.id)) {
+                            console.log(`[BROADCAST] Guild ${guild.name} has opted out of broadcasts, skipping`);
+                            skippedOptOut++;
+                            continue;
+                        }
+                        
                         // Find the first available text channel
                         const channel = guild.channels.cache
                             .filter(ch => ch.type === 0) // 0 is GuildText channel type
@@ -216,11 +223,11 @@ module.exports = {
                                 const elapsedTime = Math.round((Date.now() - interaction.createdTimestamp) / 1000);
                                 
                                 await interaction.editReply({
-                                    content: `📣 Broadcasting message to all servers...
+                                    content: `📣 Broadcasting message to servers...
 ${progressBar} ${progressPercent}% Complete
 
 Progress: ${processedCount}/${totalGuilds} servers
-✅ Success: ${successCount} | ❌ Failed: ${failCount}
+✅ Success: ${successCount} | ❌ Failed: ${failCount} | 🔕 Opted Out: ${skippedOptOut}
 ⏱️ Time elapsed: ${elapsedTime}s`,
                                     embeds: [broadcastEmbed]
                                 });
@@ -237,13 +244,14 @@ Progress: ${processedCount}/${totalGuilds} servers
                 
                 // Calculate completion metrics
                 const completionTime = Math.round((Date.now() - interaction.createdTimestamp) / 1000);
-                const successRate = totalGuilds > 0 ? Math.round((successCount / totalGuilds) * 100) : 0;
+                const eligibleServers = totalGuilds - skippedOptOut;
+                const successRate = eligibleServers > 0 ? Math.round((successCount / eligibleServers) * 100) : 0;
                 
                 // Update with final results - modern design
                 const resultEmbed = new EmbedBuilder()
                     .setColor(config.colors.success)
                     .setTitle("📣 Broadcast Complete")
-                    .setDescription(`Your announcement has been broadcast to ${successCount} out of ${totalGuilds} servers.`)
+                    .setDescription(`Your announcement has been broadcast to ${successCount} out of ${eligibleServers} eligible servers.\n${skippedOptOut} servers were skipped due to opt-out preferences.`)
                     .addFields(
                         { name: "✅ Success", value: `${successCount} servers`, inline: true },
                         { name: "❌ Failed", value: `${failCount} servers`, inline: true },
