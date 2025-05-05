@@ -95,6 +95,10 @@ client.truthDareManager = new TruthDareManager(client);
 const LevelingManager = require('./utils/levelingManager');
 client.levelingManager = new LevelingManager(client);
 
+// Initialize server settings manager for broadcast opt-outs
+const ServerSettingsManager = require('./utils/serverSettingsManager');
+client.serverSettingsManager = new ServerSettingsManager(client);
+
 // Make client globally available for the website
 global.client = client;
 
@@ -113,21 +117,7 @@ async function connectBot() {
     }
 }
 
-// Initial connection
-connectBot();
 
-// Handle disconnections
-client.on('disconnect', () => {
-    console.log('Bot disconnected! Attempting to reconnect...');
-    connectBot();
-});
-
-// Handle process termination
-process.on('SIGINT', () => {
-    console.log('Bot is shutting down...');
-    client.destroy();
-    process.exit(0);
-});
 
 process.on('unhandledRejection', error => {
     console.error('Unhandled promise rejection:', error);

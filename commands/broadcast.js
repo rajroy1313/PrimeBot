@@ -97,9 +97,18 @@ module.exports = {
                 }
             }
             
-            // Add server count
+            // Get count of servers that will receive broadcasts
+            const totalServers = interaction.client.guilds.cache.size;
+            const receptiveServers = interaction.client.serverSettingsManager.getBroadcastReceptionCount();
+            const optedOutCount = totalServers - receptiveServers;
+            
+            // Add server count with opt-out information
             broadcastEmbed.addFields(
-                { name: '📊 Servers', value: `This announcement is being sent to ${interaction.client.guilds.cache.size} servers.`, inline: false }
+                { 
+                    name: '📊 Servers', 
+                    value: `This announcement is being sent to ${receptiveServers} servers that have enabled broadcasts. ${optedOutCount} servers have opted out.`, 
+                    inline: false 
+                }
             );
 
             // If preview is enabled, show a preview with confirm/cancel buttons
@@ -121,10 +130,12 @@ module.exports = {
                 const previewEmbed = new EmbedBuilder()
                     .setColor(config.colors.warning)
                     .setTitle('📣 Broadcast Preview')
-                    .setDescription('Here is a preview of your broadcast message. Review it and click "Send Broadcast" to send it to all servers, or "Cancel" to cancel.')
+                    .setDescription('Here is a preview of your broadcast message. Review it and click "Send Broadcast" to send it to servers that have enabled broadcasts, or "Cancel" to cancel.')
                     .addFields(
-                        { name: '💬 Visibility', value: 'This broadcast will be sent to the first available text channel in each server.', inline: false },
-                        { name: '⏰ Timing', value: `Estimated time to complete: ${Math.ceil(interaction.client.guilds.cache.size * 0.5)} seconds`, inline: false }
+                        { name: 'Server Stats', value: `Total: ${totalServers} | Receiving: ${receptiveServers} | Opted Out: ${optedOutCount}`, inline: false },
+                        { name: '💬 Visibility', value: 'This broadcast will be sent to the first available text channel in each server that has not opted out.', inline: false },
+                        { name: '⏰ Timing', value: `Estimated time to complete: ${Math.ceil(receptiveServers * 0.5)} seconds`, inline: false },
+                        { name: 'Opt-Out Compliance', value: 'Servers can opt out using the `/broadcastsettings toggle` command to comply with Discord ToS.', inline: false }
                     )
                     .setTimestamp();
                 
@@ -137,7 +148,7 @@ module.exports = {
                 
                 // Add a note explaining how it works
                 await interaction.followUp({
-                    content: '**Note:** Click "Send Broadcast" to confirm and send this message to all servers. The buttons will be handled automatically.',
+                    content: '**Note:** Click "Send Broadcast" to confirm and send this message only to servers that have not opted out of broadcasts. The buttons will be handled automatically.',
                     ephemeral: true
                 });
                 
@@ -156,10 +167,11 @@ module.exports = {
                 // Track statistics
                 let successCount = 0;
                 let failCount = 0;
+                let skippedOptOut = 0;
                 let totalGuilds = interaction.client.guilds.cache.size;
                 
-                // Broadcast to all guilds
-                console.log(`[BROADCAST] Starting broadcast to ${totalGuilds} guilds`);
+                // Broadcast to guilds that haven't opted out
+                console.log(`[BROADCAST] Starting broadcast to ${receptiveServers} guilds that haven't opted out (total: ${totalGuilds})`);
                 
                 // Process each guild
                 let processedCount = 0;
