@@ -1,4 +1,6 @@
 const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
+const fs = require('fs');
+const path = require('path');
 const config = require('../config');
 
 class GiveawayManager {
@@ -6,9 +8,74 @@ class GiveawayManager {
         this.client = client;
         this.giveaways = new Map(); // Store active giveaways
         this.checkInterval = null;
+        this.dataPath = path.join(__dirname, '../data/giveaways.json');
+        
+        // Ensure data directory exists
+        const dataDir = path.join(__dirname, '../data');
+        if (!fs.existsSync(dataDir)) {
+            fs.mkdirSync(dataDir, { recursive: true });
+        }
+        
+        this.loadGiveaways();
         this.startCheckingGiveaways(); // Start checking for ended giveaways immediately
     }
 
+    /**
+     * Load saved giveaways from the data file
+     */
+    loadGiveaways() {
+        try {
+            if (fs.existsSync(this.dataPath)) {
+                const data = JSON.parse(fs.readFileSync(this.dataPath, 'utf8'));
+                
+                for (const [messageId, giveaway] of Object.entries(data)) {
+                    // Convert participants from array back to Set
+                    if (giveaway.participants && Array.isArray(giveaway.participants)) {
+                        giveaway.participants = new Set(giveaway.participants);
+                    } else {
+                        giveaway.participants = new Set();
+                    }
+                    
+                    this.giveaways.set(messageId, giveaway);
+                }
+                
+                console.log(`Loaded ${this.giveaways.size} giveaways from file.`);
+            } else {
+                // Create the file if it doesn't exist
+                this.saveGiveaways();
+            }
+        } catch (error) {
+            console.error('Error loading giveaways:', error);
+            this.giveaways = new Map();
+        }
+    }
+    
+    /**
+     * Save giveaways to the data file
+     */
+    saveGiveaways() {
+        try {
+            const data = {};
+            
+            for (const [messageId, giveaway] of this.giveaways.entries()) {
+                // Deep copy the giveaway object to avoid modifying the original
+                const giveawayData = { ...giveaway };
+                
+                // Convert Set to Array for JSON serialization
+                if (giveawayData.participants instanceof Set) {
+                    giveawayData.participants = Array.from(giveawayData.participants);
+                }
+                
+                data[messageId] = giveawayData;
+            }
+            
+            fs.writeFileSync(this.dataPath, JSON.stringify(data, null, 2));
+            console.log(`Saved ${this.giveaways.size} giveaways to file.`);
+        } catch (error) {
+            console.error('Error saving giveaways:', error);
+        }
+    }
+    
     /**
      * Start checking for ended giveaways at a regular interval
      */
@@ -160,12 +227,16 @@ class GiveawayManager {
                     content: 'You have left the giveaway.', 
                     ephemeral: true 
                 });
+                // Save updated participants
+                this.saveGiveaways();
             } else {
                 giveaway.participants.add(userId);
                 await interaction.reply({ 
                     content: 'You have entered the giveaway! Good luck!', 
                     ephemeral: true 
                 });
+                // Save updated participants
+                this.saveGiveaways();
             }
             
         } catch (error) {
@@ -189,6 +260,7 @@ class GiveawayManager {
             
             // Mark as ended
             giveaway.ended = true;
+            console.log(`[GIVEAWAY] Marked giveaway ${messageId} as ended. Updating in storage.`);
             
             // Get channel and message
             const channel = await this.client.channels.fetch(giveaway.channelId);
@@ -261,6 +333,10 @@ class GiveawayManager {
             } else {
                 await channel.send('No one entered the giveaway, so there are no winners!');
             }
+            
+            // Save the updated giveaway with ended=true
+            this.saveGiveaways();
+            console.log(`[GIVEAWAY] Giveaway ${messageId} successfully ended and saved.`);
             
             return true;
         } catch (error) {
