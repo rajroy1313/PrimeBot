@@ -219,7 +219,7 @@ class LevelingManager {
             const embed = new EmbedBuilder()
                 .setColor(config.colors.success)
                 .setTitle('🎉 Level Up!')
-                .setDescription(`Congratulations, ${user}! You've reached **Level ${newLevel}**!`)
+                .setDescription(`Congratulations, **${user.displayName || user.username}**! You've reached **Level ${newLevel}**!`)
                 .setThumbnail(user.displayAvatarURL({ dynamic: true }))
                 .addFields(
                     { 
