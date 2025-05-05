@@ -17,7 +17,11 @@ class PollManager {
         }
         
         this.loadPolls();
-        this.startCheckingPolls();
+        
+        // Start poll checking with a slight delay to ensure client is ready
+        setTimeout(() => {
+            this.startCheckingPolls();
+        }, 5000);
     }
     
     /**
@@ -74,27 +78,40 @@ class PollManager {
         const now = Date.now();
         const endedPolls = [];
         
+        console.log(`[POLLS] Checking for ended polls. Active polls: ${this.polls.size}`);
+        
+        // Log all active polls
         for (const [messageId, poll] of this.polls.entries()) {
+            console.log(`[POLLS] Active poll ${messageId}: "${poll.question}", end time: ${new Date(poll.endTime).toISOString()}, current time: ${new Date(now).toISOString()}, ended: ${poll.ended}`);
+            
             // Only process polls that are not yet ended and have reached their end time
             if (!poll.ended && poll.endTime <= now) {
+                console.log(`[POLLS] Poll ${messageId} has ended, marking for processing`);
                 endedPolls.push(messageId);
             }
         }
         
         if (endedPolls.length > 0) {
             console.log(`[POLLS] Found ${endedPolls.length} ended polls to process.`);
+        } else {
+            console.log(`[POLLS] No ended polls to process at this time.`);
         }
         
         for (const messageId of endedPolls) {
             try {
                 const poll = this.polls.get(messageId);
-                if (!poll) continue;
+                if (!poll) {
+                    console.log(`[POLLS] Poll ${messageId} not found in map, skipping`);
+                    continue;
+                }
                 
                 console.log(`[POLLS] Processing ended poll: ${poll.question} (ID: ${messageId})`);
                 const success = await this.endPoll(messageId);
                 
                 if (success) {
                     console.log(`[POLLS] Successfully ended poll ${messageId}`);
+                    // Make sure to save the 'ended' status
+                    this.savePolls();
                 } else {
                     console.log(`[POLLS] Failed to end poll ${messageId}, will retry next cycle`);
                 }

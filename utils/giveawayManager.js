@@ -6,6 +6,7 @@ class GiveawayManager {
         this.client = client;
         this.giveaways = new Map(); // Store active giveaways
         this.checkInterval = null;
+        this.startCheckingGiveaways(); // Start checking for ended giveaways immediately
     }
 
     /**
@@ -24,13 +25,18 @@ class GiveawayManager {
      */
     async checkGiveaways() {
         const now = Date.now();
+        console.log(`[GIVEAWAY] Checking for ended giveaways. Active giveaways: ${this.giveaways.size}`);
         
         for (const [messageId, giveaway] of this.giveaways.entries()) {
+            console.log(`[GIVEAWAY] Checking giveaway ${messageId}, end time: ${new Date(giveaway.endTime).toISOString()}, current time: ${new Date(now).toISOString()}, ended: ${giveaway.ended}`);
+            
             if (giveaway.endTime <= now && !giveaway.ended) {
+                console.log(`[GIVEAWAY] Found ended giveaway: ${messageId} for prize "${giveaway.prize}". Ending now...`);
                 try {
-                    await this.endGiveaway(messageId);
+                    const result = await this.endGiveaway(messageId);
+                    console.log(`[GIVEAWAY] Result of ending giveaway ${messageId}: ${result ? 'SUCCESS' : 'FAILED'}`);
                 } catch (error) {
-                    console.error(`Error ending giveaway ${messageId}:`, error);
+                    console.error(`[GIVEAWAY] Error ending giveaway ${messageId}:`, error);
                 }
             }
         }
