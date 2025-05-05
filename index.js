@@ -23,9 +23,26 @@ enhanceConnection(client);
 // Initialize collections for commands
 client.commands = new Collection();
 
-// SLASH COMMANDS DISABLED (as requested by user)
-console.log(`\n===== SLASH COMMANDS DISABLED =====`);
-console.log(`Slash commands have been disabled as requested.`);
+// Load command files
+const commandsPath = path.join(__dirname, 'commands');
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+// Load commands into collection
+for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    const command = require(filePath);
+    
+    // Set a new item in the Collection with the key as the command name and the value as the exported module
+    if ('data' in command && 'execute' in command) {
+        client.commands.set(command.data.name, command);
+    } else {
+        console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+    }
+}
+
+console.log(`\n===== SLASH COMMANDS ENABLED =====`);
+console.log(`Loaded ${client.commands.size} slash commands.`);
+console.log(`Run deploy-commands.js to update registered commands.`);
 console.log(`============================\n`);
 
 // Load event handlers

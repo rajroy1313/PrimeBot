@@ -15,15 +15,44 @@ module.exports = {
             // Log interaction for debugging
             interactionDebugger.logInteraction(interaction, 'Incoming Interaction');
             
-            // Slash commands have been disabled
+            // Handle slash commands
             if (interaction.isChatInputCommand()) {
-                console.log(`[COMMAND] Ignoring slash command /${interaction.commandName} from ${interaction.user.tag} (slash commands disabled)`);
-                interactionDebugger.logInteraction(interaction, 'Slash Commands Disabled');
+                // Log the command usage
+                console.log(`[COMMAND] Executing slash command /${interaction.commandName} from ${interaction.user.tag}`);
+                interactionDebugger.logInteraction(interaction, `Slash Command (/${interaction.commandName})`);
                 
-                return safeReply(interaction, { 
-                    content: 'Slash commands have been disabled for this bot.',
-                    ephemeral: true
-                });
+                const command = client.commands.get(interaction.commandName);
+                
+                if (!command) {
+                    console.error(`No command matching ${interaction.commandName} was found.`);
+                    return safeReply(interaction, {
+                        content: `Error: No command matching \`${interaction.commandName}\` was found.`,
+                        ephemeral: true
+                    });
+                }
+                
+                try {
+                    // Execute the command safely
+                    await safeExecute(
+                        command.execute.bind(command),
+                        [interaction],
+                        null,
+                        `Slash Command (/${interaction.commandName})`
+                    );
+                } catch (slashCommandError) {
+                    console.error(`Error executing command ${interaction.commandName}:`, slashCommandError);
+                    interactionDebugger.debugInteractionError(interaction, slashCommandError, `Slash Command (/${interaction.commandName})`);
+                    
+                    // Reply with an error message if not already replied
+                    if (!interaction.replied && !interaction.deferred) {
+                        await safeReply(interaction, {
+                            content: 'There was an error while executing this command!',
+                            ephemeral: true
+                        }).catch(console.error);
+                    }
+                }
+                
+                return;
             }
             
             // Handle buttons

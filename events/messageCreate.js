@@ -77,16 +77,10 @@ module.exports = {
                         client.user.displayAvatarURL({ dynamic: true }),
                     )
                     .setFooter({
-                        text: `Requested by ${message.author.tag}`,
+                        text: `Requested by ${message.author.tag} • Version: ${config.version}`,
                         iconURL: message.author.displayAvatarURL({
                             dynamic: true,
-                        }),
-                       
-                          
-
-                            iconURL: client.user.displayAvatarURL(),
-
-                        text: `Version: ${config.version}`,
+                        })
                     })
                     .setTimestamp();
 
@@ -1570,8 +1564,8 @@ module.exports = {
                         )
                         .setTimestamp()
                         .setFooter({
-                            text: `Bot Version: 1.1.0`,
                             iconURL: client.user.displayAvatarURL(),
+                            text: `Version: ${config.version}`
                         });
 
                     return message.reply({ embeds: [aboutEmbed] });
@@ -1589,15 +1583,15 @@ module.exports = {
                                 name: "✅ Recent Updates",
                                 value:
                                     
-   "•   Added slash commands of all available commands.\n" +              
+              
                                    "• Added Birthday celebration system\n" +
                                     "• Added Poll system \n" +
                                     "• Added Multiplayer TicTacToe game\n" +
                                     "• Added ticket system for support requests\n" +
                                     "• Added echo command for fun interactions",
                             },{ name: '🔜 Coming Soon', value: 
-                                '• Games.\n' 
-                               
+                                '• Games.\n' +
+'•AI chatting. \n'                               
                                   
                             },
                         )
