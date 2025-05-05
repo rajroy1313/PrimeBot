@@ -461,6 +461,155 @@ class LevelingManager {
         
         const userData = guildData.get(userId);
         
+        if (!userData.badges) {
+            return [];
+        }
+        
+        // Return badges, sorted by earned date (newest first)
+        return userData.badges.sort((a, b) => b.earnedAt - a.earnedAt);
+    }
+    
+    /**
+     * Handle upvote for a user
+     * @param {Object} options - Upvote options
+     * @returns {Promise<Object>} Result of the operation
+     */
+    async handleUpvote({ guildId, userId, voterId, reason = null }) {
+        try {
+            // Verify this is the support server
+            if (guildId !== config.leveling.supportServerId) {
+                return { success: false, message: 'Upvotes can only be given in the support server' };
+            }
+            
+            // Prevent self-upvoting
+            if (userId === voterId) {
+                return { success: false, message: 'You cannot upvote yourself' };
+            }
+            
+            // Get or create guild data
+            if (!this.userLevels.has(guildId)) {
+                this.userLevels.set(guildId, new Map());
+            }
+            
+            const guildData = this.userLevels.get(guildId);
+            
+            // Get or create user data
+            if (!guildData.has(userId)) {
+                guildData.set(userId, {
+                    xp: 0,
+                    level: 0,
+                    messages: 0,
+                    lastMessage: Date.now(),
+                    badges: [],
+                    upvotes: []
+                });
+            }
+            
+            const userData = guildData.get(userId);
+            
+            // Initialize upvotes array if it doesn't exist
+            if (!userData.upvotes) {
+                userData.upvotes = [];
+            }
+            
+            // Check if this voter has already upvoted this user in the last 24 hours
+            const now = Date.now();
+            const lastDay = now - (24 * 60 * 60 * 1000); // 24 hours in milliseconds
+            
+            const recentUpvote = userData.upvotes.find(vote => 
+                vote.voterId === voterId && vote.timestamp > lastDay
+            );
+            
+            if (recentUpvote) {
+                return { 
+                    success: false, 
+                    message: 'You have already upvoted this user in the last 24 hours',
+                    cooldownRemaining: Math.ceil((recentUpvote.timestamp + (24 * 60 * 60 * 1000) - now) / (60 * 60 * 1000)) // hours remaining
+                };
+            }
+            
+            // Add the new upvote
+            const upvote = {
+                voterId,
+                timestamp: now,
+                reason
+            };
+            
+            userData.upvotes.push(upvote);
+            
+            // Award XP for the upvote
+            const upvoteXP = 50; // XP per upvote
+            userData.xp += upvoteXP;
+            
+            // Calculate new level
+            const oldLevel = userData.level;
+            const addedMessages = 1; // Each upvote counts as one message for level calculation
+            userData.messages += addedMessages;
+            
+            const newLevel = this.calculateLevel(userData.messages);
+            userData.level = newLevel;
+            
+            // Check for level up
+            let leveledUp = false;
+            if (newLevel > oldLevel) {
+                leveledUp = true;
+            }
+            
+            // Save data
+            this.saveLevels();
+            
+            return { 
+                success: true, 
+                message: 'Upvote recorded successfully',
+                upvote,
+                xpAwarded: upvoteXP,
+                leveledUp,
+                newLevel: leveledUp ? newLevel : null
+            };
+            
+        } catch (error) {
+            console.error('[LEVELING] Error handling upvote:', error);
+            return { success: false, message: 'An error occurred' };
+        }
+    }
+    
+    /**
+     * Get upvote stats for a user
+     * @param {string} guildId - Guild ID 
+     * @param {string} userId - User ID
+     * @returns {Object} Upvote statistics
+     */
+    getUpvoteStats(guildId, userId) {
+        // Get guild data
+        if (!this.userLevels.has(guildId)) {
+            return { total: 0, recent: 0 };
+        }
+        
+        const guildData = this.userLevels.get(guildId);
+        
+        // Get user data
+        if (!guildData.has(userId)) {
+            return { total: 0, recent: 0 };
+        }
+        
+        const userData = guildData.get(userId);
+        
+        // If no upvotes array, initialize it
+        if (!userData.upvotes) {
+            userData.upvotes = [];
+            return { total: 0, recent: 0 };
+        }
+        
+        // Calculate stats
+        const now = Date.now();
+        const lastMonth = now - (30 * 24 * 60 * 60 * 1000); // 30 days in milliseconds
+        
+        const total = userData.upvotes.length;
+        const recent = userData.upvotes.filter(vote => vote.timestamp > lastMonth).length;
+        
+        return { total, recent };
+    }
+    
         // Return badges, sorted by earned date (newest first)
         return userData.badges.sort((a, b) => b.earnedAt - a.earnedAt);
     }

@@ -3,6 +3,9 @@ const path = require('path');
 const app = express();
 const port = 5000;
 
+// Middleware for JSON request body parsing
+app.use(express.json());
+
 // Static files middleware
 app.use(express.static(path.join(__dirname, 'public')));
 
