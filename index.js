@@ -15,9 +15,9 @@ const client = new Client({
         GatewayIntentBits.MessageContent
     ]
 });
-// Enhance client connection handling
-const enhanceConnection = require('./connection-enhancer');
-enhanceConnection(client);
+// Connection enhancer disabled as it may interfere with prefix commands
+// const enhanceConnection = require('./connection-enhancer');
+// enhanceConnection(client);
 
 
 // Initialize collections for commands

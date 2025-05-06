@@ -77,10 +77,16 @@ module.exports = {
                         client.user.displayAvatarURL({ dynamic: true }),
                     )
                     .setFooter({
-                        text: `Requested by ${message.author.tag} • Version: ${config.version}`,
+                        text: `Requested by ${message.author.tag}`,
                         iconURL: message.author.displayAvatarURL({
                             dynamic: true,
-                        })
+                        }),
+                       
+                          
+
+                            iconURL: client.user.displayAvatarURL(),
+
+                        text: `Version: ${config.version}`,
                     })
                     .setTimestamp();
 
@@ -163,49 +169,30 @@ module.exports = {
                             let currentEmojiPage = currentPage;
                             
                             collector.on('collect', async interaction => {
-                                try {
-                                    // Calculate the new page based on the current tracked page
-                                    let newPage = currentEmojiPage;
-                                    if (interaction.customId === 'emoji_prev_page') {
-                                        newPage = Math.max(1, currentEmojiPage - 1);
-                                    } else if (interaction.customId === 'emoji_next_page') {
-                                        newPage = Math.min(totalPages, currentEmojiPage + 1);
-                                    }
-                                    
-                                    // Update the current page for future interactions
-                                    currentEmojiPage = newPage;
-                                    
-                                    // Get the updated emoji list
-                                    const updatedList = client.emojiManager.createEmojiListEmbed(newPage);
-                                    
-                                    // Update the message with error handling
-                                    if (!interaction.replied && !interaction.deferred) {
-                                        await interaction.update({ 
-                                            embeds: [updatedList.embed], 
-                                            components: updatedList.components || []
-                                        });
-                                    }
-                                } catch (paginationError) {
-                                    console.error('Error updating emoji pagination:', paginationError);
-                                    // Try to edit the original message as a fallback
-                                    try {
-                                        // Get the updated emoji list
-                                        const updatedList = client.emojiManager.createEmojiListEmbed(currentEmojiPage);
-                                        await reply.edit({
-                                            embeds: [updatedList.embed],
-                                            components: updatedList.components || []
-                                        });
-                                    } catch (fallbackError) {
-                                        console.error('Failed to update emoji pagination via fallback:', fallbackError);
-                                    }
+                                // Calculate the new page based on the current tracked page
+                                let newPage = currentEmojiPage;
+                                if (interaction.customId === 'emoji_prev_page') {
+                                    newPage = Math.max(1, currentEmojiPage - 1);
+                                } else if (interaction.customId === 'emoji_next_page') {
+                                    newPage = Math.min(totalPages, currentEmojiPage + 1);
                                 }
+                                
+                                // Update the current page for future interactions
+                                currentEmojiPage = newPage;
+                                
+                                // Get the updated emoji list
+                                const updatedList = client.emojiManager.createEmojiListEmbed(newPage);
+                                
+                                // Update the message
+                                await interaction.update({ 
+                                    embeds: [updatedList.embed], 
+                                    components: updatedList.components || []
+                                });
                             });
                             
                             collector.on('end', () => {
                                 // Remove buttons when collector expires
-                                reply.edit({ components: [] }).catch(error => {
-                                    console.error('Error removing emoji pagination buttons after timeout:', error);
-                                });
+                                reply.edit({ components: [] }).catch(console.error);
                             });
                         }
                         
@@ -486,122 +473,68 @@ module.exports = {
                         let currentPage = commandPage;
                         
                         collector.on('collect', async interaction => {
-                            try {
-                                // Calculate the new page based on the current tracked page
-                                let newPage = currentPage;
-                                if (interaction.customId === 'command_prev_page') {
-                                    newPage = Math.max(1, currentPage - 1);
-                                } else if (interaction.customId === 'command_next_page') {
-                                    newPage = Math.min(totalPages, currentPage + 1);
-                                }
-                                
-                                // Update the current page for future interactions
-                                currentPage = newPage;
-                                
-                                // Get updated commands (in case server-specific commands need to be filtered)
-                                let updatedCommands = [...allCommands]; // Start with all commands
-                                
-                                // Get the commands for the new page
-                                const newPageCommands = updatedCommands.slice(
-                                    (newPage - 1) * commandsPerPage, 
-                                    Math.min(newPage * commandsPerPage, totalCommands)
-                                );
-                                
-                                // Create the new embed
-                                const newEmbed = new EmbedBuilder()
-                                    .setColor(config.colors.Gold)
-                                    .setTitle("Available Commands")
-                                    .setDescription(`Here are commands you can use (Page ${newPage}/${totalPages}):`)
-                                    .addFields(...newPageCommands)
-                                    .setTimestamp()
-                                    .setFooter({
-                                        text: `Page ${newPage}/${totalPages} • Use buttons below to navigate • Version: ${config.version}`,
-                                        iconURL: message.author.displayAvatarURL({
-                                            dynamic: true,
-                                        }),
-                                    });
-                                
-                                // Create new buttons with updated disabled states
-                                const newButtons = [];
-                                
-                                const newPrevButton = new ButtonBuilder()
-                                    .setCustomId('command_prev_page')
-                                    .setLabel('⬅️ Previous')
-                                    .setStyle(ButtonStyle.Secondary)
-                                    .setDisabled(newPage === 1);
-                                
-                                const newNextButton = new ButtonBuilder()
-                                    .setCustomId('command_next_page')
-                                    .setLabel('Next ➡️')
-                                    .setStyle(ButtonStyle.Secondary)
-                                    .setDisabled(newPage === totalPages);
-                                
-                                newButtons.push(newPrevButton, newNextButton);
-                                const newRow = new ActionRowBuilder().addComponents(newButtons);
-                                
-                                // Update the message with error handling
-                                if (!interaction.replied && !interaction.deferred) {
-                                    await interaction.update({ 
-                                        embeds: [newEmbed], 
-                                        components: [newRow]
-                                    });
-                                }
-                            } catch (paginationError) {
-                                console.error('Error updating command pagination:', paginationError);
-                                // Try to edit the original message as a fallback
-                                try {
-                                    // Create new embed and components based on the current page
-                                    const updatedCommands = [...allCommands];
-                                    const pageCommands = updatedCommands.slice(
-                                        (currentPage - 1) * commandsPerPage, 
-                                        Math.min(currentPage * commandsPerPage, totalCommands)
-                                    );
-                                    
-                                    const fallbackEmbed = new EmbedBuilder()
-                                        .setColor(config.colors.Gold)
-                                        .setTitle("Available Commands")
-                                        .setDescription(`Here are commands you can use (Page ${currentPage}/${totalPages}):`)
-                                        .addFields(...pageCommands)
-                                        .setTimestamp()
-                                        .setFooter({
-                                            text: `Page ${currentPage}/${totalPages} • Use buttons below to navigate • Version: ${config.version}`,
-                                            iconURL: message.author.displayAvatarURL({
-                                                dynamic: true,
-                                            }),
-                                        });
-                                    
-                                    // Create buttons
-                                    const buttons = [];
-                                    const prevButton = new ButtonBuilder()
-                                        .setCustomId('command_prev_page')
-                                        .setLabel('⬅️ Previous')
-                                        .setStyle(ButtonStyle.Secondary)
-                                        .setDisabled(currentPage === 1);
-                                    
-                                    const nextButton = new ButtonBuilder()
-                                        .setCustomId('command_next_page')
-                                        .setLabel('Next ➡️')
-                                        .setStyle(ButtonStyle.Secondary)
-                                        .setDisabled(currentPage === totalPages);
-                                    
-                                    buttons.push(prevButton, nextButton);
-                                    const row = new ActionRowBuilder().addComponents(buttons);
-                                    
-                                    await reply.edit({
-                                        embeds: [fallbackEmbed],
-                                        components: [row]
-                                    });
-                                } catch (fallbackError) {
-                                    console.error('Failed to update command pagination via fallback:', fallbackError);
-                                }
+                            // Calculate the new page based on the current tracked page
+                            let newPage = currentPage;
+                            if (interaction.customId === 'command_prev_page') {
+                                newPage = Math.max(1, currentPage - 1);
+                            } else if (interaction.customId === 'command_next_page') {
+                                newPage = Math.min(totalPages, currentPage + 1);
                             }
+                            
+                            // Update the current page for future interactions
+                            currentPage = newPage;
+                            
+                            // Get updated commands (in case server-specific commands need to be filtered)
+                            let updatedCommands = [...allCommands]; // Start with all commands
+                            
+                            // Get the commands for the new page
+                            const newPageCommands = updatedCommands.slice(
+                                (newPage - 1) * commandsPerPage, 
+                                Math.min(newPage * commandsPerPage, totalCommands)
+                            );
+                            
+                            // Create the new embed
+                            const newEmbed = new EmbedBuilder()
+                                .setColor(config.colors.Gold)
+                                .setTitle("Available Commands")
+                                .setDescription(`Here are commands you can use (Page ${newPage}/${totalPages}):`)
+                                .addFields(...newPageCommands)
+                                .setTimestamp()
+                                .setFooter({
+                                    text: `Page ${newPage}/${totalPages} • Use buttons below to navigate • Version: ${config.version}`,
+                                    iconURL: message.author.displayAvatarURL({
+                                        dynamic: true,
+                                    }),
+                                });
+                            
+                            // Create new buttons with updated disabled states
+                            const newButtons = [];
+                            
+                            const newPrevButton = new ButtonBuilder()
+                                .setCustomId('command_prev_page')
+                                .setLabel('⬅️ Previous')
+                                .setStyle(ButtonStyle.Secondary)
+                                .setDisabled(newPage === 1);
+                            
+                            const newNextButton = new ButtonBuilder()
+                                .setCustomId('command_next_page')
+                                .setLabel('Next ➡️')
+                                .setStyle(ButtonStyle.Secondary)
+                                .setDisabled(newPage === totalPages);
+                            
+                            newButtons.push(newPrevButton, newNextButton);
+                            const newRow = new ActionRowBuilder().addComponents(newButtons);
+                            
+                            // Update the message
+                            await interaction.update({ 
+                                embeds: [newEmbed], 
+                                components: [newRow]
+                            });
                         });
                         
                         collector.on('end', () => {
                             // Remove buttons when collector expires
-                            reply.edit({ components: [] }).catch(error => {
-                                console.error('Error removing command pagination buttons after timeout:', error);
-                            });
+                            reply.edit({ components: [] }).catch(console.error);
                         });
                     }
                     
@@ -1564,8 +1497,8 @@ module.exports = {
                         )
                         .setTimestamp()
                         .setFooter({
+                            text: `Bot Version: 1.1.0`,
                             iconURL: client.user.displayAvatarURL(),
-                            text: `Version: ${config.version}`
                         });
 
                     return message.reply({ embeds: [aboutEmbed] });
@@ -1583,15 +1516,15 @@ module.exports = {
                                 name: "✅ Recent Updates",
                                 value:
                                     
-              
+   "•   Added slash commands of all available commands.\n" +              
                                    "• Added Birthday celebration system\n" +
                                     "• Added Poll system \n" +
                                     "• Added Multiplayer TicTacToe game\n" +
                                     "• Added ticket system for support requests\n" +
                                     "• Added echo command for fun interactions",
                             },{ name: '🔜 Coming Soon', value: 
-                                '• Games.\n' +
-'•AI chatting. \n'                               
+                                '• Games.\n' 
+                               
                                   
                             },
                         )
@@ -1610,100 +1543,46 @@ module.exports = {
                         return;
                     }
                     
-                    // Parse command arguments
-                    let broadcastMessage = "";
-                    let imageUrl = null;
-                    let embedColor = config.colors.primary;
-                    
-                    // Check for color flag first
-                    const colorFlag = args.findIndex(arg => arg.startsWith("--color="));
-                    if (colorFlag !== -1) {
-                        const colorValue = args[colorFlag].split("=")[1];
-                        if (colorValue) {
-                            embedColor = colorValue;
-                            args.splice(colorFlag, 1); // Remove the flag from args
-                        }
-                    }
-                    
-                    // Check for image flag
-                    const imageFlag = args.findIndex(arg => arg.startsWith("--image="));
-                    if (imageFlag !== -1) {
-                        imageUrl = args[imageFlag].split("=")[1];
-                        args.splice(imageFlag, 1); // Remove the flag from args
-                    }
-                    
-                    // Remaining args form the message
+                    // Validate arguments
                     if (args.length < 1) {
-                        return message.reply("Please provide a message to broadcast. Usage: !broadcast [message] --image=URL --color=HEX");
+                        return message.reply("Please provide a message to broadcast.");
                     }
                     
                     // Get the broadcast message
-                    broadcastMessage = args.join(" ");
+                    const broadcastMessage = args.join(" ");
                     
                     // Debug logging
-                    console.log(`[BROADCAST] Command triggered by ${message.author.tag} with message: ${broadcastMessage}`);
-                    console.log(`[BROADCAST] Image: ${imageUrl}, Color: ${embedColor}`);
+                    console.log(`[DEBUG] Broadcast command triggered by ${message.author.tag} with message: ${broadcastMessage}`);
                     
-                    // Create the broadcast embed with modern styling
+                    // Create the broadcast embed
                     const broadcastEmbed = new EmbedBuilder()
-                        .setColor(embedColor)
+                        .setColor(config.colors.primary)
                         .setTitle("📣 Announcement from Developers")
                         .setDescription(broadcastMessage)
                         .setTimestamp()
                         .setFooter({ 
-                            text: `Sent by ${message.author.tag} • ${client.user.username}`,
+                            text: `Version: ${config.version}`,
                             iconURL: client.user.displayAvatarURL()
                         });
                     
-                    // Add image if provided
-                    if (imageUrl) {
-                        if (imageUrl.match(/\.(jpeg|jpg|gif|png)$/)) {
-                            broadcastEmbed.setImage(imageUrl);
-                            console.log(`[BROADCAST] Added image: ${imageUrl}`);
-                        } else {
-                            console.log(`[BROADCAST] Invalid image URL format: ${imageUrl}`);
-                        }
-                    }
-                    
-                    // Add server count
-                    broadcastEmbed.addFields(
-                        { name: '📊 Servers', value: `This announcement is being sent to ${client.guilds.cache.size} servers.`, inline: false }
-                    );
-                    
-                    // Create progress bar function
-                    function createProgressBar(percentage) {
-                        const barLength = 20;
-                        const filledLength = Math.round((percentage / 100) * barLength);
-                        const emptyLength = barLength - filledLength;
-                        
-                        const filled = '█'.repeat(filledLength);
-                        const empty = '░'.repeat(emptyLength);
-                        
-                        return `[${filled}${empty}]`;
-                    }
-                    
                     // Send confirmation
                     const confirmationEmbed = new EmbedBuilder()
-                        .setColor(config.colors.warning)
-                        .setTitle("📣 Broadcast Started")
-                        .setDescription("Broadcasting announcement to all servers. Please wait...");
+                        .setColor(config.colors.success)
+                        .setDescription("📣 Broadcasting message to all servers...");
                     
-                    const statusMessage = await message.reply({ embeds: [confirmationEmbed] });
+                    await message.reply({ embeds: [confirmationEmbed] });
                     
                     // Track statistics
                     let successCount = 0;
                     let failCount = 0;
                     let totalGuilds = client.guilds.cache.size;
-                    let processedCount = 0;
-                    const startTime = Date.now();
                     
                     // Broadcast to all guilds
-                    console.log(`[BROADCAST] Starting broadcast to ${client.guilds.cache.size} guilds`);
+                    console.log(`[DEBUG] Starting broadcast to ${client.guilds.cache.size} guilds`);
                     
                     for (const guild of client.guilds.cache.values()) {
                         try {
-                            console.log(`[BROADCAST] Processing guild: ${guild.name} (${guild.id})`);
-                            processedCount++;
+                            console.log(`[DEBUG] Processing guild: ${guild.name} (${guild.id})`);
                             
                             // Find the first available text channel
                             const channel = guild.channels.cache
@@ -1712,43 +1591,24 @@ module.exports = {
                                 .first();
                             
                             if (!channel) {
-                                console.log(`[BROADCAST] No suitable text channel found in guild: ${guild.name}`);
+                                console.log(`[DEBUG] No suitable text channel found in guild: ${guild.name}`);
                                 failCount++;
                                 continue;
                             }
                             
-                            console.log(`[BROADCAST] Selected channel: ${channel.name} (${channel.id})`);
+                            console.log(`[DEBUG] Selected channel: ${channel.name} (${channel.id})`);
                             
                             // Check bot permissions
                             const hasPermission = channel.permissionsFor(guild.members.me).has("SendMessages");
-                            console.log(`[BROADCAST] Bot has SendMessages permission: ${hasPermission}`);
+                            console.log(`[DEBUG] Bot has SendMessages permission: ${hasPermission}`);
                             
                             if (hasPermission) {
                                 await channel.send({ embeds: [broadcastEmbed] });
-                                console.log(`[BROADCAST] Successfully sent broadcast to guild: ${guild.name}`);
+                                console.log(`[DEBUG] Successfully sent broadcast to guild: ${guild.name}`);
                                 successCount++;
                             } else {
-                                console.log(`[BROADCAST] Missing permissions to send in channel: ${channel.name}`);
+                                console.log(`[DEBUG] Missing permissions to send in channel: ${channel.name}`);
                                 failCount++;
-                            }
-                            
-                            // Update progress every 5 guilds
-                            if (processedCount % 5 === 0 || processedCount === totalGuilds) {
-                                try {
-                                    // Calculate progress
-                                    const progressPercent = Math.round((processedCount / totalGuilds) * 100);
-                                    const progressBar = createProgressBar(progressPercent);
-                                    const elapsedTime = Math.round((Date.now() - startTime) / 1000);
-                                    
-                                    const progressEmbed = new EmbedBuilder()
-                                        .setColor(config.colors.warning)
-                                        .setTitle("📣 Broadcasting in Progress...")
-                                        .setDescription(`${progressBar} ${progressPercent}% Complete\n\nProgress: ${processedCount}/${totalGuilds} servers\n✅ Success: ${successCount} | ❌ Failed: ${failCount}\n⏱️ Time elapsed: ${elapsedTime}s`);
-                                        
-                                    await statusMessage.edit({ embeds: [progressEmbed] });
-                                } catch (e) {
-                                    console.error('[BROADCAST] Failed to update progress:', e);
-                                }
                             }
                         } catch (error) {
                             console.error(`Error broadcasting to guild ${guild.name}:`, error);
@@ -1756,32 +1616,18 @@ module.exports = {
                         }
                     }
                     
-                    // Calculate completion metrics
-                    const completionTime = Math.round((Date.now() - startTime) / 1000);
-                    const successRate = totalGuilds > 0 ? Math.round((successCount / totalGuilds) * 100) : 0;
-                    
-                    // Send status report with modern design
+                    // Send status report
                     const reportEmbed = new EmbedBuilder()
                         .setColor(config.colors.success)
                         .setTitle("📣 Broadcast Complete")
-                        .setDescription(`Your announcement has been broadcast to ${successCount} out of ${totalGuilds} servers.`)
+                        .setDescription(`Message has been sent to servers.`)
                         .addFields(
-                            { name: "✅ Success", value: `${successCount} servers`, inline: true },
-                            { name: "❌ Failed", value: `${failCount} servers`, inline: true },
-                            { name: "📊 Success Rate", value: `${successRate}%`, inline: true },
-                            { name: "⏰ Time Taken", value: `${completionTime} seconds`, inline: true },
-                            { name: "💬 Potential Reach", value: `Message potentially reached all members across ${successCount} servers`, inline: false }
-                        )
-                        .setTimestamp()
-                        .setFooter({ text: `Broadcast ID: ${Date.now().toString(36)}` });
+                            { name: "Success", value: `${successCount} servers`, inline: true },
+                            { name: "Failed", value: `${failCount} servers`, inline: true },
+                            { name: "Total", value: `${totalGuilds} servers`, inline: true }
+                        );
                     
-                    await statusMessage.edit({ embeds: [reportEmbed] });
-                    
-                    // Also send the broadcast message itself for reference
-                    await message.channel.send({ 
-                        content: "✅ Broadcast successfully completed!", 
-                        embeds: [broadcastEmbed] 
-                    });
+                    await message.channel.send({ embeds: [reportEmbed] });
                     break;
                 
                 case "cstart":
