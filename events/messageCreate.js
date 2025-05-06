@@ -169,25 +169,41 @@ module.exports = {
                             let currentEmojiPage = currentPage;
                             
                             collector.on('collect', async interaction => {
-                                // Calculate the new page based on the current tracked page
-                                let newPage = currentEmojiPage;
-                                if (interaction.customId === 'emoji_prev_page') {
-                                    newPage = Math.max(1, currentEmojiPage - 1);
-                                } else if (interaction.customId === 'emoji_next_page') {
-                                    newPage = Math.min(totalPages, currentEmojiPage + 1);
+                                try {
+                                    // Calculate the new page based on the current tracked page
+                                    let newPage = currentEmojiPage;
+                                    if (interaction.customId === 'emoji_prev_page') {
+                                        newPage = Math.max(1, currentEmojiPage - 1);
+                                    } else if (interaction.customId === 'emoji_next_page') {
+                                        newPage = Math.min(totalPages, currentEmojiPage + 1);
+                                    }
+                                    
+                                    // Update the current page for future interactions
+                                    currentEmojiPage = newPage;
+                                    
+                                    // Get the updated emoji list
+                                    const updatedList = client.emojiManager.createEmojiListEmbed(newPage);
+                                    
+                                    // Update the message with error handling
+                                    if (!interaction.replied && !interaction.deferred) {
+                                        await interaction.update({ 
+                                            embeds: [updatedList.embed], 
+                                            components: updatedList.components || []
+                                        });
+                                    }
+                                } catch (paginationError) {
+                                    console.error('Error updating emoji pagination:', paginationError);
+                                    // Try to edit the original message as a fallback
+                                    try {
+                                        const updatedList = client.emojiManager.createEmojiListEmbed(currentEmojiPage);
+                                        await reply.edit({
+                                            embeds: [updatedList.embed],
+                                            components: updatedList.components || []
+                                        });
+                                    } catch (fallbackError) {
+                                        console.error('Failed to update emoji pagination via fallback:', fallbackError);
+                                    }
                                 }
-                                
-                                // Update the current page for future interactions
-                                currentEmojiPage = newPage;
-                                
-                                // Get the updated emoji list
-                                const updatedList = client.emojiManager.createEmojiListEmbed(newPage);
-                                
-                                // Update the message
-                                await interaction.update({ 
-                                    embeds: [updatedList.embed], 
-                                    components: updatedList.components || []
-                                });
                             });
                             
                             collector.on('end', () => {
