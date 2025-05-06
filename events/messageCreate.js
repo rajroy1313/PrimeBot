@@ -489,63 +489,116 @@ module.exports = {
                         let currentPage = commandPage;
                         
                         collector.on('collect', async interaction => {
-                            // Calculate the new page based on the current tracked page
-                            let newPage = currentPage;
-                            if (interaction.customId === 'command_prev_page') {
-                                newPage = Math.max(1, currentPage - 1);
-                            } else if (interaction.customId === 'command_next_page') {
-                                newPage = Math.min(totalPages, currentPage + 1);
+                            try {
+                                // Calculate the new page based on the current tracked page
+                                let newPage = currentPage;
+                                if (interaction.customId === 'command_prev_page') {
+                                    newPage = Math.max(1, currentPage - 1);
+                                } else if (interaction.customId === 'command_next_page') {
+                                    newPage = Math.min(totalPages, currentPage + 1);
+                                }
+                                
+                                // Update the current page for future interactions
+                                currentPage = newPage;
+                                
+                                // Get updated commands (in case server-specific commands need to be filtered)
+                                let updatedCommands = [...allCommands]; // Start with all commands
+                                
+                                // Get the commands for the new page
+                                const newPageCommands = updatedCommands.slice(
+                                    (newPage - 1) * commandsPerPage, 
+                                    Math.min(newPage * commandsPerPage, totalCommands)
+                                );
+                                
+                                // Create the new embed
+                                const newEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.Gold)
+                                    .setTitle("Available Commands")
+                                    .setDescription(`Here are commands you can use (Page ${newPage}/${totalPages}):`)
+                                    .addFields(...newPageCommands)
+                                    .setTimestamp()
+                                    .setFooter({
+                                        text: `Page ${newPage}/${totalPages} • Use buttons below to navigate • Version: ${config.version}`,
+                                        iconURL: message.author.displayAvatarURL({
+                                            dynamic: true,
+                                        }),
+                                    });
+                                
+                                // Create new buttons with updated disabled states
+                                const newButtons = [];
+                                
+                                const newPrevButton = new ButtonBuilder()
+                                    .setCustomId('command_prev_page')
+                                    .setLabel('⬅️ Previous')
+                                    .setStyle(ButtonStyle.Secondary)
+                                    .setDisabled(newPage === 1);
+                                
+                                const newNextButton = new ButtonBuilder()
+                                    .setCustomId('command_next_page')
+                                    .setLabel('Next ➡️')
+                                    .setStyle(ButtonStyle.Secondary)
+                                    .setDisabled(newPage === totalPages);
+                                
+                                newButtons.push(newPrevButton, newNextButton);
+                                const newRow = new ActionRowBuilder().addComponents(newButtons);
+                                
+                                // Update the message with error handling
+                                if (!interaction.replied && !interaction.deferred) {
+                                    await interaction.update({ 
+                                        embeds: [newEmbed], 
+                                        components: [newRow]
+                                    });
+                                }
+                            } catch (paginationError) {
+                                console.error('Error updating command pagination:', paginationError);
+                                // Try to edit the original message as a fallback
+                                try {
+                                    // Recreate the embed and buttons for the current page
+                                    let updatedCommands = [...allCommands];
+                                    const currentPageCommands = updatedCommands.slice(
+                                        (currentPage - 1) * commandsPerPage, 
+                                        Math.min(currentPage * commandsPerPage, totalCommands)
+                                    );
+                                    
+                                    const fallbackEmbed = new EmbedBuilder()
+                                        .setColor(config.colors.Gold)
+                                        .setTitle("Available Commands")
+                                        .setDescription(`Here are commands you can use (Page ${currentPage}/${totalPages}):`)
+                                        .addFields(...currentPageCommands)
+                                        .setTimestamp()
+                                        .setFooter({
+                                            text: `Page ${currentPage}/${totalPages} • Use buttons below to navigate • Version: ${config.version}`,
+                                            iconURL: message.author.displayAvatarURL({
+                                                dynamic: true,
+                                            }),
+                                        });
+                                    
+                                    // Create fallback buttons
+                                    const fallbackButtons = [];
+                                    
+                                    const fallbackPrevButton = new ButtonBuilder()
+                                        .setCustomId('command_prev_page')
+                                        .setLabel('⬅️ Previous')
+                                        .setStyle(ButtonStyle.Secondary)
+                                        .setDisabled(currentPage === 1);
+                                    
+                                    const fallbackNextButton = new ButtonBuilder()
+                                        .setCustomId('command_next_page')
+                                        .setLabel('Next ➡️')
+                                        .setStyle(ButtonStyle.Secondary)
+                                        .setDisabled(currentPage === totalPages);
+                                    
+                                    fallbackButtons.push(fallbackPrevButton, fallbackNextButton);
+                                    const fallbackRow = new ActionRowBuilder().addComponents(fallbackButtons);
+                                    
+                                    await reply.edit({
+                                        embeds: [fallbackEmbed],
+                                        components: [fallbackRow]
+                                    });
+                                } catch (fallbackError) {
+                                    console.error('Failed to update command pagination via fallback:', fallbackError);
+                                }
                             }
-                            
-                            // Update the current page for future interactions
-                            currentPage = newPage;
-                            
-                            // Get updated commands (in case server-specific commands need to be filtered)
-                            let updatedCommands = [...allCommands]; // Start with all commands
-                            
-                            // Get the commands for the new page
-                            const newPageCommands = updatedCommands.slice(
-                                (newPage - 1) * commandsPerPage, 
-                                Math.min(newPage * commandsPerPage, totalCommands)
-                            );
-                            
-                            // Create the new embed
-                            const newEmbed = new EmbedBuilder()
-                                .setColor(config.colors.Gold)
-                                .setTitle("Available Commands")
-                                .setDescription(`Here are commands you can use (Page ${newPage}/${totalPages}):`)
-                                .addFields(...newPageCommands)
-                                .setTimestamp()
-                                .setFooter({
-                                    text: `Page ${newPage}/${totalPages} • Use buttons below to navigate • Version: ${config.version}`,
-                                    iconURL: message.author.displayAvatarURL({
-                                        dynamic: true,
-                                    }),
-                                });
-                            
-                            // Create new buttons with updated disabled states
-                            const newButtons = [];
-                            
-                            const newPrevButton = new ButtonBuilder()
-                                .setCustomId('command_prev_page')
-                                .setLabel('⬅️ Previous')
-                                .setStyle(ButtonStyle.Secondary)
-                                .setDisabled(newPage === 1);
-                            
-                            const newNextButton = new ButtonBuilder()
-                                .setCustomId('command_next_page')
-                                .setLabel('Next ➡️')
-                                .setStyle(ButtonStyle.Secondary)
-                                .setDisabled(newPage === totalPages);
-                            
-                            newButtons.push(newPrevButton, newNextButton);
-                            const newRow = new ActionRowBuilder().addComponents(newButtons);
-                            
-                            // Update the message
-                            await interaction.update({ 
-                                embeds: [newEmbed], 
-                                components: [newRow]
-                            });
                         });
                         
                         collector.on('end', () => {
@@ -1830,37 +1883,71 @@ module.exports = {
                         let currentPage = leaderboardData.currentPage;
                         
                         collector.on('collect', async interaction => {
-                            // Calculate new page
-                            if (interaction.customId === 'lb_prev_page') {
-                                currentPage = Math.max(1, currentPage - 1);
-                            } else {
-                                currentPage = Math.min(leaderboardData.maxPage, currentPage + 1);
+                            try {
+                                // Calculate new page
+                                if (interaction.customId === 'lb_prev_page') {
+                                    currentPage = Math.max(1, currentPage - 1);
+                                } else {
+                                    currentPage = Math.min(leaderboardData.maxPage, currentPage + 1);
+                                }
+                                
+                                // Get updated leaderboard
+                                const newLeaderboardData = await client.levelingManager.createLeaderboardEmbed(
+                                    message.guild.id, 
+                                    currentPage
+                                );
+                                
+                                // Update message with error handling
+                                if (!interaction.replied && !interaction.deferred) {
+                                    await interaction.update({
+                                        embeds: [newLeaderboardData.embed],
+                                        components: newLeaderboardData.maxPage > 1 ? [
+                                            new ActionRowBuilder().addComponents(
+                                                new ButtonBuilder()
+                                                    .setCustomId('lb_prev_page')
+                                                    .setLabel('Previous')
+                                                    .setStyle(ButtonStyle.Secondary)
+                                                    .setDisabled(currentPage <= 1),
+                                                new ButtonBuilder()
+                                                    .setCustomId('lb_next_page')
+                                                    .setLabel('Next')
+                                                    .setStyle(ButtonStyle.Secondary)
+                                                    .setDisabled(currentPage >= newLeaderboardData.maxPage)
+                                            )
+                                        ] : []
+                                    });
+                                }
+                            } catch (paginationError) {
+                                console.error('Error updating leaderboard pagination:', paginationError);
+                                // Try to edit the original message as a fallback
+                                try {
+                                    // Create fallback leaderboard
+                                    const fallbackLeaderboardData = await client.levelingManager.createLeaderboardEmbed(
+                                        message.guild.id, 
+                                        currentPage
+                                    );
+                                    
+                                    await reply.edit({
+                                        embeds: [fallbackLeaderboardData.embed],
+                                        components: fallbackLeaderboardData.maxPage > 1 ? [
+                                            new ActionRowBuilder().addComponents(
+                                                new ButtonBuilder()
+                                                    .setCustomId('lb_prev_page')
+                                                    .setLabel('Previous')
+                                                    .setStyle(ButtonStyle.Secondary)
+                                                    .setDisabled(currentPage <= 1),
+                                                new ButtonBuilder()
+                                                    .setCustomId('lb_next_page')
+                                                    .setLabel('Next')
+                                                    .setStyle(ButtonStyle.Secondary)
+                                                    .setDisabled(currentPage >= fallbackLeaderboardData.maxPage)
+                                            )
+                                        ] : []
+                                    });
+                                } catch (fallbackError) {
+                                    console.error('Failed to update leaderboard pagination via fallback:', fallbackError);
+                                }
                             }
-                            
-                            // Get updated leaderboard
-                            const newLeaderboardData = await client.levelingManager.createLeaderboardEmbed(
-                                message.guild.id, 
-                                currentPage
-                            );
-                            
-                            // Update message
-                            await interaction.update({
-                                embeds: [newLeaderboardData.embed],
-                                components: newLeaderboardData.maxPage > 1 ? [
-                                    new ActionRowBuilder().addComponents(
-                                        new ButtonBuilder()
-                                            .setCustomId('lb_prev_page')
-                                            .setLabel('Previous')
-                                            .setStyle(ButtonStyle.Secondary)
-                                            .setDisabled(currentPage <= 1),
-                                        new ButtonBuilder()
-                                            .setCustomId('lb_next_page')
-                                            .setLabel('Next')
-                                            .setStyle(ButtonStyle.Secondary)
-                                            .setDisabled(currentPage >= newLeaderboardData.maxPage)
-                                    )
-                                ] : []
-                            });
                         });
                         
                         collector.on('end', () => {
