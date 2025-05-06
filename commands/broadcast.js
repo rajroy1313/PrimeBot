@@ -201,7 +201,7 @@ module.exports = {
                         
                         console.log(`[BROADCAST] Selected channel: ${channel.name} (${channel.id})`);
                         
-                        // Check bot permissions
+                        // Check if bot has SendMessages permission
                         const hasPermission = channel.permissionsFor(guild.members.me).has("SendMessages");
                         console.log(`[BROADCAST] Bot has SendMessages permission: ${hasPermission}`);
                         
@@ -210,7 +210,7 @@ module.exports = {
                             console.log(`[BROADCAST] Successfully sent broadcast to guild: ${guild.name}`);
                             successCount++;
                         } else {
-                            console.log(`[BROADCAST] Missing permissions to send in channel: ${channel.name}`);
+                            console.log(`[BROADCAST] Missing SendMessages permission in channel: ${channel.name}`);
                             failCount++;
                         }
                         

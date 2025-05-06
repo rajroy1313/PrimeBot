@@ -224,7 +224,7 @@ module.exports = {
                                     console.log(`[BROADCAST] Successfully sent broadcast to guild: ${guild.name}`);
                                     successCount++;
                                 } else {
-                                    console.log(`[BROADCAST] Missing permissions to send in channel: ${channel.name}`);
+                                    console.log(`[BROADCAST] Missing SendMessages permission in channel: ${channel.name}`);
                                     failCount++;
                                 }
                                 
