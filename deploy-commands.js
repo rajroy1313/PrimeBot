@@ -10,10 +10,35 @@ if (result.error) {
     process.exit(1);
 }
 
+// Manually read from the .env file to be extra safe
+let manualClientId = null;
+let manualToken = null;
+
+try {
+    const envContent = fs.readFileSync('.env', 'utf8');
+    const clientIdMatch = envContent.match(/CLIENT_ID=([^\s\r\n]+)/);
+    const tokenMatch = envContent.match(/DISCORD_TOKEN=([^\s\r\n]+)/);
+    
+    if (clientIdMatch && clientIdMatch[1]) {
+        manualClientId = clientIdMatch[1];
+        console.log("Manually found CLIENT_ID:", manualClientId);
+    }
+    
+    if (tokenMatch && tokenMatch[1]) {
+        manualToken = tokenMatch[1];
+        console.log("Manually found DISCORD_TOKEN: [HIDDEN]");
+    }
+} catch (err) {
+    console.error("Error reading .env file manually:", err);
+}
+
+// Try to use environment variables first, then fall back to manual reading
+process.env.CLIENT_ID = process.env.CLIENT_ID || manualClientId || '1356575287151951943';
+process.env.DISCORD_TOKEN = process.env.DISCORD_TOKEN || manualToken;
+
 // Print environment variables to debug
-console.log("Environment variables loaded:");
-console.log("CLIENT_ID:", process.env.CLIENT_ID ? "✓ Found" : "✗ Missing");
-console.log("DISCORD_TOKEN:", process.env.DISCORD_TOKEN ? "✓ Found" : "✗ Missing");
+console.log("Using CLIENT_ID:", process.env.CLIENT_ID ? "✓ Found" : "✗ Missing");
+console.log("Using DISCORD_TOKEN:", process.env.DISCORD_TOKEN ? "✓ Found" : "✗ Missing");
 
 // Get command files
 const commandsPath = path.join(__dirname, 'commands');
