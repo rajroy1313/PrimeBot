@@ -60,12 +60,16 @@ module.exports = {
                 // Extract the custom ID parts
                 const [action, ...params] = interaction.customId.split(':');
                 
+                // Log detailed button information for debugging
+                console.log(`[DEBUG] Button pressed with customId: "${interaction.customId}" -> action: "${action}"`);
+                
                 // Log button interaction
                 interactionDebugger.logInteraction(interaction, `Button (${action})`);
                 
                 try {
                     // Route to the appropriate handler based on the action
-                    if (action === 'giveaway_enter') {
+                    if (action === 'giveaway_enter' || interaction.customId === 'giveaway_enter') {
+                        console.log(`[GIVEAWAY] Processing giveaway entry for user: ${interaction.user.tag}`);
                         await safeExecute(
                             client.giveawayManager.handleGiveawayEntry.bind(client.giveawayManager),
                             [interaction],
@@ -137,6 +141,12 @@ module.exports = {
                             console.error('Error acknowledging command pagination interaction:', error);
                             // Don't throw here to prevent the entire interaction from failing
                         }
+                    } else if (interaction.customId === 'giveaway_enter_disabled') {
+                        // Handle disabled button - just inform user
+                        await interaction.reply({
+                            content: 'This giveaway has already ended.',
+                            ephemeral: true
+                        });
                     } else if (interaction.customId === 'broadcast_confirm') {
                         console.log('[BROADCAST] Broadcast confirmation button clicked');
                         // Handle broadcast confirmation - this now directly processes the broadcast
@@ -308,8 +318,19 @@ module.exports = {
                         }
                     }
                 } catch (buttonError) {
+                    console.error(`[ERROR] Button interaction error for customId "${interaction.customId}":`, buttonError);
                     interactionDebugger.debugInteractionError(interaction, buttonError, `Button (${action})`);
-                    throw buttonError; // Re-throw to be caught by the outer try/catch
+                    
+                    // Try to provide feedback to the user if we haven't already replied
+                    if (!interaction.replied && !interaction.deferred) {
+                        await interaction.reply({
+                            content: 'There was an error processing your button click. Please try again.',
+                            ephemeral: true
+                        }).catch(e => console.error('Failed to send error reply:', e));
+                    }
+                    
+                    // Don't throw to prevent the entire interaction handler from failing
+                    // This will allow the bot to continue handling other interactions
                 }
                 
                 return;
