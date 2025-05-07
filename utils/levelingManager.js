@@ -78,12 +78,8 @@ class LevelingManager {
         // Ignore bot messages and DMs
         if (message.author.bot || !message.guild) return;
         
-        const guildId = message.guild.id;
-        
-        // Check if leveling is enabled for this server
-        if (!this.isLevelingEnabledForGuild(guildId)) {
-            return;
-        }
+        // Only process in the support server
+        if (message.guild.id !== config.leveling.supportServerId) return;
         
         // Ignore messages that are too short
         if (message.content.length < config.leveling.minMessageLength) return;
@@ -91,10 +87,9 @@ class LevelingManager {
         // Check if the user is on cooldown
         const userId = message.author.id;
         const now = Date.now();
-        const cooldownKey = `${guildId}-${userId}`;
         
-        if (this.cooldowns.has(cooldownKey)) {
-            const cooldownTime = this.cooldowns.get(cooldownKey);
+        if (this.cooldowns.has(userId)) {
+            const cooldownTime = this.cooldowns.get(userId);
             if (now < cooldownTime) {
                 // User is on cooldown, don't award XP
                 return;
@@ -102,45 +97,10 @@ class LevelingManager {
         }
         
         // Set cooldown
-        this.cooldowns.set(cooldownKey, now + config.leveling.xpCooldown);
+        this.cooldowns.set(userId, now + config.leveling.xpCooldown);
         
         // Award XP
         await this.awardXP(message);
-    }
-    
-    /**
-     * Check if leveling is enabled for a guild
-     * @param {string} guildId - Guild ID to check
-     * @returns {boolean} Whether leveling is enabled
-     */
-    isLevelingEnabledForGuild(guildId) {
-        // If leveling is enabled for all servers, check if this specific server has opted out
-        if (config.leveling.enabledForAllServers) {
-            // Check for server-specific settings
-            if (config.leveling.serverSettings[guildId]) {
-                return config.leveling.serverSettings[guildId].enabled;
-            }
-            // Otherwise, use the default settings
-            return config.leveling.serverSettings.default.enabled;
-        } 
-        // If not enabled for all servers, only enable for the support server
-        else {
-            return guildId === config.leveling.supportServerId;
-        }
-    }
-    
-    /**
-     * Get server leveling settings
-     * @param {string} guildId - Guild ID
-     * @returns {Object} Server settings for leveling
-     */
-    getServerSettings(guildId) {
-        // Check for server-specific settings
-        if (config.leveling.serverSettings[guildId]) {
-            return config.leveling.serverSettings[guildId];
-        }
-        // Otherwise, use the default settings
-        return config.leveling.serverSettings.default;
     }
     
     /**

@@ -57,27 +57,10 @@ module.exports = {
     
     // Leveling system configuration
     leveling: {
-        // Legacy support server ID (for backward compatibility)
+        // Support server ID where leveling is active (should match welcome.supportServerId)
         supportServerId: "1317411980625313893", // AFK Devs server ID
         
-        // Whether leveling is enabled across all servers (true) or just the support server (false)
-        enabledForAllServers: true,
-        
-        // Server-specific settings (override with /leveling config)
-        serverSettings: {
-            // Default settings for all servers
-            default: {
-                enabled: true,           // Whether leveling is enabled by default
-                announceChannelId: null, // Channel where level-up messages are sent (null = original channel)
-                announceInChannel: true, // Whether to announce level-ups in the original channel
-                sendDM: false,           // Whether to send level-up DMs to users
-                roleRewards: []          // Array of {level: N, roleId: "ID"} for role rewards
-            }
-            // Server-specific settings will be dynamically added here
-        },
-        
         // Channel where level-up messages are sent (null = the channel where message was sent)
-        // Legacy setting for support server only
         levelUpChannelId: null,
         
         // XP settings
