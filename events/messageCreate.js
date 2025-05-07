@@ -1961,9 +1961,9 @@ module.exports = {
                 case "profile":
                 case "exp":
                 case "level":
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Available in any server with leveling enabled
+                    if (!message.guild) {
+                        message.reply("This command is only available in servers.");
                         return;
                     }
                     
@@ -2096,9 +2096,9 @@ module.exports = {
                     break;
                     
                 case "badges":
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Available in any server with leveling enabled
+                    if (!message.guild) {
+                        message.reply("This command is only available in servers.");
                         return;
                     }
                     
@@ -2127,9 +2127,9 @@ module.exports = {
                         return;
                     }
                     
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Available in any server
+                    if (!message.guild) {
+                        message.reply("This command is only available in servers.");
                         return;
                     }
                     
@@ -2216,9 +2216,9 @@ module.exports = {
                         return;
                     }
                     
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Available in any server
+                    if (!message.guild) {
+                        message.reply("This command is only available in servers.");
                         return;
                     }
                     
@@ -2236,39 +2236,38 @@ module.exports = {
                         return;
                     }
                     
-                    // Check if user exists in leveling system
-                    if (!client.levelingManager.userLevels.has(message.guild.id) || 
-                        !client.levelingManager.userLevels.get(message.guild.id).has(targetRevokeBadgeUser.id)) {
-                        message.reply("This user has no badges or is not in the leveling system.");
+                    // Get badge type from the ID pattern (e.g., achievement_xyz, special_abc)
+                    const badgeIdParts = badgeIdToRevoke.split('_');
+                    let badgeTypeToRevoke = 'unknown';
+                    
+                    if (badgeIdToRevoke.startsWith('level_')) {
+                        badgeTypeToRevoke = 'level';
+                    } else if (badgeIdParts.length > 1) {
+                        // Try to determine type from first part of ID
+                        const possibleType = badgeIdParts[0];
+                        if (possibleType === 'achievement' || possibleType === 'special') {
+                            badgeTypeToRevoke = possibleType;
+                        }
+                    }
+                    
+                    // Revoke the badge using the database-backed manager
+                    const revokeResult = await client.levelingManager.revokeBadge({
+                        guildId: message.guild.id,
+                        userId: targetRevokeBadgeUser.id,
+                        badgeType: badgeTypeToRevoke,
+                        badgeId: badgeIdToRevoke
+                    });
+                    
+                    if (!revokeResult.success) {
+                        message.reply(`Error: ${revokeResult.message}`);
                         return;
                     }
                     
-                    // Get user data
-                    const guildBadgeData = client.levelingManager.userLevels.get(message.guild.id);
-                    const userBadgeData = guildBadgeData.get(targetRevokeBadgeUser.id);
-                    
-                    // Find the badge to revoke
-                    const badgeIndex = userBadgeData.badges.findIndex(badge => badge.id === badgeIdToRevoke);
-                    
-                    if (badgeIndex === -1) {
-                        message.reply("This user does not have this badge.");
-                        return;
-                    }
-                    
-                    // Store badge info before removing
-                    const revokedBadge = userBadgeData.badges[badgeIndex];
-                    
-                    // Remove the badge
-                    userBadgeData.badges.splice(badgeIndex, 1);
-                    
-                    // Save changes
-                    client.levelingManager.saveLevels();
-                    
-                    // Create success embed
+                    // Create success embed with the revoked badge info
                     const revokeEmbed = new EmbedBuilder()
                         .setColor(config.colors.error)
                         .setTitle("Badge Revoked")
-                        .setDescription(`${targetRevokeBadgeUser}'s ${revokedBadge.emoji} **${revokedBadge.name}** badge has been revoked.`)
+                        .setDescription(`${targetRevokeBadgeUser}'s ${revokeResult.badge.badgeEmoji} **${revokeResult.badge.badgeName}** badge has been revoked.`)
                         .setThumbnail(targetRevokeBadgeUser.displayAvatarURL({ dynamic: true }))
                         .setFooter({ 
                             text: `Revoked by ${message.author.tag}`, 
@@ -2283,9 +2282,9 @@ module.exports = {
                 case "viewbadges":
                 case "listbadges":
                 case "badgelist":
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Available in any server
+                    if (!message.guild) {
+                        message.reply("This command is only available in servers.");
                         return;
                     }
                     

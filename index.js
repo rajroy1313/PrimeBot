@@ -92,8 +92,13 @@ const TruthDareManager = require('./utils/truthDareManager');
 client.truthDareManager = new TruthDareManager(client);
 
 // Initialize leveling and badges manager
+// Initialize database-backed leveling manager
+const DBLevelingManager = require('./utils/dbLevelingManager');
+client.levelingManager = new DBLevelingManager(client);
+
+// Keep a reference to the legacy leveling manager for backward compatibility
 const LevelingManager = require('./utils/levelingManager');
-client.levelingManager = new LevelingManager(client);
+client.legacyLevelingManager = new LevelingManager(client);
 
 // Initialize server settings manager for broadcast opt-outs
 const ServerSettingsManager = require('./utils/serverSettingsManager');

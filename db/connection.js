@@ -1,24 +1,31 @@
-const { Pool, neonConfig } = require('@neondatabase/serverless');
-const { drizzle } = require('drizzle-orm/neon-serverless');
-const schema = require('./schema');
-const ws = require('ws');
+/**
+ * Database connection module
+ * 
+ * This module provides a connection to the PostgreSQL database
+ * for the Discord bot to store persistent data.
+ */
 
-// Configure neon to use the ws package for WebSocket connections
+const { Pool } = require('@neondatabase/serverless');
+const { drizzle } = require('drizzle-orm/neon-serverless');
+const ws = require('ws');
+const schema = require('./schema');
+
+// Set up Neon configuration for WebSockets
+const neonConfig = require('@neondatabase/serverless').neonConfig;
 neonConfig.webSocketConstructor = ws;
 
-// Check for environment variables
+// Check if DATABASE_URL is provided
 if (!process.env.DATABASE_URL) {
-  console.error('[DATABASE] Missing DATABASE_URL. Database features will not work properly.');
+  console.error('[DATABASE] No DATABASE_URL found in environment variables!');
+  console.error('[DATABASE] Please check your configuration and try again.');
+  process.exit(1);
 }
 
 // Create a connection pool
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  max: 10, // maximum number of clients
-});
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
-// Create a drizzle ORM instance
+// Create a Drizzle ORM instance with our schema
 const db = drizzle(pool, { schema });
 
-// Export the database instance and pool
-module.exports = { db, pool, schema };
+// Export the pool and db instance for use in other modules
+module.exports = { pool, db, schema };
