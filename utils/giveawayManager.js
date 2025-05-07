@@ -172,10 +172,14 @@ class GiveawayManager {
                 components: [row]
             });
             
-            // Store giveaway data
+            // Get guild ID from the channel for multi-server support
+            const guildId = channel.guild.id;
+            
+            // Store giveaway data with guild ID for multi-server support
             const giveaway = {
                 messageId: giveawayMessage.id,
                 channelId,
+                guildId, // Add guild ID for multi-server support
                 prize,
                 winnerCount,
                 endTime,
