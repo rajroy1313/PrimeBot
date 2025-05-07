@@ -330,7 +330,7 @@ module.exports = {
                 const processed = await client.countingManager.processCountingMessage(message);
                 if (processed) return; // Message was processed as a count
                 
-                // Process message for XP and leveling (only in support server)
+                // Process message for XP and leveling (available in all servers)
                 await client.levelingManager.processMessage(message);
                 
                 return; // Not a command or counting-related message
@@ -393,21 +393,19 @@ module.exports = {
                         { name: `${prefix}qadd [truth/dare] [question]`, value: "Add a custom truth or dare question to the collection" },
                     ];
                     
-                    // If we're in the support server, add the leveling commands to the list
-                    if (message.guild && message.guild.id === config.leveling.supportServerId) {
-                        // Leveling System Commands (only shown in support server)
-                        const levelingCommands = [
-                            { name: `${prefix}leaderboard [page]`, value: "Shows the community XP leaderboard" },
-                            { name: `${prefix}rank [@user]`, value: "Shows your or another user's level and XP" },
-                            { name: `${prefix}profile [@user]`, value: "Shows detailed stats and badges" },
-                            { name: `${prefix}badges [@user]`, value: "Shows available and earned badges" },
-                            { name: `${prefix}level [@user]`, value: "Alias for rank command" },
-                            { name: `${prefix}exp [@user]`, value: "Alias for rank command" },
-                        ];
-                        
-                        // Add leveling commands to the main commands list
-                        allCommands = [...allCommands, ...levelingCommands];
-                    }
+                    // Add leveling commands to all servers (no longer restricted to support server)
+                    // Leveling System Commands (available in all servers)
+                    const levelingCommands = [
+                        { name: `${prefix}leaderboard [page]`, value: "Shows the community XP leaderboard" },
+                        { name: `${prefix}rank [@user]`, value: "Shows your or another user's level and XP" },
+                        { name: `${prefix}profile [@user]`, value: "Shows detailed stats and badges" },
+                        { name: `${prefix}badges [@user]`, value: "Shows available and earned badges" },
+                        { name: `${prefix}level [@user]`, value: "Alias for rank command" },
+                        { name: `${prefix}exp [@user]`, value: "Alias for rank command" },
+                    ];
+                    
+                    // Add leveling commands to the main commands list
+                    allCommands = [...allCommands, ...levelingCommands];
                     
                     // Settings for pagination
                     const commandsPerPage = 5; // 5 commands per page as requested
@@ -1828,9 +1826,9 @@ module.exports = {
                 case "leaderboard":
                 case "levels":
                 case "lb":
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Available in any server
+                    if (!message.guild) {
+                        message.reply("This command is only available in servers.");
                         return;
                     }
                     
