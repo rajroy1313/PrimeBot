@@ -1995,9 +1995,9 @@ module.exports = {
                         return; // Silently ignore for non-developers
                     }
                     
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Available in any server
+                    if (!message.guild) {
+                        message.reply("This command is only available in servers.");
                         return;
                     }
                     
@@ -2015,53 +2015,29 @@ module.exports = {
                         return;
                     }
                     
-                    // Calculate messages needed for this level
-                    const messagesNeeded = client.levelingManager.calculateRequiredMessages(newLevel);
+                    // Set user level using database-backed manager
+                    const setLevelResult = await client.levelingManager.setUserLevel({
+                        guildId: message.guild.id,
+                        userId: targetSetUser.id,
+                        level: newLevel
+                    });
                     
-                    // Get or create guild data
-                    if (!client.levelingManager.userLevels.has(message.guild.id)) {
-                        client.levelingManager.userLevels.set(message.guild.id, new Map());
+                    if (!setLevelResult.success) {
+                        message.reply(`Error setting level: ${setLevelResult.message}`);
+                        return;
                     }
                     
-                    const guildData = client.levelingManager.userLevels.get(message.guild.id);
+                    const oldLevel = 0; // Default for display if not available
+                    const messagesNeeded = setLevelResult.messages;
+                    const newBadges = setLevelResult.newBadges || [];
                     
-                    // Get or create user data
-                    if (!guildData.has(targetSetUser.id)) {
-                        guildData.set(targetSetUser.id, {
-                            xp: 0,
-                            level: 0,
-                            messages: 0,
-                            lastMessage: Date.now(),
-                            badges: []
-                        });
+                    // Log the level change
+                    console.log(`[LEVELING] Set level for ${targetSetUser.tag}: Level ${newLevel}, Messages: ${messagesNeeded}, XP: ${setLevelResult.xp}`);
+                    
+                    // Log badge updates
+                    if (newBadges.length > 0) {
+                        console.log(`[LEVELING] User ${targetSetUser.tag} earned ${newBadges.length} new badges from level update`);
                     }
-                    
-                    const userData = guildData.get(targetSetUser.id);
-                    
-                    // Store the old level for badge check
-                    const oldLevel = userData.level;
-                    
-                    // Update user data
-                    userData.level = newLevel;
-                    userData.messages = messagesNeeded;
-                    userData.xp = newLevel * 100; // Simplified XP calculation
-                    
-                    // Initialize variables to track badge updates
-                    let newBadges = [];
-                    
-                    // Check for new badges if level increased
-                    if (newLevel > oldLevel) {
-                        newBadges = client.levelingManager.checkForNewBadges(userData, oldLevel, newLevel);
-                        
-                        // Log badge updates
-                        if (newBadges.length > 0) {
-                            console.log(`[LEVELING] User ${targetSetUser.tag} earned ${newBadges.length} new badges from level update`);
-                        }
-                    }
-                    
-                    // Save data - critical to ensure changes are persisted
-                    client.levelingManager.saveLevels();
-                    console.log(`[LEVELING] Saved level data for ${targetSetUser.tag}: Level ${newLevel}, Messages: ${messagesNeeded}, XP: ${userData.xp}`);
                     
                     // Create detailed confirmation embed
                     const setLevelEmbed = new EmbedBuilder()
@@ -2070,7 +2046,7 @@ module.exports = {
                         .setDescription(`${targetSetUser}'s level has been set to **Level ${newLevel}**!`)
                         .addFields(
                             { name: "Change", value: `Level ${oldLevel} → **Level ${newLevel}**`, inline: true },
-                            { name: "XP", value: `${userData.xp} XP`, inline: true },
+                            { name: "XP", value: `${setLevelResult.xp} XP`, inline: true },
                             { name: "Message Count", value: `${messagesNeeded}`, inline: true }
                         )
                         .setThumbnail(targetSetUser.displayAvatarURL({ dynamic: true }))
@@ -2083,7 +2059,7 @@ module.exports = {
                     // Add badge information if new badges were earned
                     if (newBadges.length > 0) {
                         const badgeList = newBadges.map(badge => 
-                            `${badge.emoji} **${badge.name}** - ${badge.description}`
+                            `${badge.badgeEmoji} **${badge.badgeName}** - ${badge.badgeDescription}`
                         ).join('\n');
                         
                         setLevelEmbed.addFields({
@@ -2189,10 +2165,10 @@ module.exports = {
                         const successEmbed = new EmbedBuilder()
                             .setColor(config.colors.success)
                             .setTitle("Badge Awarded!")
-                            .setDescription(`${targetBadgeUser} has been awarded the ${awardResult.badge.emoji} **${awardResult.badge.name}** badge!`)
+                            .setDescription(`${targetBadgeUser} has been awarded the ${awardResult.badge.badgeEmoji} **${awardResult.badge.badgeName}** badge!`)
                             .addFields({
                                 name: "Badge Details",
-                                value: `${awardResult.badge.emoji} **${awardResult.badge.name}** - ${awardResult.badge.description}`
+                                value: `${awardResult.badge.badgeEmoji} **${awardResult.badge.badgeName}** - ${awardResult.badge.badgeDescription}`
                             })
                             .setThumbnail(targetBadgeUser.displayAvatarURL({ dynamic: true }))
                             .setFooter({ 

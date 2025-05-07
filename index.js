@@ -92,6 +92,20 @@ const TruthDareManager = require('./utils/truthDareManager');
 client.truthDareManager = new TruthDareManager(client);
 
 // Initialize leveling and badges manager
+// Initialize database
+const { migrate } = require('./db/migrate');
+
+// Run database migrations
+(async () => {
+  try {
+    await migrate();
+    console.log('[STARTUP] Database migrations completed successfully');
+  } catch (error) {
+    console.error('[STARTUP] Database migration error:', error);
+    console.log('[STARTUP] Continuing with bot startup despite migration error...');
+  }
+})();
+
 // Initialize database-backed leveling manager
 const DBLevelingManager = require('./utils/dbLevelingManager');
 client.levelingManager = new DBLevelingManager(client);
