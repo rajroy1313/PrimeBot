@@ -159,7 +159,7 @@ class GiveawayManager {
             
             // Create entry button
             const entryButton = new ButtonBuilder()
-                .setCustomId('giveaway-enter')
+                .setCustomId('giveaway_enter')
                 .setLabel('Enter Giveaway!')
                 .setStyle(ButtonStyle.Primary)
                 .setEmoji('🎉');
@@ -310,7 +310,7 @@ class GiveawayManager {
             
             // Disable the button
             const disabledButton = new ButtonBuilder()
-                .setCustomId('giveaway-enter-disabled')
+                .setCustomId('giveaway_enter_disabled')
                 .setLabel('Giveaway Ended')
                 .setStyle(ButtonStyle.Secondary)
                 .setEmoji('🎉')
