@@ -330,7 +330,7 @@ module.exports = {
                 const processed = await client.countingManager.processCountingMessage(message);
                 if (processed) return; // Message was processed as a count
                 
-                // Process message for XP and leveling (available in all servers)
+                // Process message for XP and leveling (only in support server)
                 await client.levelingManager.processMessage(message);
                 
                 return; // Not a command or counting-related message
@@ -393,19 +393,21 @@ module.exports = {
                         { name: `${prefix}qadd [truth/dare] [question]`, value: "Add a custom truth or dare question to the collection" },
                     ];
                     
-                    // Add leveling commands to all servers (no longer restricted to support server)
-                    // Leveling System Commands (available in all servers)
-                    const levelingCommands = [
-                        { name: `${prefix}leaderboard [page]`, value: "Shows the community XP leaderboard" },
-                        { name: `${prefix}rank [@user]`, value: "Shows your or another user's level and XP" },
-                        { name: `${prefix}profile [@user]`, value: "Shows detailed stats and badges" },
-                        { name: `${prefix}badges [@user]`, value: "Shows available and earned badges" },
-                        { name: `${prefix}level [@user]`, value: "Alias for rank command" },
-                        { name: `${prefix}exp [@user]`, value: "Alias for rank command" },
-                    ];
-                    
-                    // Add leveling commands to the main commands list
-                    allCommands = [...allCommands, ...levelingCommands];
+                    // If we're in the support server, add the leveling commands to the list
+                    if (message.guild && message.guild.id === config.leveling.supportServerId) {
+                        // Leveling System Commands (only shown in support server)
+                        const levelingCommands = [
+                            { name: `${prefix}leaderboard [page]`, value: "Shows the community XP leaderboard" },
+                            { name: `${prefix}rank [@user]`, value: "Shows your or another user's level and XP" },
+                            { name: `${prefix}profile [@user]`, value: "Shows detailed stats and badges" },
+                            { name: `${prefix}badges [@user]`, value: "Shows available and earned badges" },
+                            { name: `${prefix}level [@user]`, value: "Alias for rank command" },
+                            { name: `${prefix}exp [@user]`, value: "Alias for rank command" },
+                        ];
+                        
+                        // Add leveling commands to the main commands list
+                        allCommands = [...allCommands, ...levelingCommands];
+                    }
                     
                     // Settings for pagination
                     const commandsPerPage = 5; // 5 commands per page as requested
@@ -1826,9 +1828,9 @@ module.exports = {
                 case "leaderboard":
                 case "levels":
                 case "lb":
-                    // Available in any server
-                    if (!message.guild) {
-                        message.reply("This command is only available in servers.");
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
                         return;
                     }
                     
@@ -1959,9 +1961,9 @@ module.exports = {
                 case "profile":
                 case "exp":
                 case "level":
-                    // Available in any server with leveling enabled
-                    if (!message.guild) {
-                        message.reply("This command is only available in servers.");
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
                         return;
                     }
                     
@@ -1993,9 +1995,9 @@ module.exports = {
                         return; // Silently ignore for non-developers
                     }
                     
-                    // Available in any server
-                    if (!message.guild) {
-                        message.reply("This command is only available in servers.");
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
                         return;
                     }
                     
@@ -2013,29 +2015,53 @@ module.exports = {
                         return;
                     }
                     
-                    // Set user level using database-backed manager
-                    const setLevelResult = await client.levelingManager.setUserLevel({
-                        guildId: message.guild.id,
-                        userId: targetSetUser.id,
-                        level: newLevel
-                    });
+                    // Calculate messages needed for this level
+                    const messagesNeeded = client.levelingManager.calculateRequiredMessages(newLevel);
                     
-                    if (!setLevelResult.success) {
-                        message.reply(`Error setting level: ${setLevelResult.message}`);
-                        return;
+                    // Get or create guild data
+                    if (!client.levelingManager.userLevels.has(message.guild.id)) {
+                        client.levelingManager.userLevels.set(message.guild.id, new Map());
                     }
                     
-                    const oldLevel = 0; // Default for display if not available
-                    const messagesNeeded = setLevelResult.messages;
-                    const newBadges = setLevelResult.newBadges || [];
+                    const guildData = client.levelingManager.userLevels.get(message.guild.id);
                     
-                    // Log the level change
-                    console.log(`[LEVELING] Set level for ${targetSetUser.tag}: Level ${newLevel}, Messages: ${messagesNeeded}, XP: ${setLevelResult.xp}`);
-                    
-                    // Log badge updates
-                    if (newBadges.length > 0) {
-                        console.log(`[LEVELING] User ${targetSetUser.tag} earned ${newBadges.length} new badges from level update`);
+                    // Get or create user data
+                    if (!guildData.has(targetSetUser.id)) {
+                        guildData.set(targetSetUser.id, {
+                            xp: 0,
+                            level: 0,
+                            messages: 0,
+                            lastMessage: Date.now(),
+                            badges: []
+                        });
                     }
+                    
+                    const userData = guildData.get(targetSetUser.id);
+                    
+                    // Store the old level for badge check
+                    const oldLevel = userData.level;
+                    
+                    // Update user data
+                    userData.level = newLevel;
+                    userData.messages = messagesNeeded;
+                    userData.xp = newLevel * 100; // Simplified XP calculation
+                    
+                    // Initialize variables to track badge updates
+                    let newBadges = [];
+                    
+                    // Check for new badges if level increased
+                    if (newLevel > oldLevel) {
+                        newBadges = client.levelingManager.checkForNewBadges(userData, oldLevel, newLevel);
+                        
+                        // Log badge updates
+                        if (newBadges.length > 0) {
+                            console.log(`[LEVELING] User ${targetSetUser.tag} earned ${newBadges.length} new badges from level update`);
+                        }
+                    }
+                    
+                    // Save data - critical to ensure changes are persisted
+                    client.levelingManager.saveLevels();
+                    console.log(`[LEVELING] Saved level data for ${targetSetUser.tag}: Level ${newLevel}, Messages: ${messagesNeeded}, XP: ${userData.xp}`);
                     
                     // Create detailed confirmation embed
                     const setLevelEmbed = new EmbedBuilder()
@@ -2044,7 +2070,7 @@ module.exports = {
                         .setDescription(`${targetSetUser}'s level has been set to **Level ${newLevel}**!`)
                         .addFields(
                             { name: "Change", value: `Level ${oldLevel} → **Level ${newLevel}**`, inline: true },
-                            { name: "XP", value: `${setLevelResult.xp} XP`, inline: true },
+                            { name: "XP", value: `${userData.xp} XP`, inline: true },
                             { name: "Message Count", value: `${messagesNeeded}`, inline: true }
                         )
                         .setThumbnail(targetSetUser.displayAvatarURL({ dynamic: true }))
@@ -2057,7 +2083,7 @@ module.exports = {
                     // Add badge information if new badges were earned
                     if (newBadges.length > 0) {
                         const badgeList = newBadges.map(badge => 
-                            `${badge.badgeEmoji} **${badge.badgeName}** - ${badge.badgeDescription}`
+                            `${badge.emoji} **${badge.name}** - ${badge.description}`
                         ).join('\n');
                         
                         setLevelEmbed.addFields({
@@ -2070,9 +2096,9 @@ module.exports = {
                     break;
                     
                 case "badges":
-                    // Available in any server with leveling enabled
-                    if (!message.guild) {
-                        message.reply("This command is only available in servers.");
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
                         return;
                     }
                     
@@ -2101,9 +2127,9 @@ module.exports = {
                         return;
                     }
                     
-                    // Available in any server
-                    if (!message.guild) {
-                        message.reply("This command is only available in servers.");
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
                         return;
                     }
                     
@@ -2163,10 +2189,10 @@ module.exports = {
                         const successEmbed = new EmbedBuilder()
                             .setColor(config.colors.success)
                             .setTitle("Badge Awarded!")
-                            .setDescription(`${targetBadgeUser} has been awarded the ${awardResult.badge.badgeEmoji} **${awardResult.badge.badgeName}** badge!`)
+                            .setDescription(`${targetBadgeUser} has been awarded the ${awardResult.badge.emoji} **${awardResult.badge.name}** badge!`)
                             .addFields({
                                 name: "Badge Details",
-                                value: `${awardResult.badge.badgeEmoji} **${awardResult.badge.badgeName}** - ${awardResult.badge.badgeDescription}`
+                                value: `${awardResult.badge.emoji} **${awardResult.badge.name}** - ${awardResult.badge.description}`
                             })
                             .setThumbnail(targetBadgeUser.displayAvatarURL({ dynamic: true }))
                             .setFooter({ 
@@ -2190,9 +2216,9 @@ module.exports = {
                         return;
                     }
                     
-                    // Available in any server
-                    if (!message.guild) {
-                        message.reply("This command is only available in servers.");
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
                         return;
                     }
                     
@@ -2210,38 +2236,39 @@ module.exports = {
                         return;
                     }
                     
-                    // Get badge type from the ID pattern (e.g., achievement_xyz, special_abc)
-                    const badgeIdParts = badgeIdToRevoke.split('_');
-                    let badgeTypeToRevoke = 'unknown';
-                    
-                    if (badgeIdToRevoke.startsWith('level_')) {
-                        badgeTypeToRevoke = 'level';
-                    } else if (badgeIdParts.length > 1) {
-                        // Try to determine type from first part of ID
-                        const possibleType = badgeIdParts[0];
-                        if (possibleType === 'achievement' || possibleType === 'special') {
-                            badgeTypeToRevoke = possibleType;
-                        }
-                    }
-                    
-                    // Revoke the badge using the database-backed manager
-                    const revokeResult = await client.levelingManager.revokeBadge({
-                        guildId: message.guild.id,
-                        userId: targetRevokeBadgeUser.id,
-                        badgeType: badgeTypeToRevoke,
-                        badgeId: badgeIdToRevoke
-                    });
-                    
-                    if (!revokeResult.success) {
-                        message.reply(`Error: ${revokeResult.message}`);
+                    // Check if user exists in leveling system
+                    if (!client.levelingManager.userLevels.has(message.guild.id) || 
+                        !client.levelingManager.userLevels.get(message.guild.id).has(targetRevokeBadgeUser.id)) {
+                        message.reply("This user has no badges or is not in the leveling system.");
                         return;
                     }
                     
-                    // Create success embed with the revoked badge info
+                    // Get user data
+                    const guildBadgeData = client.levelingManager.userLevels.get(message.guild.id);
+                    const userBadgeData = guildBadgeData.get(targetRevokeBadgeUser.id);
+                    
+                    // Find the badge to revoke
+                    const badgeIndex = userBadgeData.badges.findIndex(badge => badge.id === badgeIdToRevoke);
+                    
+                    if (badgeIndex === -1) {
+                        message.reply("This user does not have this badge.");
+                        return;
+                    }
+                    
+                    // Store badge info before removing
+                    const revokedBadge = userBadgeData.badges[badgeIndex];
+                    
+                    // Remove the badge
+                    userBadgeData.badges.splice(badgeIndex, 1);
+                    
+                    // Save changes
+                    client.levelingManager.saveLevels();
+                    
+                    // Create success embed
                     const revokeEmbed = new EmbedBuilder()
                         .setColor(config.colors.error)
                         .setTitle("Badge Revoked")
-                        .setDescription(`${targetRevokeBadgeUser}'s ${revokeResult.badge.badgeEmoji} **${revokeResult.badge.badgeName}** badge has been revoked.`)
+                        .setDescription(`${targetRevokeBadgeUser}'s ${revokedBadge.emoji} **${revokedBadge.name}** badge has been revoked.`)
                         .setThumbnail(targetRevokeBadgeUser.displayAvatarURL({ dynamic: true }))
                         .setFooter({ 
                             text: `Revoked by ${message.author.tag}`, 
@@ -2256,9 +2283,9 @@ module.exports = {
                 case "viewbadges":
                 case "listbadges":
                 case "badgelist":
-                    // Available in any server
-                    if (!message.guild) {
-                        message.reply("This command is only available in servers.");
+                    // Only available in support server
+                    if (message.guild.id !== config.leveling.supportServerId) {
+                        message.reply("This command is only available in the support server.");
                         return;
                     }
                     

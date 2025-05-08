@@ -91,49 +91,9 @@ client.countingManager = new CountingManager(client);
 const TruthDareManager = require('./utils/truthDareManager');
 client.truthDareManager = new TruthDareManager(client);
 
-// Initialize database and run migrations
-const { migrate } = require('./db/migrate');
-const importLevels = require('./importLevels');
-const { sql } = require('drizzle-orm');
-
-// Database setup sequence
-(async () => {
-  try {
-    // Step 1: Migrate database schema
-    await migrate();
-    console.log('[STARTUP] Database migrations completed successfully');
-    
-    // Step 2: Import legacy leveling data if needed
-    try {
-      // Check if this is first run or if we have existing data in database
-      const { db, schema } = require('./db/connection');
-      const { userLevels } = schema;
-      const userCount = await db.select({ count: sql`count(*)` }).from(userLevels);
-      
-      // If no users in database, attempt to import legacy data
-      if (userCount && userCount[0] && userCount[0].count === '0') {
-        console.log('[STARTUP] No users found in database, checking for legacy data to import...');
-        await importLevels();
-      } else {
-        console.log('[STARTUP] User data already exists in database, skipping import.');
-      }
-    } catch (importError) {
-      console.error('[STARTUP] Error checking/importing legacy data:', importError);
-      console.log('[STARTUP] Continuing with bot startup despite import error...');
-    }
-  } catch (error) {
-    console.error('[STARTUP] Database migration error:', error);
-    console.log('[STARTUP] Continuing with bot startup despite migration error...');
-  }
-})();
-
-// Initialize database-backed leveling manager
-const DBLevelingManager = require('./utils/dbLevelingManager');
-client.levelingManager = new DBLevelingManager(client);
-
-// Keep a reference to the legacy leveling manager for backward compatibility
+// Initialize leveling and badges manager
 const LevelingManager = require('./utils/levelingManager');
-client.legacyLevelingManager = new LevelingManager(client);
+client.levelingManager = new LevelingManager(client);
 
 // Initialize server settings manager for broadcast opt-outs
 const ServerSettingsManager = require('./utils/serverSettingsManager');
