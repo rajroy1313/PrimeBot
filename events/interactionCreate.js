@@ -57,25 +57,34 @@ module.exports = {
             
             // Handle buttons
             if (interaction.isButton()) {
-                // Extract the custom ID parts
-                const [action, ...params] = interaction.customId.split(':');
+                // Get the full customId
+                const customId = interaction.customId;
+                
+                // For buttons that use colons as separators, extract the parts
+                const [action, ...params] = customId.split(':');
                 
                 // Log detailed button information for debugging
-                console.log(`[DEBUG] Button pressed with customId: "${interaction.customId}" -> action: "${action}"`);
+                console.log(`[DEBUG] Button pressed with customId: "${customId}"`);
                 
                 // Log button interaction
-                interactionDebugger.logInteraction(interaction, `Button (${action})`);
+                interactionDebugger.logInteraction(interaction, `Button (${customId})`);
                 
                 try {
-                    // Route to the appropriate handler based on the action
-                    if (action === 'giveaway_enter' || interaction.customId === 'giveaway_enter') {
+                    // Route to the appropriate handler based on customId or action
+                    // For giveaways, use direct customId matching for greater reliability
+                    if (interaction.customId === 'giveaway_enter') {
                         console.log(`[GIVEAWAY] Processing giveaway entry for user: ${interaction.user.tag}`);
-                        await safeExecute(
-                            client.giveawayManager.handleGiveawayEntry.bind(client.giveawayManager),
-                            [interaction],
-                            null,
-                            'Giveaway entry button'
-                        );
+                        try {
+                            await client.giveawayManager.handleGiveawayEntry(interaction);
+                        } catch (error) {
+                            console.error('Error in giveaway entry handler:', error);
+                            if (!interaction.replied && !interaction.deferred) {
+                                await interaction.reply({
+                                    content: 'There was an error processing your giveaway entry. Please try again.',
+                                    ephemeral: true
+                                }).catch(e => console.error('Failed to reply to giveaway error:', e));
+                            }
+                        }
                     } else if (action === 'create-ticket' || interaction.customId === 'create-ticket') {
                         await safeExecute(
                             client.ticketManager.handleTicketCreation.bind(client.ticketManager),

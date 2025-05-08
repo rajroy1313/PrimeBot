@@ -26,9 +26,52 @@ class GiveawayManager {
     loadGiveaways() {
         try {
             if (fs.existsSync(this.dataPath)) {
-                const data = JSON.parse(fs.readFileSync(this.dataPath, 'utf8'));
+                const fileContent = fs.readFileSync(this.dataPath, 'utf8');
                 
+                // Check if file is empty or invalid JSON
+                if (!fileContent || fileContent.trim() === '') {
+                    console.log('Giveaways file exists but is empty. Initializing with empty data.');
+                    fs.writeFileSync(this.dataPath, JSON.stringify({}), 'utf8');
+                    return;
+                }
+                
+                let data;
+                try {
+                    data = JSON.parse(fileContent);
+                } catch (parseError) {
+                    console.error('Error parsing giveaways JSON file:', parseError);
+                    console.log('Backing up corrupted file and initializing with empty data');
+                    
+                    // Backup the corrupted file
+                    const backupPath = `${this.dataPath}.bak.${Date.now()}`;
+                    fs.copyFileSync(this.dataPath, backupPath);
+                    
+                    // Reinitialize with empty data
+                    fs.writeFileSync(this.dataPath, JSON.stringify({}), 'utf8');
+                    return;
+                }
+                
+                if (!data || typeof data !== 'object') {
+                    console.error('Invalid giveaways data format. Initializing with empty data.');
+                    fs.writeFileSync(this.dataPath, JSON.stringify({}), 'utf8');
+                    return;
+                }
+                
+                // Load the data into memory
+                let loadedCount = 0;
                 for (const [messageId, giveaway] of Object.entries(data)) {
+                    // Validate giveaway object
+                    if (!giveaway || typeof giveaway !== 'object') {
+                        console.warn(`Skipping invalid giveaway with ID ${messageId}`);
+                        continue;
+                    }
+                    
+                    // Ensure required properties exist
+                    if (!giveaway.channelId || !giveaway.prize) {
+                        console.warn(`Skipping giveaway ${messageId} with missing required properties`);
+                        continue;
+                    }
+                    
                     // Convert participants from array back to Set
                     if (giveaway.participants && Array.isArray(giveaway.participants)) {
                         giveaway.participants = new Set(giveaway.participants);
@@ -37,16 +80,27 @@ class GiveawayManager {
                     }
                     
                     this.giveaways.set(messageId, giveaway);
+                    loadedCount++;
                 }
                 
-                console.log(`Loaded ${this.giveaways.size} giveaways from file.`);
+                console.log(`Loaded ${loadedCount} giveaways from file.`);
             } else {
                 // Create the file if it doesn't exist
-                this.saveGiveaways();
+                console.log('No giveaways file found. Creating new file.');
+                fs.writeFileSync(this.dataPath, JSON.stringify({}), 'utf8');
             }
         } catch (error) {
             console.error('Error loading giveaways:', error);
+            // Reset the giveaways map in case of error
             this.giveaways = new Map();
+            
+            // Try to create a new file
+            try {
+                fs.writeFileSync(this.dataPath, JSON.stringify({}), 'utf8');
+                console.log('Created new giveaways file after error.');
+            } catch (writeError) {
+                console.error('Failed to create new giveaways file:', writeError);
+            }
         }
     }
     
@@ -55,24 +109,75 @@ class GiveawayManager {
      */
     saveGiveaways() {
         try {
+            console.log(`[GIVEAWAY] Saving ${this.giveaways.size} giveaways to file...`);
             const data = {};
             
+            // Before saving, clean up any potentially corrupted entries
+            let validCount = 0;
+            let invalidCount = 0;
+            
             for (const [messageId, giveaway] of this.giveaways.entries()) {
+                // Skip invalid entries
+                if (!giveaway || typeof giveaway !== 'object') {
+                    console.warn(`[GIVEAWAY] Skipping invalid giveaway entry with ID ${messageId}`);
+                    this.giveaways.delete(messageId);
+                    invalidCount++;
+                    continue;
+                }
+                
                 // Deep copy the giveaway object to avoid modifying the original
                 const giveawayData = { ...giveaway };
                 
                 // Convert Set to Array for JSON serialization
                 if (giveawayData.participants instanceof Set) {
                     giveawayData.participants = Array.from(giveawayData.participants);
+                } else {
+                    // Ensure participants is always an array in the saved data
+                    giveawayData.participants = [];
                 }
                 
+                // Add required fields if missing
+                if (!giveawayData.prize) giveawayData.prize = 'Unknown Prize';
+                if (!giveawayData.channelId) {
+                    console.warn(`[GIVEAWAY] Removing giveaway ${messageId} due to missing channelId`);
+                    this.giveaways.delete(messageId);
+                    invalidCount++;
+                    continue;
+                }
+                
+                // Add to data object
                 data[messageId] = giveawayData;
+                validCount++;
             }
             
-            fs.writeFileSync(this.dataPath, JSON.stringify(data, null, 2));
-            console.log(`Saved ${this.giveaways.size} giveaways to file.`);
+            // Create a backup of the existing file if it exists
+            if (fs.existsSync(this.dataPath)) {
+                try {
+                    const backupPath = `${this.dataPath}.bak`;
+                    fs.copyFileSync(this.dataPath, backupPath);
+                } catch (backupError) {
+                    console.error('[GIVEAWAY] Failed to create backup file:', backupError);
+                }
+            }
+            
+            // Write the new data
+            fs.writeFileSync(this.dataPath, JSON.stringify(data, null, 2), 'utf8');
+            console.log(`[GIVEAWAY] Successfully saved ${validCount} giveaways to file (${invalidCount} invalid entries removed).`);
+            
+            return true;
         } catch (error) {
-            console.error('Error saving giveaways:', error);
+            console.error('[GIVEAWAY] Error saving giveaways:', error);
+            console.error(error.stack);
+            
+            try {
+                // Try writing a simple empty object in case the error was with JSON.stringify or data structure
+                fs.writeFileSync(this.dataPath + '.emergency', JSON.stringify({}), 'utf8');
+                console.log('[GIVEAWAY] Created emergency backup empty giveaways file.');
+            } catch (emergencyError) {
+                console.error('[GIVEAWAY] Failed even emergency file write:', emergencyError);
+            }
+            
+            return false;
         }
     }
     
@@ -201,10 +306,19 @@ class GiveawayManager {
      */
     async handleGiveawayEntry(interaction) {
         try {
+            console.log(`[GIVEAWAY] Processing entry for ${interaction.user.tag}`);
+            
+            // Debug information
+            console.log(`[GIVEAWAY] Button customId: ${interaction.customId}`);
+            console.log(`[GIVEAWAY] Message ID: ${interaction.message.id}`);
+            console.log(`[GIVEAWAY] Current giveaways in memory:`, 
+                Array.from(this.giveaways.keys()).join(', ') || 'None');
+            
             const messageId = interaction.message.id;
             const giveaway = this.giveaways.get(messageId);
             
             if (!giveaway) {
+                console.log(`[GIVEAWAY] No active giveaway found with message ID: ${messageId}`);
                 return interaction.reply({ 
                     content: 'This giveaway no longer exists or has ended.', 
                     ephemeral: true 
@@ -212,6 +326,7 @@ class GiveawayManager {
             }
             
             if (giveaway.ended) {
+                console.log(`[GIVEAWAY] Giveaway ${messageId} has already ended`);
                 return interaction.reply({ 
                     content: 'This giveaway has already ended.', 
                     ephemeral: true 
@@ -219,32 +334,51 @@ class GiveawayManager {
             }
             
             const userId = interaction.user.id;
+            console.log(`[GIVEAWAY] User ${interaction.user.tag} (${userId}) interacting with giveaway`);
             
             // Add or remove participant
             if (giveaway.participants.has(userId)) {
+                console.log(`[GIVEAWAY] User ${interaction.user.tag} is leaving giveaway ${messageId}`);
                 giveaway.participants.delete(userId);
                 await interaction.reply({ 
                     content: 'You have left the giveaway.', 
                     ephemeral: true 
                 });
+                
                 // Save updated participants
+                console.log(`[GIVEAWAY] Saving updated participants (user removed)`);
                 this.saveGiveaways();
+                console.log(`[GIVEAWAY] Save complete`);
+                
             } else {
+                console.log(`[GIVEAWAY] User ${interaction.user.tag} is entering giveaway ${messageId}`);
                 giveaway.participants.add(userId);
                 await interaction.reply({ 
                     content: 'You have entered the giveaway! Good luck!', 
                     ephemeral: true 
                 });
+                
                 // Save updated participants
+                console.log(`[GIVEAWAY] Saving updated participants (user added)`);
                 this.saveGiveaways();
+                console.log(`[GIVEAWAY] Save complete. Current participants: ${giveaway.participants.size}`);
             }
             
         } catch (error) {
             console.error('Error handling giveaway entry:', error);
-            await interaction.reply({ 
-                content: 'There was an error processing your entry. Please try again.', 
-                ephemeral: true 
-            });
+            console.error('Error stack:', error.stack);
+            
+            // Ensure we respond to the user even if there's an error
+            if (!interaction.replied && !interaction.deferred) {
+                try {
+                    await interaction.reply({ 
+                        content: 'There was an error processing your entry. Please try again.', 
+                        ephemeral: true 
+                    });
+                } catch (replyError) {
+                    console.error('Could not send error reply:', replyError);
+                }
+            }
         }
     }
     
