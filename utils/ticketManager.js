@@ -149,8 +149,42 @@ class TicketManager {
                 reason: `Support ticket created by ${user.tag}`
             });
             
-            // Add the user to the thread
+            // Add the user to the thread with explicit SendMessages permission
             await thread.members.add(user.id);
+            
+            // Set permissions for the thread to allow the user to send messages
+            try {
+                // Always set permissions regardless of thread type to ensure users can talk
+                await thread.permissionOverwrites.create(user.id, {
+                    SendMessages: true,
+                    ViewChannel: true,
+                    ReadMessageHistory: true
+                });
+                console.log(`Set explicit permissions for user ${user.tag} in ticket thread ${thread.id} (type: ${thread.type})`);
+                
+                // Also ensure the bot has permissions
+                await thread.permissionOverwrites.create(this.client.user.id, {
+                    SendMessages: true,
+                    ViewChannel: true,
+                    ReadMessageHistory: true,
+                    ManageThreads: true
+                });
+                
+                // Add permissions for support roles if any are configured
+                if (supportRoles && supportRoles.length > 0) {
+                    for (const roleId of supportRoles) {
+                        await thread.permissionOverwrites.create(roleId, {
+                            SendMessages: true,
+                            ViewChannel: true,
+                            ReadMessageHistory: true
+                        });
+                        console.log(`Set permissions for support role ${roleId} in ticket thread ${thread.id}`);
+                    }
+                }
+            } catch (permError) {
+                console.error('Error setting thread permissions:', permError);
+                // Continue anyway - the thread is created but permissions might not be perfect
+            }
             
             // Store ticket information
             const ticketId = thread.id;
