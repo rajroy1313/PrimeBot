@@ -75,10 +75,25 @@ class ServerSettingsManager {
             // Initialize with default settings
             const defaultSettings = {
                 receiveBroadcasts: true, // By default, servers receive broadcasts
+                
+                // Welcome system settings
                 welcomeEnabled: false,
                 welcomeChannelId: null,
-                welcomeMessage: null,
-                welcomeDirectMessage: null,
+                welcomeMessage: 'Welcome to the server, {member}! Enjoy your stay!',
+                welcomeBannerUrl: config.welcome.bannerUrl || null,
+                welcomeColor: config.colors.primary,
+                
+                // Direct message settings
+                welcomeDmEnabled: config.welcome.sendDM,
+                welcomeDmMessage: config.welcome.dmMessage || 'Hey {username}! Welcome to **{server}**!',
+                
+                // Welcome embed customization
+                welcomeShowMemberCount: true,
+                welcomeShowJoinDate: true,
+                welcomeShowAccountAge: true,
+                welcomeCustomTitle: null,
+                welcomeCustomFooter: null,
+                
                 // Add other default settings as needed
             };
             
@@ -172,6 +187,151 @@ class ServerSettingsManager {
         const serversWithoutSettings = totalServers - serversWithSettings;
         
         return count + serversWithoutSettings;
+    }
+
+    /**
+     * Check if welcome messages are enabled for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @returns {boolean} Whether welcome messages are enabled
+     */
+    isWelcomeEnabled(guildId) {
+        const guildSettings = this.getGuildSettings(guildId);
+        return guildSettings.welcomeEnabled;
+    }
+
+    /**
+     * Toggle welcome messages for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @returns {boolean} The new state (true = enabled, false = disabled)
+     */
+    toggleWelcome(guildId) {
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Toggle the current value
+        const newValue = !guildSettings.welcomeEnabled;
+        guildSettings.welcomeEnabled = newValue;
+        
+        // Save the updated settings
+        this.settings.set(guildId, guildSettings);
+        this.saveSettings();
+        
+        return newValue;
+    }
+
+    /**
+     * Toggle welcome DMs for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @returns {boolean} The new state (true = enabled, false = disabled)
+     */
+    toggleWelcomeDm(guildId) {
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Toggle the current value
+        const newValue = !guildSettings.welcomeDmEnabled;
+        guildSettings.welcomeDmEnabled = newValue;
+        
+        // Save the updated settings
+        this.settings.set(guildId, guildSettings);
+        this.saveSettings();
+        
+        return newValue;
+    }
+
+    /**
+     * Set welcome channel for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} channelId - Channel ID
+     * @returns {boolean} Whether the channel was successfully set
+     */
+    setWelcomeChannel(guildId, channelId) {
+        return this.updateGuildSetting(guildId, 'welcomeChannelId', channelId);
+    }
+
+    /**
+     * Set welcome message for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} message - Welcome message
+     * @returns {boolean} Whether the message was successfully set
+     */
+    setWelcomeMessage(guildId, message) {
+        return this.updateGuildSetting(guildId, 'welcomeMessage', message);
+    }
+
+    /**
+     * Set welcome DM message for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} message - Welcome DM message
+     * @returns {boolean} Whether the message was successfully set
+     */
+    setWelcomeDmMessage(guildId, message) {
+        return this.updateGuildSetting(guildId, 'welcomeDmMessage', message);
+    }
+
+    /**
+     * Set welcome banner URL for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} url - Banner URL
+     * @returns {boolean} Whether the URL was successfully set
+     */
+    setWelcomeBanner(guildId, url) {
+        return this.updateGuildSetting(guildId, 'welcomeBannerUrl', url);
+    }
+
+    /**
+     * Set welcome color for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} color - Color in hex format
+     * @returns {boolean} Whether the color was successfully set
+     */
+    setWelcomeColor(guildId, color) {
+        return this.updateGuildSetting(guildId, 'welcomeColor', color);
+    }
+
+    /**
+     * Get welcome settings for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @returns {Object} Welcome settings
+     */
+    getWelcomeSettings(guildId) {
+        const settings = this.getGuildSettings(guildId);
+        
+        return {
+            enabled: settings.welcomeEnabled,
+            channelId: settings.welcomeChannelId,
+            message: settings.welcomeMessage,
+            bannerUrl: settings.welcomeBannerUrl,
+            color: settings.welcomeColor,
+            dmEnabled: settings.welcomeDmEnabled,
+            dmMessage: settings.welcomeDmMessage,
+            showMemberCount: settings.welcomeShowMemberCount,
+            showJoinDate: settings.welcomeShowJoinDate,
+            showAccountAge: settings.welcomeShowAccountAge,
+            customTitle: settings.welcomeCustomTitle,
+            customFooter: settings.welcomeCustomFooter
+        };
+    }
+
+    /**
+     * Toggle a welcome embed feature
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} feature - Feature to toggle (welcomeShowMemberCount, welcomeShowJoinDate, welcomeShowAccountAge)
+     * @returns {boolean} The new state
+     */
+    toggleWelcomeFeature(guildId, feature) {
+        const validFeatures = [
+            'welcomeShowMemberCount', 
+            'welcomeShowJoinDate', 
+            'welcomeShowAccountAge'
+        ];
+        
+        if (!validFeatures.includes(feature)) {
+            return false;
+        }
+        
+        const settings = this.getGuildSettings(guildId);
+        const newValue = !settings[feature];
+        
+        return this.updateGuildSetting(guildId, feature, newValue);
     }
 }
 

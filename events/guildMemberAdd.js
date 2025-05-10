@@ -5,22 +5,48 @@ module.exports = {
     name: 'guildMemberAdd',
     async execute(member, client) {
         try {
-            // Check if this is the support server
-            if (config.welcome.supportServerId && member.guild.id !== config.welcome.supportServerId) {
-                // Skip welcome messages for non-support servers
+            // Check if server settings manager is available
+            if (!client.serverSettingsManager) {
+                console.warn('[WELCOME] Server settings manager not available, falling back to global config');
+                // Fall back to global config
+                if (config.welcome.supportServerId && member.guild.id !== config.welcome.supportServerId) {
+                    // Skip welcome messages for non-support servers
+                    return;
+                }
+                
+                // SERVER WELCOME MESSAGE
+                await handleServerWelcome(member, null, client);
+                
+                // DM WELCOME MESSAGE
+                if (config.welcome.sendDM) {
+                    await handleDirectMessage(member, null, client);
+                }
+                
+                return;
+            }
+            
+            // Get server-specific settings
+            const guildSettings = client.serverSettingsManager.getGuildSettings(member.guild.id);
+            const welcomeSettings = client.serverSettingsManager.getWelcomeSettings(member.guild.id);
+            
+            console.log(`[WELCOME] Member joined ${member.guild.name} (${member.guild.id}), welcome enabled: ${welcomeSettings.enabled}`);
+            
+            // Skip if welcome is disabled for this server
+            if (!welcomeSettings.enabled) {
                 return;
             }
             
             // SERVER WELCOME MESSAGE
-            await handleServerWelcome(member);
+            await handleServerWelcome(member, welcomeSettings, client);
             
             // DM WELCOME MESSAGE
-            if (config.welcome.sendDM) {
-                await handleDirectMessage(member);
+            if (welcomeSettings.dmEnabled) {
+                await handleDirectMessage(member, welcomeSettings, client);
             }
             
         } catch (error) {
             console.error('[WELCOME] Error in guildMemberAdd event:', error.message);
+            console.error(error.stack);
         }
     },
 };
@@ -28,14 +54,20 @@ module.exports = {
 /**
  * Handle sending the welcome message in the server
  * @param {GuildMember} member - The member who joined
+ * @param {Object} welcomeSettings - Server-specific welcome settings
+ * @param {Client} client - Discord client
  */
-async function handleServerWelcome(member) {
+async function handleServerWelcome(member, welcomeSettings, client) {
     try {
-        // Get the welcome channel (either from config or find the first available channel)
+        // Get the welcome channel (either from settings, config, or find first available)
         let welcomeChannel;
-
-        if (config.welcome.channelId) {
-            // Try to get the channel from config
+        
+        // Try to get from server-specific settings first
+        if (welcomeSettings && welcomeSettings.channelId) {
+            welcomeChannel = member.guild.channels.cache.get(welcomeSettings.channelId);
+        } 
+        // Fall back to global config
+        else if (config.welcome.channelId) {
             welcomeChannel = member.guild.channels.cache.get(config.welcome.channelId);
         }
 
@@ -60,23 +92,55 @@ async function handleServerWelcome(member) {
         if (welcomeChannel && welcomeChannel.permissionsFor(member.guild.members.me).has('SendMessages')) {
             console.log(`[WELCOME] Found welcome channel for ${member.user.tag} in ${member.guild.name}: ${welcomeChannel.name}`);
             
+            // Determine which settings to use (server-specific or global)
+            const messageTemplate = welcomeSettings?.message || config.welcome.serverMessage;
+            const bannerUrl = welcomeSettings?.bannerUrl || config.welcome.bannerUrl;
+            const embedColor = welcomeSettings?.color || config.colors.primary;
+            
             // Create welcome embed for server
             const welcomeEmbed = new EmbedBuilder()
-                .setColor(config.colors.primary)
-                .setTitle(`Welcome to ${member.guild.name}!`)
-                .setDescription(config.welcome.serverMessage.replace('{member}', member))
-                .setThumbnail(member.user.displayAvatarURL({ dynamic: true }))
-                .addFields(
-                    { name: '📅 Account Created', value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, inline: true },
-                    { name: '📥 Joined Server', value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`, inline: true },
-                    { name: '👥 Member Count', value: `${member.guild.memberCount}`, inline: true }
-                )
-                .setFooter({ text: `User ID: ${member.user.id}` })
-                .setTimestamp();
+                .setColor(embedColor)
+                .setTitle(welcomeSettings?.customTitle || `Welcome to ${member.guild.name}!`)
+                .setDescription(messageTemplate.replace('{member}', member))
+                .setThumbnail(member.user.displayAvatarURL({ dynamic: true }));
+                
+            // Add fields if enabled (check server settings first, then default to showing all)
+            const showAccountAge = welcomeSettings ? welcomeSettings.showAccountAge : true;
+            const showJoinDate = welcomeSettings ? welcomeSettings.showJoinDate : true;
+            const showMemberCount = welcomeSettings ? welcomeSettings.showMemberCount : true;
             
-            // Add banner image if defined in config
-            if (config.welcome.bannerUrl) {
-                welcomeEmbed.setImage(config.welcome.bannerUrl);
+            if (showAccountAge) {
+                welcomeEmbed.addFields({ 
+                    name: '📅 Account Created', 
+                    value: `<t:${Math.floor(member.user.createdTimestamp / 1000)}:R>`, 
+                    inline: true 
+                });
+            }
+            
+            if (showJoinDate) {
+                welcomeEmbed.addFields({ 
+                    name: '📥 Joined Server', 
+                    value: `<t:${Math.floor(member.joinedTimestamp / 1000)}:R>`, 
+                    inline: true 
+                });
+            }
+            
+            if (showMemberCount) {
+                welcomeEmbed.addFields({ 
+                    name: '👥 Member Count', 
+                    value: `${member.guild.memberCount}`, 
+                    inline: true 
+                });
+            }
+            
+            // Set footer
+            welcomeEmbed.setFooter({ 
+                text: welcomeSettings?.customFooter || `User ID: ${member.user.id}` 
+            }).setTimestamp();
+            
+            // Add banner image if defined
+            if (bannerUrl) {
+                welcomeEmbed.setImage(bannerUrl);
             }
             
             // Send welcome message to channel
@@ -91,6 +155,7 @@ async function handleServerWelcome(member) {
         }
     } catch (error) {
         console.error(`[WELCOME] Error processing server welcome for ${member.user.tag}:`, error.message);
+        console.error(error.stack);
     }
 }
 
