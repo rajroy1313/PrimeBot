@@ -6,12 +6,18 @@ const config = require('../config.js');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('welcomeconfig')
-        .setDescription('Configure welcome settings for the support server')
-        .setDefaultMemberPermissions('0') // Available to everyone but requires permissions
+        .setDescription('Configure welcome settings for this server')
+        .setDefaultMemberPermissions(PermissionFlagsBits.ManageGuild) // Only users with Manage Server permission
         .addSubcommand(subcommand =>
             subcommand
-                .setName('setsupportserver')
-                .setDescription('Set this server as the support server for welcome messages')
+                .setName('enable')
+                .setDescription('Enable or disable welcome messages for this server')
+                .addBooleanOption(option =>
+                    option
+                        .setName('enabled')
+                        .setDescription('Enable or disable welcome messages')
+                        .setRequired(true)
+                )
         )
         .addSubcommand(subcommand =>
             subcommand
@@ -53,6 +59,66 @@ module.exports = {
         )
         .addSubcommand(subcommand =>
             subcommand
+                .setName('dmmessage')
+                .setDescription('Set the welcome DM message template')
+                .addStringOption(option =>
+                    option
+                        .setName('message')
+                        .setDescription('Use {username} for username and {server} for server name')
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('color')
+                .setDescription('Set the welcome embed color')
+                .addStringOption(option =>
+                    option
+                        .setName('color')
+                        .setDescription('Color in hex format (e.g. #5865F2)')
+                        .setRequired(true)
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('toggle')
+                .setDescription('Toggle welcome features on/off')
+                .addStringOption(option =>
+                    option
+                        .setName('feature')
+                        .setDescription('Which feature to toggle')
+                        .setRequired(true)
+                        .addChoices(
+                            { name: 'Show Member Count', value: 'membercount' },
+                            { name: 'Show Join Date', value: 'joindate' },
+                            { name: 'Show Account Age', value: 'accountage' }
+                        )
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('title')
+                .setDescription('Set custom title for welcome embeds')
+                .addStringOption(option =>
+                    option
+                        .setName('title')
+                        .setDescription('Custom title (leave empty to reset to default)')
+                        .setRequired(false)
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
+                .setName('footer')
+                .setDescription('Set custom footer for welcome embeds')
+                .addStringOption(option =>
+                    option
+                        .setName('footer')
+                        .setDescription('Custom footer text (leave empty to reset to default)')
+                        .setRequired(false)
+                )
+        )
+        .addSubcommand(subcommand =>
+            subcommand
                 .setName('show')
                 .setDescription('Show current welcome configuration')
         ),
@@ -67,65 +133,36 @@ module.exports = {
         }
 
         const subcommand = interaction.options.getSubcommand();
-
-        // Config file path
-        const configPath = path.join(__dirname, '../config.js');
-
-        // Create function to update config file
-        const updateConfig = async (property, value, name) => {
-            try {
-                // Read the current config file
-                let configContent = fs.readFileSync(configPath, 'utf8');
-                
-                // Create the regex pattern for the specific property
-                const pattern = new RegExp(`(welcome:\\s*\\{[\\s\\S]*?${property}:\\s*)([^,\\n}]*)(,|\\s*\\n)`, 'g');
-                
-                // Replace the value
-                let newValue = typeof value === 'string' ? `'${value}'` : value;
-                if (value === null) newValue = 'null';
-                
-                // Make the replacement
-                const newContent = configContent.replace(pattern, `$1${newValue}$3`);
-                
-                // Write the updated content back to the file
-                fs.writeFileSync(configPath, newContent, 'utf8');
-                
-                // Update the runtime config
-                if (property === 'supportServerId') {
-                    config.welcome.supportServerId = value;
-                } else if (property === 'channelId') {
-                    config.welcome.channelId = value;
-                } else if (property === 'serverMessage') {
-                    config.welcome.serverMessage = value;
-                } else if (property === 'bannerUrl') {
-                    config.welcome.bannerUrl = value;
-                } else if (property === 'sendDM') {
-                    config.welcome.sendDM = value;
-                }
-                
-                // Send success message
-                const successEmbed = new EmbedBuilder()
-                    .setColor(config.colors.success)
-                    .setTitle('✅ Configuration Updated')
-                    .setDescription(`Welcome ${name} has been updated successfully.`);
-                
-                await interaction.reply({ embeds: [successEmbed] });
-                return true;
-            } catch (error) {
-                console.error('Error updating config:', error);
-                await interaction.reply({ 
-                    content: `There was an error updating the welcome configuration: ${error.message}`,
-                    ephemeral: true
-                });
-                return false;
-            }
-        };
+        const client = interaction.client;
+        
+        // Check if server settings manager is available
+        if (!client.serverSettingsManager) {
+            return interaction.reply({
+                content: 'Server settings manager is not available. Please contact the bot owner.',
+                ephemeral: true
+            });
+        }
+        
+        const guildId = interaction.guild.id;
+        const serverSettings = client.serverSettingsManager.getGuildSettings(guildId);
+        const welcomeSettings = client.serverSettingsManager.getWelcomeSettings(guildId);
 
         // Handle different subcommands
         switch (subcommand) {
-            case 'setsupportserver':
-                // Set the current server as the support server
-                await updateConfig('supportServerId', `'${interaction.guild.id}'`, 'support server');
+            case 'enable':
+                // Enable or disable welcome messages
+                const enabled = interaction.options.getBoolean('enabled');
+                
+                // Update the setting
+                client.serverSettingsManager.updateGuildSetting(guildId, 'welcomeEnabled', enabled);
+                
+                // Send success message
+                const toggleEmbed = new EmbedBuilder()
+                    .setColor(config.colors.success)
+                    .setTitle('✅ Welcome System Updated')
+                    .setDescription(`Welcome messages have been ${enabled ? 'enabled' : 'disabled'} for this server.`);
+                
+                await interaction.reply({ embeds: [toggleEmbed] });
                 break;
                 
             case 'channel':
@@ -140,16 +177,32 @@ module.exports = {
                     });
                 }
                 
-                // Update the config
-                await updateConfig('channelId', `'${channel.id}'`, 'channel');
+                // Update the setting
+                client.serverSettingsManager.setWelcomeChannel(guildId, channel.id);
+                
+                // Send success message
+                const channelEmbed = new EmbedBuilder()
+                    .setColor(config.colors.success)
+                    .setTitle('✅ Welcome Channel Updated')
+                    .setDescription(`Welcome messages will now be sent to <#${channel.id}>.`);
+                
+                await interaction.reply({ embeds: [channelEmbed] });
                 break;
                 
             case 'message':
                 // Get the new message
                 const message = interaction.options.getString('message');
                 
-                // Update the config
-                await updateConfig('serverMessage', message, 'message');
+                // Update the setting
+                client.serverSettingsManager.setWelcomeMessage(guildId, message);
+                
+                // Send success message
+                const messageEmbed = new EmbedBuilder()
+                    .setColor(config.colors.success)
+                    .setTitle('✅ Welcome Message Updated')
+                    .setDescription('The welcome message has been updated.');
+                
+                await interaction.reply({ embeds: [messageEmbed] });
                 break;
                 
             case 'banner':
@@ -164,40 +217,170 @@ module.exports = {
                     });
                 }
                 
-                // Update the config
-                await updateConfig('bannerUrl', url, 'banner');
+                // Update the setting
+                client.serverSettingsManager.setWelcomeBanner(guildId, url);
+                
+                // Send success message with preview
+                const bannerEmbed = new EmbedBuilder()
+                    .setColor(config.colors.success)
+                    .setTitle('✅ Welcome Banner Updated')
+                    .setDescription('The welcome banner has been updated.')
+                    .setImage(url);
+                
+                await interaction.reply({ embeds: [bannerEmbed] });
                 break;
                 
             case 'toggledm':
-                // Toggle the sendDM value
-                const newValue = !config.welcome.sendDM;
+                // Toggle DM setting
+                const newDmValue = client.serverSettingsManager.toggleWelcomeDm(guildId);
                 
-                // Update the config
-                await updateConfig('sendDM', newValue, 'DM setting');
+                // Send success message
+                const dmEmbed = new EmbedBuilder()
+                    .setColor(config.colors.success)
+                    .setTitle('✅ Welcome DMs Updated')
+                    .setDescription(`Welcome DMs have been ${newDmValue ? 'enabled' : 'disabled'} for this server.`);
+                
+                await interaction.reply({ embeds: [dmEmbed] });
+                break;
+                
+            case 'dmmessage':
+                // Get the new DM message
+                const dmMessage = interaction.options.getString('message');
+                
+                // Update the setting
+                client.serverSettingsManager.setWelcomeDmMessage(guildId, dmMessage);
+                
+                // Send success message
+                const dmMessageEmbed = new EmbedBuilder()
+                    .setColor(config.colors.success)
+                    .setTitle('✅ Welcome DM Message Updated')
+                    .setDescription('The welcome DM message has been updated.');
+                
+                await interaction.reply({ embeds: [dmMessageEmbed] });
+                break;
+                
+            case 'color':
+                // Get the color
+                const color = interaction.options.getString('color');
+                
+                // Validate hex color format
+                if (!color.match(/^#[0-9A-F]{6}$/i)) {
+                    return interaction.reply({
+                        content: 'Please provide a valid hex color code (e.g. #5865F2).',
+                        ephemeral: true
+                    });
+                }
+                
+                // Update the setting
+                client.serverSettingsManager.setWelcomeColor(guildId, color);
+                
+                // Send success message
+                const colorEmbed = new EmbedBuilder()
+                    .setColor(color)
+                    .setTitle('✅ Welcome Color Updated')
+                    .setDescription(`The welcome embed color has been set to ${color}.`);
+                
+                await interaction.reply({ embeds: [colorEmbed] });
+                break;
+                
+            case 'toggle':
+                // Get feature to toggle
+                const feature = interaction.options.getString('feature');
+                let featureKey = '';
+                let featureName = '';
+                
+                // Map feature value to setting key
+                switch (feature) {
+                    case 'membercount':
+                        featureKey = 'welcomeShowMemberCount';
+                        featureName = 'Member Count';
+                        break;
+                    case 'joindate':
+                        featureKey = 'welcomeShowJoinDate';
+                        featureName = 'Join Date';
+                        break;
+                    case 'accountage':
+                        featureKey = 'welcomeShowAccountAge';
+                        featureName = 'Account Age';
+                        break;
+                }
+                
+                // Toggle the feature
+                const featureResult = client.serverSettingsManager.toggleWelcomeFeature(guildId, featureKey);
+                
+                // Get the new state
+                const featureState = client.serverSettingsManager.getGuildSettings(guildId)[featureKey];
+                
+                // Send success message
+                const featureEmbed = new EmbedBuilder()
+                    .setColor(config.colors.success)
+                    .setTitle('✅ Welcome Feature Updated')
+                    .setDescription(`The "${featureName}" feature is now ${featureState ? 'enabled' : 'disabled'}.`);
+                
+                await interaction.reply({ embeds: [featureEmbed] });
+                break;
+                
+            case 'title':
+                // Get custom title
+                const title = interaction.options.getString('title') || null;
+                
+                // Update the setting
+                client.serverSettingsManager.updateGuildSetting(guildId, 'welcomeCustomTitle', title);
+                
+                // Send success message
+                const titleEmbed = new EmbedBuilder()
+                    .setColor(config.colors.success)
+                    .setTitle('✅ Welcome Title Updated')
+                    .setDescription(title ? `Custom title set to: "${title}"` : 'Custom title has been reset to default.');
+                
+                await interaction.reply({ embeds: [titleEmbed] });
+                break;
+                
+            case 'footer':
+                // Get custom footer
+                const footer = interaction.options.getString('footer') || null;
+                
+                // Update the setting
+                client.serverSettingsManager.updateGuildSetting(guildId, 'welcomeCustomFooter', footer);
+                
+                // Send success message
+                const footerEmbed = new EmbedBuilder()
+                    .setColor(config.colors.success)
+                    .setTitle('✅ Welcome Footer Updated')
+                    .setDescription(footer ? `Custom footer set to: "${footer}"` : 'Custom footer has been reset to default.');
+                
+                await interaction.reply({ embeds: [footerEmbed] });
                 break;
                 
             case 'show':
-                // Show current configuration
-                const supportServer = config.welcome.supportServerId
-                    ? interaction.client.guilds.cache.get(config.welcome.supportServerId)?.name || 'Unknown'
-                    : 'Not set';
-                    
-                const welcomeChannel = config.welcome.channelId
-                    ? interaction.guild.channels.cache.get(config.welcome.channelId)?.name || 'Unknown'
-                    : 'Auto (first available channel)';
-                    
+                // Show current configuration                    
                 const configEmbed = new EmbedBuilder()
-                    .setColor(config.colors.primary)
+                    .setColor(welcomeSettings.color || config.colors.primary)
                     .setTitle('🔧 Welcome Configuration')
                     .addFields(
-                        { name: 'Support Server', value: `${supportServer} (${config.welcome.supportServerId || 'Not set'})`, inline: true },
-                        { name: 'Welcome Channel', value: welcomeChannel, inline: true },
-                        { name: 'Send DMs', value: config.welcome.sendDM ? 'Enabled' : 'Disabled', inline: true },
-                        { name: 'Welcome Message', value: config.welcome.serverMessage }
+                        { name: 'Status', value: welcomeSettings.enabled ? '✅ Enabled' : '❌ Disabled', inline: true },
+                        { name: 'Welcome Channel', value: welcomeSettings.channelId 
+                            ? `<#${welcomeSettings.channelId}>` 
+                            : 'Auto (first available)', inline: true },
+                        { name: 'Send DMs', value: welcomeSettings.dmEnabled ? '✅ Enabled' : '❌ Disabled', inline: true },
+                        { name: 'Welcome Message', value: welcomeSettings.message || 'Default' },
+                        { name: 'DM Message', value: welcomeSettings.dmMessage ? truncateString(welcomeSettings.dmMessage, 100) : 'Default' }
+                    )
+                    .addFields(
+                        { name: 'Features', value: 
+                            `- Member Count: ${welcomeSettings.showMemberCount ? '✅' : '❌'}\n` +
+                            `- Join Date: ${welcomeSettings.showJoinDate ? '✅' : '❌'}\n` +
+                            `- Account Age: ${welcomeSettings.showAccountAge ? '✅' : '❌'}`
+                        },
+                        { name: 'Custom Settings', value: 
+                            `- Title: ${welcomeSettings.customTitle || 'Default'}\n` +
+                            `- Footer: ${welcomeSettings.customFooter || 'Default'}\n` +
+                            `- Color: ${welcomeSettings.color || 'Default'}`
+                        }
                     );
                     
-                if (config.welcome.bannerUrl) {
-                    configEmbed.setImage(config.welcome.bannerUrl);
+                if (welcomeSettings.bannerUrl) {
+                    configEmbed.setImage(welcomeSettings.bannerUrl);
                 }
                 
                 await interaction.reply({ embeds: [configEmbed] });
@@ -205,3 +388,9 @@ module.exports = {
         }
     },
 };
+
+// Helper function to truncate strings
+function truncateString(str, maxLength) {
+    if (str.length <= maxLength) return str;
+    return str.slice(0, maxLength - 3) + '...';
+}

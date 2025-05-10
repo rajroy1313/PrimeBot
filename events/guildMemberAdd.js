@@ -162,22 +162,33 @@ async function handleServerWelcome(member, welcomeSettings, client) {
 /**
  * Handle sending a direct message to the new member
  * @param {GuildMember} member - The member who joined
+ * @param {Object} welcomeSettings - Server-specific welcome settings
+ * @param {Client} client - Discord client
  */
-async function handleDirectMessage(member) {
+async function handleDirectMessage(member, welcomeSettings, client) {
     try {
+        // Determine which settings to use
+        const messageTemplate = welcomeSettings?.dmMessage || config.welcome.dmMessage;
+        const embedColor = welcomeSettings?.color || config.colors.primary;
+        
         // Format the DM message
-        const dmMessage = config.welcome.dmMessage
+        const dmMessage = messageTemplate
             .replace('{username}', member.user.username)
             .replace('{server}', member.guild.name);
         
         // Create DM embed
         const dmEmbed = new EmbedBuilder()
-            .setColor(config.colors.primary)
+            .setColor(embedColor)
             .setTitle(`Welcome to ${member.guild.name}!`)
             .setDescription(dmMessage)
             .setThumbnail(member.guild.iconURL({ dynamic: true }))
             .setFooter({ text: 'We\'re happy to have you here!' })
             .setTimestamp();
+        
+        // Add banner image if defined
+        if (welcomeSettings?.bannerUrl) {
+            dmEmbed.setImage(welcomeSettings.bannerUrl);
+        }
         
         // Send DM to the new member
         await member.send({ embeds: [dmEmbed] }).catch(error => {
