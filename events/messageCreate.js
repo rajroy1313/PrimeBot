@@ -343,6 +343,9 @@ module.exports = {
                 .trim()
                 .split(/ +/);
             const commandName = args.shift().toLowerCase();
+            
+            // Debug output to help diagnose command issues
+            console.log(`[DEBUG] Command received: ${commandName}, Args: ${args.join(', ')}, From: ${message.author.tag}`);
 
             // Handle commands
             switch (commandName) {
@@ -411,6 +414,24 @@ module.exports = {
                             // Add leveling commands to the main commands list
                             allCommands = [...allCommands, ...levelingCommands];
                         }
+                    }
+                    
+                    // Add admin commands if user has proper permissions
+                    if (message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                        const adminCommands = [
+                            { name: "🔧 Admin - Welcome System", value: "Configure how the bot welcomes new members:" },
+                            { name: `${prefix}welcome-enable`, value: "Enable the welcome system" },
+                            { name: `${prefix}welcome-disable`, value: "Disable the welcome system" },
+                            { name: `${prefix}welcome-channel #channel`, value: "Set the welcome message channel" },
+                            { name: "🔧 Admin - Leveling System", value: "Configure the server's leveling system:" },
+                            { name: `${prefix}level-enable`, value: "Enable the leveling system" },
+                            { name: `${prefix}level-disable`, value: "Disable the leveling system" },
+                            { name: `${prefix}level-channel #channel`, value: "Set the level-up notification channel" },
+                            { name: `${prefix}level-multiplier 1.5`, value: "Set the XP multiplier (default: 1.0)" }
+                        ];
+                        
+                        // Add admin commands to the list
+                        allCommands = [...allCommands, ...adminCommands];
                     }
                     
                     // Settings for pagination
@@ -2382,8 +2403,10 @@ module.exports = {
                 case "welcome-enable":
                 case "welcomeenable":
                 case "welcome-on":
+                    console.log(`[DEBUG] Welcome enable command triggered by ${message.author.tag}`);
                     // Only available to admins with proper permissions
                     if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                        console.log(`[DEBUG] Permission check failed for ${message.author.tag}`);
                         message.reply("You don't have permission to configure welcome settings.");
                         return;
                     }

@@ -473,6 +473,114 @@ class ServerSettingsManager {
     }
 
     /**
+     * Update welcome settings for a guild with an options object
+     * @param {string} guildId - Discord Guild ID
+     * @param {Object} options - Welcome settings to update
+     * @returns {boolean} Whether the settings were successfully updated
+     */
+    updateWelcomeSettings(guildId, options) {
+        const guildSettings = this.getGuildSettings(guildId);
+        let updated = false;
+        
+        if (options.hasOwnProperty('enabled')) {
+            guildSettings.welcomeEnabled = options.enabled;
+            updated = true;
+        }
+        
+        if (options.channelId) {
+            guildSettings.welcomeChannelId = options.channelId;
+            updated = true;
+        }
+        
+        if (options.message) {
+            guildSettings.welcomeMessage = options.message;
+            updated = true;
+        }
+        
+        if (options.bannerUrl) {
+            guildSettings.welcomeBannerUrl = options.bannerUrl;
+            updated = true;
+        }
+        
+        if (options.color) {
+            guildSettings.welcomeColor = options.color;
+            updated = true;
+        }
+        
+        if (options.hasOwnProperty('dmEnabled')) {
+            guildSettings.welcomeDmEnabled = options.dmEnabled;
+            updated = true;
+        }
+        
+        if (options.dmMessage) {
+            guildSettings.welcomeDmMessage = options.dmMessage;
+            updated = true;
+        }
+        
+        if (updated) {
+            this.serverSettings.set(guildId, guildSettings);
+            return this.saveSettings();
+        }
+        
+        return false;
+    }
+    
+    /**
+     * Update leveling settings for a guild with an options object
+     * @param {string} guildId - Discord Guild ID
+     * @param {Object} options - Leveling settings to update
+     * @returns {boolean} Whether the settings were successfully updated
+     */
+    updateLevelingSettings(guildId, options) {
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure leveling object exists
+        if (!guildSettings.leveling) {
+            guildSettings.leveling = {
+                enabled: true,
+                levelUpChannelId: null,
+                xpMultiplier: 1.0,
+                xpCooldown: 60000
+            };
+        }
+        
+        let updated = false;
+        
+        if (options.hasOwnProperty('enabled')) {
+            guildSettings.leveling.enabled = options.enabled;
+            updated = true;
+        }
+        
+        if (options.channelId) {
+            guildSettings.leveling.levelUpChannelId = options.channelId;
+            updated = true;
+        }
+        
+        if (options.multiplier) {
+            // Validate multiplier
+            if (options.multiplier > 0 && options.multiplier <= 5) {
+                guildSettings.leveling.xpMultiplier = parseFloat(options.multiplier.toFixed(2));
+                updated = true;
+            }
+        }
+        
+        if (options.cooldown) {
+            // Validate cooldown
+            if (options.cooldown >= 5 && options.cooldown <= 300) {
+                guildSettings.leveling.xpCooldown = options.cooldown * 1000;
+                updated = true;
+            }
+        }
+        
+        if (updated) {
+            this.serverSettings.set(guildId, guildSettings);
+            return this.saveSettings();
+        }
+        
+        return false;
+    }
+
+    /**
      * Get leveling settings for a guild
      * @param {string} guildId - Discord Guild ID
      * @returns {Object} Leveling settings
