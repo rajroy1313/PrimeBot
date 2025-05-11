@@ -587,6 +587,178 @@ class ServerSettingsManager {
     }
 
     /**
+     * Toggle auto-reactions for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @returns {boolean} The new state (true = enabled, false = disabled)
+     */
+    toggleAutoReactions(guildId) {
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure autoReactions object exists
+        if (!guildSettings.autoReactions) {
+            guildSettings.autoReactions = {
+                enabled: false,
+                reactions: []
+            };
+        }
+        
+        // Toggle the current value
+        const newValue = !guildSettings.autoReactions.enabled;
+        guildSettings.autoReactions.enabled = newValue;
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        this.saveSettings();
+        
+        return newValue;
+    }
+
+    /**
+     * Add an auto-reaction for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} trigger - The trigger word/phrase
+     * @param {string} emoji - The emoji to react with
+     * @param {boolean} caseSensitive - Whether the trigger is case-sensitive
+     * @returns {Object|boolean} The created reaction object or false if failed
+     */
+    addAutoReaction(guildId, trigger, emoji, caseSensitive = false) {
+        if (!trigger || !emoji) return false;
+        
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure autoReactions object exists
+        if (!guildSettings.autoReactions) {
+            guildSettings.autoReactions = {
+                enabled: true,
+                reactions: []
+            };
+        }
+        
+        // Check if the trigger already exists
+        const existingIndex = guildSettings.autoReactions.reactions.findIndex(
+            r => r.trigger.toLowerCase() === trigger.toLowerCase()
+        );
+        
+        if (existingIndex !== -1) {
+            // Update existing reaction
+            guildSettings.autoReactions.reactions[existingIndex] = {
+                trigger,
+                emoji,
+                caseSensitive
+            };
+        } else {
+            // Add new reaction
+            guildSettings.autoReactions.reactions.push({
+                trigger,
+                emoji,
+                caseSensitive
+            });
+        }
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        this.saveSettings();
+        
+        return guildSettings.autoReactions.reactions.find(
+            r => r.trigger.toLowerCase() === trigger.toLowerCase()
+        );
+    }
+
+    /**
+     * Remove an auto-reaction for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} trigger - The trigger word/phrase to remove
+     * @returns {boolean} Whether the reaction was successfully removed
+     */
+    removeAutoReaction(guildId, trigger) {
+        if (!trigger) return false;
+        
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure autoReactions object exists
+        if (!guildSettings.autoReactions) {
+            return false;
+        }
+        
+        // Check if the trigger exists
+        const initialLength = guildSettings.autoReactions.reactions.length;
+        guildSettings.autoReactions.reactions = guildSettings.autoReactions.reactions.filter(
+            r => r.trigger.toLowerCase() !== trigger.toLowerCase()
+        );
+        
+        if (initialLength === guildSettings.autoReactions.reactions.length) {
+            return false; // No reaction was removed
+        }
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        this.saveSettings();
+        
+        return true;
+    }
+
+    /**
+     * Get all auto-reactions for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @returns {Array} Array of reaction objects
+     */
+    getAutoReactions(guildId) {
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        if (!guildSettings.autoReactions) {
+            guildSettings.autoReactions = {
+                enabled: false,
+                reactions: []
+            };
+            this.serverSettings.set(guildId, guildSettings);
+            this.saveSettings();
+        }
+        
+        return {
+            enabled: guildSettings.autoReactions.enabled,
+            reactions: guildSettings.autoReactions.reactions
+        };
+    }
+
+    /**
+     * Check a message for auto-reaction triggers
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} content - The message content to check
+     * @returns {Array} Array of emoji to react with
+     */
+    getTriggeredReactions(guildId, content) {
+        const autoReactions = this.getAutoReactions(guildId);
+        
+        if (!autoReactions.enabled || autoReactions.reactions.length === 0) {
+            return [];
+        }
+        
+        const triggeredEmojis = [];
+        
+        for (const reaction of autoReactions.reactions) {
+            let match = false;
+            
+            if (reaction.caseSensitive) {
+                // Case-sensitive match
+                if (content.includes(reaction.trigger)) {
+                    match = true;
+                }
+            } else {
+                // Case-insensitive match
+                if (content.toLowerCase().includes(reaction.trigger.toLowerCase())) {
+                    match = true;
+                }
+            }
+            
+            if (match && !triggeredEmojis.includes(reaction.emoji)) {
+                triggeredEmojis.push(reaction.emoji);
+            }
+        }
+        
+        return triggeredEmojis;
+    }
+
+    /**
      * Get leveling settings for a guild
      * @param {string} guildId - Discord Guild ID
      * @returns {Object} Leveling settings

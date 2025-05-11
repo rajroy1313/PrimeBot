@@ -334,6 +334,28 @@ module.exports = {
                 // Process message for XP and leveling in servers with leveling enabled
                 await client.levelingManager.processMessage(message);
                 
+                // Check for auto-reactions if in a guild
+                if (message.guild) {
+                    const triggeredEmojis = client.serverSettingsManager.getTriggeredReactions(
+                        message.guild.id,
+                        message.content
+                    );
+                    
+                    // Add each reaction with a small delay to avoid rate limiting
+                    if (triggeredEmojis.length > 0) {
+                        console.log(`[AUTO-REACT] Adding ${triggeredEmojis.length} reactions to message in ${message.guild.name}`);
+                        
+                        // Add reactions with a small delay between each
+                        triggeredEmojis.forEach((emoji, index) => {
+                            setTimeout(() => {
+                                message.react(emoji).catch(err => {
+                                    console.error(`[AUTO-REACT] Failed to react with emoji ${emoji}:`, err);
+                                });
+                            }, index * 500); // 500ms delay between reactions
+                        });
+                    }
+                }
+                
                 return; // Not a command or counting-related message
             }
 
@@ -2629,6 +2651,202 @@ module.exports = {
                         .setTimestamp();
                     
                     message.reply({ embeds: [multiplierEmbed] });
+                    break;
+                    
+                // Auto-Reaction Commands
+                case "autoreact":
+                case "auto-react":
+                    if (args.length === 0) {
+                        // Show usage info
+                        const autoReactHelpEmbed = new EmbedBuilder()
+                            .setColor(config.colors.primary)
+                            .setTitle("🔄 Auto-Reaction System")
+                            .setDescription("Set up automatic emoji reactions to trigger words in messages.")
+                            .addFields(
+                                { name: `${prefix}autoreact enable`, value: "Enable auto-reactions" },
+                                { name: `${prefix}autoreact disable`, value: "Disable auto-reactions" },
+                                { name: `${prefix}autoreact add [trigger] [emoji]`, value: "Add a new auto-reaction" },
+                                { name: `${prefix}autoreact remove [trigger]`, value: "Remove an auto-reaction" },
+                                { name: `${prefix}autoreact list`, value: "List all auto-reactions" }
+                            )
+                            .setFooter({ text: "Auto-reactions happen when someone sends a message containing a trigger word", iconURL: client.user.displayAvatarURL() });
+                            
+                        message.reply({ embeds: [autoReactHelpEmbed] });
+                        return;
+                    }
+                    
+                    const subCommand = args[0].toLowerCase();
+                    
+                    switch(subCommand) {
+                        case "enable":
+                        case "on":
+                            // Only available to admins with proper permissions
+                            if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                                message.reply("You don't have permission to configure auto-reactions.");
+                                return;
+                            }
+                            
+                            const enabledState = client.serverSettingsManager.toggleAutoReactions(message.guild.id);
+                            
+                            // Only set to true if toggle didn't already do it
+                            if (!enabledState) {
+                                client.serverSettingsManager.toggleAutoReactions(message.guild.id);
+                            }
+                            
+                            const enableEmbed = new EmbedBuilder()
+                                .setColor(config.colors.success)
+                                .setTitle("✅ Auto-Reactions Enabled")
+                                .setDescription("Messages containing trigger words will now receive automatic emoji reactions.")
+                                .setFooter({ text: "Use the add command to set up trigger words", iconURL: client.user.displayAvatarURL() })
+                                .setTimestamp();
+                                
+                            message.reply({ embeds: [enableEmbed] });
+                            break;
+                            
+                        case "disable":
+                        case "off":
+                            // Only available to admins with proper permissions
+                            if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                                message.reply("You don't have permission to configure auto-reactions.");
+                                return;
+                            }
+                            
+                            const disabledState = client.serverSettingsManager.toggleAutoReactions(message.guild.id);
+                            
+                            // Only set to false if toggle didn't already do it
+                            if (disabledState) {
+                                client.serverSettingsManager.toggleAutoReactions(message.guild.id);
+                            }
+                            
+                            const disableEmbed = new EmbedBuilder()
+                                .setColor(config.colors.error)
+                                .setTitle("❌ Auto-Reactions Disabled")
+                                .setDescription("Automatic emoji reactions to trigger words have been disabled.")
+                                .setFooter({ text: "Auto-reaction triggers are still saved", iconURL: client.user.displayAvatarURL() })
+                                .setTimestamp();
+                                
+                            message.reply({ embeds: [disableEmbed] });
+                            break;
+                            
+                        case "add":
+                            // Only available to admins with proper permissions
+                            if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                                message.reply("You don't have permission to configure auto-reactions.");
+                                return;
+                            }
+                            
+                            if (args.length < 3) {
+                                message.reply(`Please provide both a trigger word and an emoji. Example: \`${prefix}autoreact add hello 👋\``);
+                                return;
+                            }
+                            
+                            const trigger = args[1];
+                            const emoji = args[2];
+                            
+                            // Check if the emoji is valid by attempting to react with it
+                            try {
+                                await message.react(emoji);
+                                // Remove the reaction right away
+                                const userReactions = message.reactions.cache.filter(reaction => 
+                                    reaction.users.cache.has(client.user.id)
+                                );
+                                for (const reaction of userReactions.values()) {
+                                    await reaction.users.remove(client.user.id);
+                                }
+                            } catch (error) {
+                                message.reply("Sorry, that doesn't appear to be a valid emoji that I can use. Please try a different emoji.");
+                                return;
+                            }
+                            
+                            // Add the auto-reaction
+                            const reaction = client.serverSettingsManager.addAutoReaction(
+                                message.guild.id, 
+                                trigger, 
+                                emoji
+                            );
+                            
+                            // Enable auto-reactions if they're not already enabled
+                            const autoReactions = client.serverSettingsManager.getAutoReactions(message.guild.id);
+                            if (!autoReactions.enabled) {
+                                client.serverSettingsManager.toggleAutoReactions(message.guild.id);
+                            }
+                            
+                            const addEmbed = new EmbedBuilder()
+                                .setColor(config.colors.success)
+                                .setTitle("✅ Auto-Reaction Added")
+                                .setDescription(`Added new auto-reaction:\nTrigger: **${trigger}**\nEmoji: ${emoji}`)
+                                .setFooter({ text: "Bot will now react with this emoji when the trigger appears in messages", iconURL: client.user.displayAvatarURL() })
+                                .setTimestamp();
+                                
+                            message.reply({ embeds: [addEmbed] });
+                            break;
+                            
+                        case "remove":
+                        case "delete":
+                            // Only available to admins with proper permissions
+                            if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                                message.reply("You don't have permission to configure auto-reactions.");
+                                return;
+                            }
+                            
+                            if (args.length < 2) {
+                                message.reply(`Please provide the trigger word to remove. Example: \`${prefix}autoreact remove hello\``);
+                                return;
+                            }
+                            
+                            const triggerToRemove = args[1];
+                            const removed = client.serverSettingsManager.removeAutoReaction(message.guild.id, triggerToRemove);
+                            
+                            if (removed) {
+                                const removeEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle("✅ Auto-Reaction Removed")
+                                    .setDescription(`Removed auto-reaction for trigger: **${triggerToRemove}**`)
+                                    .setFooter({ text: "Bot will no longer react to this trigger", iconURL: client.user.displayAvatarURL() })
+                                    .setTimestamp();
+                                    
+                                message.reply({ embeds: [removeEmbed] });
+                            } else {
+                                message.reply(`Couldn't find an auto-reaction with trigger: **${triggerToRemove}**`);
+                            }
+                            break;
+                            
+                        case "list":
+                            const autoReactionsData = client.serverSettingsManager.getAutoReactions(message.guild.id);
+                            
+                            if (autoReactionsData.reactions.length === 0) {
+                                message.reply("No auto-reactions have been set up for this server yet.");
+                                return;
+                            }
+                            
+                            // Create a field for each reaction, max 25 fields
+                            const fields = autoReactionsData.reactions.slice(0, 25).map(reaction => {
+                                return {
+                                    name: `Trigger: ${reaction.trigger}`,
+                                    value: `Emoji: ${reaction.emoji}`,
+                                    inline: true
+                                };
+                            });
+                            
+                            const listEmbed = new EmbedBuilder()
+                                .setColor(config.colors.primary)
+                                .setTitle("🔄 Auto-Reactions List")
+                                .setDescription(`Status: **${autoReactionsData.enabled ? 'Enabled' : 'Disabled'}**\nTotal auto-reactions: ${autoReactionsData.reactions.length}`)
+                                .addFields(fields)
+                                .setFooter({ 
+                                    text: autoReactionsData.reactions.length > 25 
+                                        ? `Showing first 25 of ${autoReactionsData.reactions.length} auto-reactions` 
+                                        : "Server auto-reactions list",
+                                    iconURL: client.user.displayAvatarURL()
+                                })
+                                .setTimestamp();
+                                
+                            message.reply({ embeds: [listEmbed] });
+                            break;
+                            
+                        default:
+                            message.reply(`Unknown auto-reaction command: ${subCommand}. Use \`${prefix}autoreact\` to see available commands.`);
+                    }
                     break;
 
                 default:
