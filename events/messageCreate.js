@@ -308,24 +308,47 @@ module.exports = {
                 return;
             }
 
-            // Check if message starts with regular prefix
-            if (!message.content.startsWith(prefix)) {
+            // Process auto-reactions for trigger words if in a guild
+            if (message.guild) {
+                // Process reactions using serverSettingsManager
+                await client.serverSettingsManager.processAutoReactions(message);
+            }
+            
+            // Check if message starts with regular prefix 
+            const hasPrefix = message.content.startsWith(prefix);
+            
+            // Check if the user has no-prefix mode enabled
+            const hasNoPrefixMode = message.guild && 
+                client.serverSettingsManager.hasNoPrefixMode(message.guild.id, message.author.id);
+            
+            // Check if the message can be processed as a command
+            if (!hasPrefix && !hasNoPrefixMode) {
                 // Process counting game messages before returning
                 const processed = await client.countingManager.processCountingMessage(message);
                 if (processed) return; // Message was processed as a count
                 
-                // Process message for XP and leveling (only in support server)
+                // Process message for XP and leveling
                 await client.levelingManager.processMessage(message);
                 
                 return; // Not a command or counting-related message
             }
 
             // Parse command and arguments
-            const args = message.content
-                .slice(prefix.length)
-                .trim()
-                .split(/ +/);
-            const commandName = args.shift().toLowerCase();
+            let args;
+            let commandName;
+            
+            if (hasPrefix) {
+                // Parse with prefix
+                args = message.content
+                    .slice(prefix.length)
+                    .trim()
+                    .split(/ +/);
+                commandName = args.shift().toLowerCase();
+            } else {
+                // No-prefix mode parsing (treat the first word as the command)
+                args = message.content.trim().split(/ +/);
+                commandName = args.shift().toLowerCase();
+            }
 
             // Handle commands
             switch (commandName) {
