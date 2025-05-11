@@ -25,7 +25,6 @@ agentRequireRestartOnSave = false
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node index.js"
-waitForPort = 5000
 
 [deployment]
 run = ["sh", "-c", "node index.js"]

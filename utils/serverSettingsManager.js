@@ -102,6 +102,12 @@ class ServerSettingsManager {
                     xpCooldown: 60000 // Default 1 minute cooldown
                 },
                 
+                // Auto-reaction settings
+                autoReactions: {
+                    enabled: false,
+                    reactions: [] // Array of { trigger: 'word', emoji: '👍', caseSensitive: false }
+                },
+                
                 // Add other default settings as needed
             };
             
