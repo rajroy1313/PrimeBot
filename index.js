@@ -76,8 +76,24 @@ const PollManager = require('./utils/pollManager');
 client.pollManager = new PollManager(client);
 
 // Initialize birthday manager
-const BirthdayManager = require('./utils/birthdayManager');
-client.birthdayManager = new BirthdayManager(client);
+try {
+    const BirthdayManager = require('./utils/birthdayManager');
+    client.birthdayManager = new BirthdayManager(client);
+    console.log('Successfully loaded BirthdayManager');
+} catch (error) {
+    console.error('Failed to load BirthdayManager:', error.message);
+    // Create a temporary birthday manager to prevent crashes
+    client.birthdayManager = {
+        getBirthday: () => null,
+        setBirthday: () => false,
+        removeBirthday: () => false,
+        getAllBirthdays: () => new Map(),
+        getUpcomingBirthdays: () => [],
+        setAnnouncementChannel: () => false,
+        setBirthdayRole: () => false,
+        getGuildConfig: () => ({ announcementChannel: null, birthdayRole: null })
+    };
+}
 
 // Initialize emoji manager
 const EmojiManager = require('./utils/emojiManager');

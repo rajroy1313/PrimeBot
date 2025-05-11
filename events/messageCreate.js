@@ -1828,9 +1828,10 @@ module.exports = {
                 case "leaderboard":
                 case "levels":
                 case "lb":
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Check if leveling is enabled for this server
+                    const lbServerSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
+                    if (!lbServerSettings.leveling?.enabled) {
+                        message.reply("The leveling system is not enabled in this server. Server administrators can enable it with `/leveling settings setting:enable`.");
                         return;
                     }
                     
@@ -1843,14 +1844,24 @@ module.exports = {
                         }
                     }
                     
+                    // Show a loading message since leaderboard generation can take time
+                    const loadingLbMessage = await message.reply("Loading leaderboard data...");
+                    
                     // Get the leaderboard embed
                     const leaderboardData = await client.levelingManager.createLeaderboardEmbed(
                         message.guild.id, 
                         leaderboardPage
                     );
                     
-                    // Send the message
-                    const leaderboardReply = await message.reply({ 
+                    // Check if there's leaderboard data
+                    if (!leaderboardData || !leaderboardData.embed) {
+                        loadingLbMessage.edit("No one has earned XP in this server yet.");
+                        return;
+                    }
+                    
+                    // Send the message and delete loading message
+                    loadingLbMessage.edit({ 
+                        content: ' ',
                         embeds: [leaderboardData.embed],
                         components: leaderboardData.maxPage > 1 ? [
                             new ActionRowBuilder().addComponents(
@@ -1961,9 +1972,10 @@ module.exports = {
                 case "profile":
                 case "exp":
                 case "level":
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Check if leveling is enabled for this server
+                    const rankServerSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
+                    if (!rankServerSettings.leveling?.enabled) {
+                        message.reply("The leveling system is not enabled in this server. Server administrators can enable it with `/leveling settings setting:enable`.");
                         return;
                     }
                     
@@ -1973,6 +1985,9 @@ module.exports = {
                         targetUser = message.mentions.users.first();
                     }
                     
+                    // Show a loading message since profile generation can take time
+                    const loadingMessage = await message.reply("Loading profile data...");
+                    
                     // Get user's profile
                     const profileData = await client.levelingManager.createProfileEmbed(
                         message.guild.id,
@@ -1980,12 +1995,12 @@ module.exports = {
                     );
                     
                     if (!profileData) {
-                        message.reply("Could not retrieve user profile data.");
+                        loadingMessage.edit(`${targetUser.id === message.author.id ? 'You haven\'t' : `${targetUser.username} hasn't`} earned any XP in this server yet.`);
                         return;
                     }
                     
-                    // Send the profile
-                    message.reply({ embeds: [profileData.embed] });
+                    // Send the profile and delete loading message
+                    loadingMessage.edit({ content: ' ', embeds: [profileData.embed] });
                     break;
                     
                 case "set-level":
@@ -2096,26 +2111,36 @@ module.exports = {
                     break;
                     
                 case "badges":
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Check if leveling is enabled for this server
+                    const badgesServerSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
+                    if (!badgesServerSettings.leveling?.enabled) {
+                        message.reply("The leveling system is not enabled in this server. Server administrators can enable it with `/leveling settings setting:enable`.");
                         return;
                     }
                     
                     // Get user if specified
-                    let badgesUser = null;
+                    let badgesUser = message.author;
                     if (args.length > 0 && message.mentions.users.size > 0) {
                         badgesUser = message.mentions.users.first();
                     }
                     
+                    // Show loading message
+                    const loadingBadgesMessage = await message.reply("Loading badges data...");
+                    
                     // Create badges embed
                     const badgesData = await client.levelingManager.createBadgesEmbed(
                         message.guild.id,
-                        badgesUser ? badgesUser.id : message.author.id
+                        badgesUser.id
                     );
                     
-                    // Send the message
-                    message.reply({ embeds: [badgesData.embed] });
+                    // Check if badges data exists
+                    if (!badgesData || !badgesData.embed) {
+                        loadingBadgesMessage.edit(`${badgesUser.id === message.author.id ? 'You don\'t' : `${badgesUser.username} doesn't`} have any badges yet.`);
+                        return;
+                    }
+                    
+                    // Send the message and delete loading message
+                    loadingBadgesMessage.edit({ content: ' ', embeds: [badgesData.embed] });
                     break;
                     
                 case "award-badge":
