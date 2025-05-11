@@ -417,7 +417,8 @@ module.exports = {
                         { name: `${prefix}gend [message_id]`, value: "Ends a giveaway early" },
                         { name: `${prefix}reroll [message_id]`, value: "Rerolls winners for a giveaway" },
                         { name: `${prefix}echo [message]`, value: "Makes the bot repeat a message" },
-                        { name: `${prefix}ping`, value: "Shows the bot's latency" },
+                        { name: `${prefix}ping`, value: "Shows the bot's latency with an attractive visual display" },
+                        { name: `${prefix}np`, value: "Configure no-prefix mode for using commands without a prefix" },
                         { name: `${prefix}thelp`, value: "Shows all ticket system commands" },
                         { name: `${prefix}ticket [channel] (roles)`, value: "Creates a ticket panel" },
                         
@@ -2516,6 +2517,244 @@ module.exports = {
                     message.reply({ embeds: [welcomeDisableEmbed] });
                     break;
                     
+                case "ping":
+                    try {
+                        const loadingEmbed = new EmbedBuilder()
+                            .setColor(config.colors.primary)
+                            .setTitle("📡 Ping Check")
+                            .setDescription("Measuring latency...");
+                            
+                        const sentMessage = await message.channel.send({ embeds: [loadingEmbed] });
+                        const ping = sentMessage.createdTimestamp - message.createdTimestamp;
+                        const apiPing = Math.round(client.ws.ping);
+                        
+                        // Determine color based on ping
+                        let color = config.colors.success; // Good ping (< 200ms)
+                        if (ping > 500) {
+                            color = config.colors.error; // Poor ping (> 500ms)
+                        } else if (ping > 200) {
+                            color = config.colors.warning; // Medium ping (> 200ms)
+                        }
+                        
+                        // Create a visual ping bar
+                        const createPingBar = (latency) => {
+                            const maxBars = 10;
+                            const bars = Math.min(Math.ceil(latency / 100), maxBars);
+                            
+                            let barString = '';
+                            for (let i = 0; i < maxBars; i++) {
+                                if (i < bars) {
+                                    barString += '█'; // Full block for filled part
+                                } else {
+                                    barString += '░'; // Light block for empty part
+                                }
+                            }
+                            
+                            return barString;
+                        };
+                        
+                        const pingEmbed = new EmbedBuilder()
+                            .setColor(color)
+                            .setTitle("📡 Ping Results")
+                            .setDescription(`${ping <= 200 ? '✅' : ping <= 500 ? '⚠️' : '⛔'} Bot Status: ${ping <= 200 ? 'Excellent' : ping <= 500 ? 'Good' : 'Slow'}`)
+                            .addFields(
+                                { 
+                                    name: '🤖 Bot Latency', 
+                                    value: `${ping}ms\n${createPingBar(ping)}`,
+                                    inline: true 
+                                },
+                                { 
+                                    name: '📶 API Latency', 
+                                    value: `${apiPing}ms\n${createPingBar(apiPing)}`,
+                                    inline: true 
+                                }
+                            )
+                            .setFooter({ 
+                                text: `Requested by ${message.author.tag}`,
+                                iconURL: message.author.displayAvatarURL() 
+                            })
+                            .setTimestamp();
+                        
+                        sentMessage.edit({ embeds: [pingEmbed] });
+                    } catch (error) {
+                        console.error("Error handling ping:", error);
+                        message.reply(
+                            "Sorry, I encountered an error while processing your ping. Please try again later.",
+                        );
+                    }
+                    break;
+                    
+                case "np":
+                case "noprefix":
+                    // Check if the command is being used in a guild
+                    if (!message.guild) {
+                        message.reply("This command can only be used in a server.");
+                        return;
+                    }
+                    
+                    if (args.length === 0) {
+                        // Show usage info
+                        const npHelpEmbed = new EmbedBuilder()
+                            .setColor(config.colors.primary)
+                            .setTitle("🪄 No-Prefix Mode")
+                            .setDescription("Enable no-prefix mode for yourself or others, allowing commands to be used without the prefix.")
+                            .addFields(
+                                { name: `${prefix}np enable [minutes]`, value: "Enable no-prefix mode for yourself (default: 10 minutes)" },
+                                { name: `${prefix}np disable`, value: "Disable no-prefix mode for yourself" },
+                                { name: `${prefix}np status`, value: "Check your current no-prefix mode status" },
+                                { name: `${prefix}np user @mention [minutes]`, value: "Enable no-prefix mode for another user (requires Manage Server permission)" }
+                            )
+                            .setFooter({ text: "No-prefix mode allows you to use commands without typing the prefix", iconURL: client.user.displayAvatarURL() });
+                            
+                        message.reply({ embeds: [npHelpEmbed] });
+                        return;
+                    }
+                    
+                    const npSubCommand = args[0].toLowerCase();
+                    
+                    switch(npSubCommand) {
+                        case "enable":
+                        case "on":
+                            // Parse duration if provided
+                            let duration = 10; // Default 10 minutes
+                            if (args.length > 1) {
+                                const requestedDuration = parseInt(args[1]);
+                                if (!isNaN(requestedDuration) && requestedDuration > 0 && requestedDuration <= 60) {
+                                    duration = requestedDuration;
+                                }
+                            }
+                            
+                            // Enable no-prefix mode for the user
+                            const result = client.serverSettingsManager.enableNoPrefixMode(
+                                message.guild.id,
+                                message.author.id,
+                                duration
+                            );
+                            
+                            if (result.success) {
+                                // Calculate expiration time for display
+                                const expirationDate = new Date(result.expiresAt);
+                                const timeString = expirationDate.toLocaleTimeString();
+                                
+                                const enableEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle("🪄 No-Prefix Mode Enabled")
+                                    .setDescription("You can now use commands without the prefix!")
+                                    .addFields(
+                                        { name: "Duration", value: `${duration} minute${duration !== 1 ? 's' : ''}` },
+                                        { name: "Expires", value: `<t:${Math.floor(result.expiresAt / 1000)}:R>` },
+                                        { name: "How to use", value: "Simply type command names without the prefix. For example: `ping` instead of `$ping`." }
+                                    )
+                                    .setFooter({ text: "To disable early, use $np disable", iconURL: client.user.displayAvatarURL() })
+                                    .setTimestamp();
+                                    
+                                message.reply({ embeds: [enableEmbed] });
+                            } else {
+                                message.reply(result.message || "Failed to enable no-prefix mode.");
+                            }
+                            break;
+                            
+                        case "disable":
+                        case "off":
+                            // Disable no-prefix mode for the user
+                            const disabled = client.serverSettingsManager.disableNoPrefixMode(
+                                message.guild.id,
+                                message.author.id
+                            );
+                            
+                            if (disabled) {
+                                const disableEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.error)
+                                    .setTitle("🪄 No-Prefix Mode Disabled")
+                                    .setDescription("No-prefix mode has been disabled. You'll need to use the command prefix again.")
+                                    .setFooter({ text: `Prefix: ${prefix}`, iconURL: client.user.displayAvatarURL() })
+                                    .setTimestamp();
+                                    
+                                message.reply({ embeds: [disableEmbed] });
+                            } else {
+                                message.reply("You don't have no-prefix mode enabled.");
+                            }
+                            break;
+                            
+                        case "status":
+                        case "check":
+                            // Check no-prefix mode status
+                            const expirationTime = client.serverSettingsManager.getNoPrefixExpiration(
+                                message.guild.id,
+                                message.author.id
+                            );
+                            
+                            if (expirationTime) {
+                                const statusEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.primary)
+                                    .setTitle("🪄 No-Prefix Mode Status")
+                                    .setDescription("Your no-prefix mode is currently active!")
+                                    .addFields(
+                                        { name: "Expires", value: `<t:${Math.floor(expirationTime / 1000)}:R>` }
+                                    )
+                                    .setFooter({ text: "To disable early, use $np disable", iconURL: client.user.displayAvatarURL() })
+                                    .setTimestamp();
+                                    
+                                message.reply({ embeds: [statusEmbed] });
+                            } else {
+                                message.reply("You don't have no-prefix mode enabled.");
+                            }
+                            break;
+                            
+                        case "user":
+                            // Only available to admins with proper permissions
+                            if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                                message.reply("You don't have permission to enable no-prefix mode for other users.");
+                                return;
+                            }
+                            
+                            // Check if a user is mentioned
+                            if (message.mentions.users.size === 0) {
+                                message.reply("Please mention a user to enable no-prefix mode for them.");
+                                return;
+                            }
+                            
+                            const targetUser = message.mentions.users.first();
+                            
+                            // Parse duration if provided
+                            let userDuration = 10; // Default 10 minutes
+                            if (args.length > 2) {
+                                const requestedDuration = parseInt(args[2]);
+                                if (!isNaN(requestedDuration) && requestedDuration > 0 && requestedDuration <= 60) {
+                                    userDuration = requestedDuration;
+                                }
+                            }
+                            
+                            // Enable no-prefix mode for the target user
+                            const userResult = client.serverSettingsManager.enableNoPrefixMode(
+                                message.guild.id,
+                                targetUser.id,
+                                userDuration
+                            );
+                            
+                            if (userResult.success) {
+                                const userEnableEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle("🪄 No-Prefix Mode Enabled")
+                                    .setDescription(`No-prefix mode has been enabled for ${targetUser}.`)
+                                    .addFields(
+                                        { name: "Duration", value: `${userDuration} minute${userDuration !== 1 ? 's' : ''}` },
+                                        { name: "Expires", value: `<t:${Math.floor(userResult.expiresAt / 1000)}:R>` }
+                                    )
+                                    .setFooter({ text: `Enabled by ${message.author.tag}`, iconURL: message.author.displayAvatarURL() })
+                                    .setTimestamp();
+                                    
+                                message.reply({ embeds: [userEnableEmbed] });
+                            } else {
+                                message.reply(userResult.message || "Failed to enable no-prefix mode for the user.");
+                            }
+                            break;
+                            
+                        default:
+                            message.reply(`Unknown no-prefix command: ${npSubCommand}. Use \`${prefix}np\` to see available commands.`);
+                    }
+                    break;
+                    
                 case "welcome-channel":
                 case "welcomechannel":
                     // Only available to admins with proper permissions
@@ -2708,9 +2947,9 @@ module.exports = {
                         return;
                     }
                     
-                    const subCommand = args[0].toLowerCase();
+                    const arSubCommand = args[0].toLowerCase();
                     
-                    switch(subCommand) {
+                    switch(arSubCommand) {
                         case "enable":
                         case "on":
                             // Only available to admins with proper permissions
@@ -2878,7 +3117,7 @@ module.exports = {
                             break;
                             
                         default:
-                            message.reply(`Unknown auto-reaction command: ${subCommand}. Use \`${prefix}autoreact\` to see available commands.`);
+                            message.reply(`Unknown auto-reaction command: ${arSubCommand}. Use \`${prefix}autoreact\` to see available commands.`);
                     }
                     break;
 
