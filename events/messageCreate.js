@@ -2010,9 +2010,10 @@ module.exports = {
                         return; // Silently ignore for non-developers
                     }
                     
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Check if leveling is enabled for this server
+                    const setLevelServerSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
+                    if (!setLevelServerSettings.leveling?.enabled) {
+                        message.reply("The leveling system is not enabled in this server. Server administrators can enable it with `/leveling settings setting:enable`.");
                         return;
                     }
                     
@@ -2152,9 +2153,10 @@ module.exports = {
                         return;
                     }
                     
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Check if leveling is enabled for this server
+                    const awardBadgeServerSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
+                    if (!awardBadgeServerSettings.leveling?.enabled) {
+                        message.reply("The leveling system is not enabled in this server. Server administrators can enable it with `/leveling settings setting:enable`.");
                         return;
                     }
                     
@@ -2241,9 +2243,10 @@ module.exports = {
                         return;
                     }
                     
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Check if leveling is enabled for this server
+                    const revokeBadgeServerSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
+                    if (!revokeBadgeServerSettings.leveling?.enabled) {
+                        message.reply("The leveling system is not enabled in this server. Server administrators can enable it with `/leveling settings setting:enable`.");
                         return;
                     }
                     
