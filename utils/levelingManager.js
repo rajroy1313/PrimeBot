@@ -78,36 +78,50 @@ class LevelingManager {
         // Ignore bot messages and DMs
         if (message.author.bot || !message.guild) return;
         
-        // Only process in the support server
-        if (message.guild.id !== config.leveling.supportServerId) return;
+        // Get server settings
+        const serverSettings = this.client.serverSettingsManager.getGuildSettings(message.guild.id);
+        const levelingSettings = serverSettings.leveling || {
+            enabled: false,
+            xpMultiplier: 1.0,
+            xpCooldown: 60000
+        };
+        
+        // Check if leveling is enabled for this server
+        if (!levelingSettings.enabled) return;
         
         // Ignore messages that are too short
         if (message.content.length < config.leveling.minMessageLength) return;
         
         // Check if the user is on cooldown
         const userId = message.author.id;
+        const guildId = message.guild.id;
+        const cooldownKey = `${guildId}-${userId}`;
         const now = Date.now();
         
-        if (this.cooldowns.has(userId)) {
-            const cooldownTime = this.cooldowns.get(userId);
-            if (now < cooldownTime) {
+        // Use server-specific cooldown
+        const cooldownTime = levelingSettings.xpCooldown || config.leveling.xpCooldown;
+        
+        if (this.cooldowns.has(cooldownKey)) {
+            const userCooldown = this.cooldowns.get(cooldownKey);
+            if (now < userCooldown) {
                 // User is on cooldown, don't award XP
                 return;
             }
         }
         
-        // Set cooldown
-        this.cooldowns.set(userId, now + config.leveling.xpCooldown);
+        // Set cooldown using server settings
+        this.cooldowns.set(cooldownKey, now + cooldownTime);
         
         // Award XP
-        await this.awardXP(message);
+        await this.awardXP(message, levelingSettings.xpMultiplier || 1.0);
     }
     
     /**
      * Award XP to a user for a message
      * @param {Message} message - The Discord message
+     * @param {number} multiplier - Server-specific XP multiplier
      */
-    async awardXP(message) {
+    async awardXP(message, multiplier = 1.0) {
         const guildId = message.guild.id;
         const userId = message.author.id;
         
@@ -131,10 +145,10 @@ class LevelingManager {
         
         const userData = guildData.get(userId);
         
-        // Calculate XP to award (we'll still track XP for possible future features)
+        // Calculate XP to award with server multiplier
         const baseXP = config.leveling.xpPerMessage;
         const randomBonus = Math.floor(Math.random() * (config.leveling.maxRandomBonus + 1));
-        const xpGain = baseXP + randomBonus;
+        const xpGain = Math.floor((baseXP + randomBonus) * multiplier);
         
         // Update user data
         const oldLevel = userData.level;
@@ -212,6 +226,16 @@ class LevelingManager {
             // Get the user
             const user = message.author;
             
+            // Get server settings for leveling
+            const guildId = message.guild.id;
+            const serverSettings = this.client.serverSettingsManager.getGuildSettings(guildId);
+            const levelingSettings = serverSettings.leveling || {
+                enabled: true,
+                levelUpChannelId: null,
+                xpMultiplier: 1.0,
+                xpCooldown: 60000
+            };
+            
             // Check for new badges
             const newBadges = this.checkForNewBadges(userData, oldLevel, newLevel);
             
@@ -252,11 +276,18 @@ class LevelingManager {
             // Determine which channel to send the level up message to
             let targetChannel = message.channel;
             
-            // If configured, send to a specific level-up channel instead
-            if (config.leveling.levelUpChannelId) {
-                const levelUpChannel = message.guild.channels.cache.get(config.leveling.levelUpChannelId);
-                if (levelUpChannel && levelUpChannel.permissionsFor(message.guild.members.me).has('SendMessages')) {
-                    targetChannel = levelUpChannel;
+            // Check server-specific level up channel first
+            if (levelingSettings.levelUpChannelId) {
+                const serverLevelUpChannel = message.guild.channels.cache.get(levelingSettings.levelUpChannelId);
+                if (serverLevelUpChannel && serverLevelUpChannel.permissionsFor(message.guild.members.me).has('SendMessages')) {
+                    targetChannel = serverLevelUpChannel;
+                }
+            }
+            // Fall back to global config if no server-specific channel
+            else if (config.leveling.levelUpChannelId) {
+                const globalLevelUpChannel = message.guild.channels.cache.get(config.leveling.levelUpChannelId);
+                if (globalLevelUpChannel && globalLevelUpChannel.permissionsFor(message.guild.members.me).has('SendMessages')) {
+                    targetChannel = globalLevelUpChannel;
                 }
             }
             
@@ -310,9 +341,10 @@ class LevelingManager {
      */
     async awardBadge({ guildId, userId, badgeType, badgeId }) {
         try {
-            // Verify this is the support server
-            if (guildId !== config.leveling.supportServerId) {
-                return { success: false, message: 'Badges can only be awarded in the support server' };
+            // Check if leveling is enabled for this server
+            const serverSettings = this.client.serverSettingsManager.getGuildSettings(guildId);
+            if (!serverSettings.leveling?.enabled) {
+                return { success: false, message: 'Leveling is not enabled for this server' };
             }
             
             // Get badge data based on type and ID

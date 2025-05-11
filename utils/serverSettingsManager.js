@@ -124,7 +124,7 @@ class ServerSettingsManager {
         
         if (guildSettings) {
             guildSettings[setting] = value;
-            this.settings.set(guildId, guildSettings);
+            this.serverSettings.set(guildId, guildSettings);
             return this.saveSettings();
         }
         
@@ -144,7 +144,7 @@ class ServerSettingsManager {
         guildSettings.receiveBroadcasts = newValue;
         
         // Save the updated settings
-        this.settings.set(guildId, guildSettings);
+        this.serverSettings.set(guildId, guildSettings);
         this.saveSettings();
         
         return newValue;
@@ -167,7 +167,7 @@ class ServerSettingsManager {
     getOptedOutServers() {
         const optedOut = [];
         
-        for (const [guildId, settings] of this.settings.entries()) {
+        for (const [guildId, settings] of this.serverSettings.entries()) {
             if (!settings.receiveBroadcasts) {
                 optedOut.push(guildId);
             }
@@ -183,14 +183,14 @@ class ServerSettingsManager {
     getBroadcastReceptionCount() {
         let count = 0;
         
-        for (const settings of this.settings.values()) {
+        for (const settings of this.serverSettings.values()) {
             if (settings.receiveBroadcasts) {
                 count++;
             }
         }
         
         // Add count for servers that haven't set preferences (they receive by default)
-        const serversWithSettings = this.settings.size;
+        const serversWithSettings = this.serverSettings.size;
         const totalServers = this.client.guilds.cache.size;
         const serversWithoutSettings = totalServers - serversWithSettings;
         
@@ -220,7 +220,7 @@ class ServerSettingsManager {
         guildSettings.welcomeEnabled = newValue;
         
         // Save the updated settings
-        this.settings.set(guildId, guildSettings);
+        this.serverSettings.set(guildId, guildSettings);
         this.saveSettings();
         
         return newValue;
@@ -239,7 +239,7 @@ class ServerSettingsManager {
         guildSettings.welcomeDmEnabled = newValue;
         
         // Save the updated settings
-        this.settings.set(guildId, guildSettings);
+        this.serverSettings.set(guildId, guildSettings);
         this.saveSettings();
         
         return newValue;
@@ -340,6 +340,184 @@ class ServerSettingsManager {
         const newValue = !settings[feature];
         
         return this.updateGuildSetting(guildId, feature, newValue);
+    }
+
+    /**
+     * Check if leveling is enabled for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @returns {boolean} Whether leveling is enabled
+     */
+    isLevelingEnabled(guildId) {
+        const guildSettings = this.getGuildSettings(guildId);
+        return guildSettings.leveling?.enabled || false;
+    }
+
+    /**
+     * Toggle leveling for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @returns {boolean} The new state (true = enabled, false = disabled)
+     */
+    toggleLeveling(guildId) {
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure leveling object exists
+        if (!guildSettings.leveling) {
+            guildSettings.leveling = {
+                enabled: false,
+                levelUpChannelId: null,
+                xpMultiplier: 1.0,
+                xpCooldown: 60000 // Default 1 minute cooldown
+            };
+        }
+        
+        // Toggle the current value
+        const newValue = !guildSettings.leveling.enabled;
+        guildSettings.leveling.enabled = newValue;
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        this.saveSettings();
+        
+        return newValue;
+    }
+
+    /**
+     * Set leveling channel for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} channelId - Channel ID for level-up announcements
+     * @returns {boolean} Whether the channel was successfully set
+     */
+    setLevelingChannel(guildId, channelId) {
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure leveling object exists
+        if (!guildSettings.leveling) {
+            guildSettings.leveling = {
+                enabled: true,
+                levelUpChannelId: null,
+                xpMultiplier: 1.0,
+                xpCooldown: 60000
+            };
+        }
+        
+        // Update channel
+        guildSettings.leveling.levelUpChannelId = channelId;
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        return this.saveSettings();
+    }
+
+    /**
+     * Set XP multiplier for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @param {number} multiplier - XP multiplier (0.1-5.0)
+     * @returns {boolean} Whether the multiplier was successfully set
+     */
+    setXpMultiplier(guildId, multiplier) {
+        // Validate multiplier
+        if (multiplier <= 0 || multiplier > 5) {
+            return false;
+        }
+        
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure leveling object exists
+        if (!guildSettings.leveling) {
+            guildSettings.leveling = {
+                enabled: true,
+                levelUpChannelId: null,
+                xpMultiplier: 1.0,
+                xpCooldown: 60000
+            };
+        }
+        
+        // Update multiplier (limit to 2 decimal places)
+        guildSettings.leveling.xpMultiplier = parseFloat(multiplier.toFixed(2));
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        return this.saveSettings();
+    }
+
+    /**
+     * Set XP cooldown for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @param {number} cooldownSeconds - Cooldown in seconds (5-300)
+     * @returns {boolean} Whether the cooldown was successfully set
+     */
+    setXpCooldown(guildId, cooldownSeconds) {
+        // Validate cooldown (between 5 seconds and 5 minutes)
+        if (cooldownSeconds < 5 || cooldownSeconds > 300) {
+            return false;
+        }
+        
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure leveling object exists
+        if (!guildSettings.leveling) {
+            guildSettings.leveling = {
+                enabled: true,
+                levelUpChannelId: null,
+                xpMultiplier: 1.0,
+                xpCooldown: 60000
+            };
+        }
+        
+        // Update cooldown (convert to milliseconds)
+        guildSettings.leveling.xpCooldown = cooldownSeconds * 1000;
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        return this.saveSettings();
+    }
+
+    /**
+     * Get leveling settings for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @returns {Object} Leveling settings
+     */
+    getLevelingSettings(guildId) {
+        const settings = this.getGuildSettings(guildId);
+        
+        // Ensure leveling object exists
+        if (!settings.leveling) {
+            settings.leveling = {
+                enabled: true,
+                levelUpChannelId: null,
+                xpMultiplier: 1.0,
+                xpCooldown: 60000
+            };
+            
+            // Save the updated settings
+            this.serverSettings.set(guildId, settings);
+            this.saveSettings();
+        }
+        
+        return settings.leveling;
+    }
+
+    /**
+     * Reset all XP data for a guild
+     * @param {string} guildId - Discord Guild ID
+     * @returns {boolean} Whether the reset was successful
+     */
+    resetGuildXp(guildId) {
+        try {
+            // Check if the guild has any XP data in the leveling manager
+            if (this.client.levelingManager && this.client.levelingManager.userLevels.has(guildId)) {
+                // Clear the guild's data
+                this.client.levelingManager.userLevels.set(guildId, new Map());
+                
+                // Save the updates
+                this.client.levelingManager.saveLevels();
+            }
+            
+            return true;
+        } catch (error) {
+            console.error('[SERVER SETTINGS] Error resetting guild XP:', error);
+            return false;
+        }
     }
 }
 
