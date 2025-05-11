@@ -4,7 +4,6 @@ const {
     ButtonStyle,
     ActionRowBuilder,
     PermissionsBitField,
-    PermissionFlagsBits,
 } = require("discord.js");
 const config = require("../config");
 
@@ -309,34 +308,23 @@ module.exports = {
                 return;
             }
 
-            // Process auto-reactions for trigger words if in a guild
-            if (message.guild) {
-                // Process reactions using serverSettingsManager
-                await client.serverSettingsManager.processAutoReactions(message);
-            }
-            
-            // Process counting game messages before checking commands
-            const processed = await client.countingManager.processCountingMessage(message);
-            if (processed) return; // Message was processed as a count
-            
-            // Process message for XP and leveling
-            await client.levelingManager.processMessage(message);
-            
-            // Check if user has no-prefix mode enabled (skip prefix check if they do)
-            const hasNoPrefixMode = message.guild && 
-                client.serverSettingsManager.hasNoPrefixMode(message.guild.id, message.author.id);
+            // Check if message starts with regular prefix
+            if (!message.content.startsWith(prefix)) {
+                // Process counting game messages before returning
+                const processed = await client.countingManager.processCountingMessage(message);
+                if (processed) return; // Message was processed as a count
                 
-            // Check if message either starts with prefix or user has no-prefix mode
-            const hasPrefix = message.content.startsWith(prefix);
-            
-            if (!hasPrefix && !hasNoPrefixMode) {
-                return; // Not a command message, and no-prefix mode is not enabled
+                // Process message for XP and leveling (only in support server)
+                await client.levelingManager.processMessage(message);
+                
+                return; // Not a command or counting-related message
             }
 
             // Parse command and arguments
-            const args = hasPrefix
-                ? message.content.slice(prefix.length).trim().split(/ +/)
-                : message.content.trim().split(/ +/);
+            const args = message.content
+                .slice(prefix.length)
+                .trim()
+                .split(/ +/);
             const commandName = args.shift().toLowerCase();
 
             // Handle commands
