@@ -43,7 +43,8 @@ module.exports = {
         // Additional welcome banner image URL (set to null for no image)
         bannerUrl: 'https://i.imgur.com/hxGEQJh.png',
         
-        // Support server ID - welcome messages will only be sent to this server
+        // Legacy support server ID - kept for backward compatibility
+        // Welcome messages are now managed through server-specific settings
         supportServerId: "1317411980625313893" // AFK Devs server ID
     },
     
@@ -57,7 +58,8 @@ module.exports = {
     
     // Leveling system configuration
     leveling: {
-        // Support server ID where leveling is active (should match welcome.supportServerId)
+        // Legacy support server ID - kept for backward compatibility
+        // Leveling is now available in all servers and managed through server settings
         supportServerId: "1317411980625313893", // AFK Devs server ID
         
         // Channel where level-up messages are sent (null = the channel where message was sent)

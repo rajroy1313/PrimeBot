@@ -7,14 +7,9 @@ module.exports = {
         try {
             // Check if server settings manager is available
             if (!client.serverSettingsManager) {
-                console.warn('[WELCOME] Server settings manager not available, falling back to global config');
-                // Fall back to global config
-                if (config.welcome.supportServerId && member.guild.id !== config.welcome.supportServerId) {
-                    // Skip welcome messages for non-support servers
-                    return;
-                }
+                console.warn('[WELCOME] Server settings manager not available, creating welcome functionality for all servers');
                 
-                // SERVER WELCOME MESSAGE
+                // SERVER WELCOME MESSAGE - Welcome messages are now available in all servers by default
                 await handleServerWelcome(member, null, client);
                 
                 // DM WELCOME MESSAGE

@@ -4,6 +4,7 @@ const {
     ButtonStyle,
     ActionRowBuilder,
     PermissionsBitField,
+    PermissionFlagsBits,
 } = require("discord.js");
 const config = require("../config");
 
@@ -2375,6 +2376,236 @@ module.exports = {
                     
                     // Send all embeds
                     message.reply({ embeds: [levelBadgesEmbed, achievementBadgesEmbed, specialBadgesEmbed] });
+                    break;
+                    
+                // Welcome System Settings Commands
+                case "welcome-enable":
+                case "welcomeenable":
+                case "welcome-on":
+                    // Only available to admins with proper permissions
+                    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                        message.reply("You don't have permission to configure welcome settings.");
+                        return;
+                    }
+                    
+                    // Enable welcome system
+                    const welcomeResult = client.serverSettingsManager.updateWelcomeSettings(message.guild.id, {
+                        enabled: true
+                    });
+                    
+                    // Create success embed
+                    const welcomeEnableEmbed = new EmbedBuilder()
+                        .setColor(config.colors.success)
+                        .setTitle("✅ Welcome System Enabled")
+                        .setDescription("The welcome system has been enabled for this server.")
+                        .addFields(
+                            { 
+                                name: "Additional Configuration", 
+                                value: "Use the following commands to further customize the welcome system:\n" +
+                                       "• `$welcome-channel #channel` - Set the welcome channel\n" +
+                                       "• `$welcome-message your message` - Set a custom welcome message\n" +
+                                       "• `/welcomeconfig` - Use slash commands for more options"
+                            }
+                        )
+                        .setFooter({ text: "Server settings updated successfully", iconURL: client.user.displayAvatarURL() })
+                        .setTimestamp();
+                    
+                    message.reply({ embeds: [welcomeEnableEmbed] });
+                    break;
+                    
+                case "welcome-disable":
+                case "welcomedisable":
+                case "welcome-off":
+                    // Only available to admins with proper permissions
+                    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                        message.reply("You don't have permission to configure welcome settings.");
+                        return;
+                    }
+                    
+                    // Disable welcome system
+                    client.serverSettingsManager.updateWelcomeSettings(message.guild.id, {
+                        enabled: false
+                    });
+                    
+                    // Create success embed
+                    const welcomeDisableEmbed = new EmbedBuilder()
+                        .setColor(config.colors.error)
+                        .setTitle("❌ Welcome System Disabled")
+                        .setDescription("The welcome system has been disabled for this server.")
+                        .setFooter({ text: "Server settings updated successfully", iconURL: client.user.displayAvatarURL() })
+                        .setTimestamp();
+                    
+                    message.reply({ embeds: [welcomeDisableEmbed] });
+                    break;
+                    
+                case "welcome-channel":
+                case "welcomechannel":
+                    // Only available to admins with proper permissions
+                    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                        message.reply("You don't have permission to configure welcome settings.");
+                        return;
+                    }
+                    
+                    // Check if a channel is mentioned
+                    if (message.mentions.channels.size === 0) {
+                        message.reply("Please specify a channel: `$welcome-channel #channel`");
+                        return;
+                    }
+                    
+                    const welcomeChannel = message.mentions.channels.first();
+                    
+                    // Update welcome channel
+                    client.serverSettingsManager.updateWelcomeSettings(message.guild.id, {
+                        channelId: welcomeChannel.id
+                    });
+                    
+                    // Create success embed
+                    const welcomeChannelEmbed = new EmbedBuilder()
+                        .setColor(config.colors.success)
+                        .setTitle("✅ Welcome Channel Updated")
+                        .setDescription(`Welcome messages will now be sent to ${welcomeChannel}.`)
+                        .setFooter({ text: "Server settings updated successfully", iconURL: client.user.displayAvatarURL() })
+                        .setTimestamp();
+                    
+                    message.reply({ embeds: [welcomeChannelEmbed] });
+                    break;
+                    
+                // Leveling System Settings Commands
+                case "level-enable":
+                case "levelenable":
+                case "leveling-enable":
+                case "levelingon":
+                case "leveling-on":
+                    // Only available to admins with proper permissions
+                    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                        message.reply("You don't have permission to configure leveling settings.");
+                        return;
+                    }
+                    
+                    // Enable leveling system
+                    client.serverSettingsManager.updateLevelingSettings(message.guild.id, {
+                        enabled: true
+                    });
+                    
+                    // Create success embed
+                    const levelEnableEmbed = new EmbedBuilder()
+                        .setColor(config.colors.success)
+                        .setTitle("✅ Leveling System Enabled")
+                        .setDescription("The leveling system has been enabled for this server.")
+                        .addFields(
+                            { 
+                                name: "Additional Configuration", 
+                                value: "Use the following commands to further customize the leveling system:\n" +
+                                       "• `$level-channel #channel` - Set the level-up notification channel\n" +
+                                       "• `$level-multiplier 1.5` - Set XP multiplier (default: 1.0)\n" +
+                                       "• `/leveling settings` - Use slash commands for more options"
+                            }
+                        )
+                        .setFooter({ text: "Server settings updated successfully", iconURL: client.user.displayAvatarURL() })
+                        .setTimestamp();
+                    
+                    message.reply({ embeds: [levelEnableEmbed] });
+                    break;
+                    
+                case "level-disable":
+                case "leveldisable":
+                case "leveling-disable":
+                case "levelingoff":
+                case "leveling-off":
+                    // Only available to admins with proper permissions
+                    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                        message.reply("You don't have permission to configure leveling settings.");
+                        return;
+                    }
+                    
+                    // Disable leveling system
+                    client.serverSettingsManager.updateLevelingSettings(message.guild.id, {
+                        enabled: false
+                    });
+                    
+                    // Create success embed
+                    const levelDisableEmbed = new EmbedBuilder()
+                        .setColor(config.colors.error)
+                        .setTitle("❌ Leveling System Disabled")
+                        .setDescription("The leveling system has been disabled for this server.")
+                        .setFooter({ text: "Server settings updated successfully", iconURL: client.user.displayAvatarURL() })
+                        .setTimestamp();
+                    
+                    message.reply({ embeds: [levelDisableEmbed] });
+                    break;
+                    
+                case "level-channel":
+                case "levelchannel":
+                    // Only available to admins with proper permissions
+                    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                        message.reply("You don't have permission to configure leveling settings.");
+                        return;
+                    }
+                    
+                    // Check if a channel is mentioned
+                    if (message.mentions.channels.size === 0) {
+                        message.reply("Please specify a channel: `$level-channel #channel`");
+                        return;
+                    }
+                    
+                    const levelChannel = message.mentions.channels.first();
+                    
+                    // Update level-up channel
+                    client.serverSettingsManager.updateLevelingSettings(message.guild.id, {
+                        levelUpChannelId: levelChannel.id
+                    });
+                    
+                    // Create success embed
+                    const levelChannelEmbed = new EmbedBuilder()
+                        .setColor(config.colors.success)
+                        .setTitle("✅ Level-Up Channel Updated")
+                        .setDescription(`Level-up messages will now be sent to ${levelChannel}.`)
+                        .setFooter({ text: "Server settings updated successfully", iconURL: client.user.displayAvatarURL() })
+                        .setTimestamp();
+                    
+                    message.reply({ embeds: [levelChannelEmbed] });
+                    break;
+                    
+                case "level-multiplier":
+                case "levelmultiplier":
+                    // Only available to admins with proper permissions
+                    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                        message.reply("You don't have permission to configure leveling settings.");
+                        return;
+                    }
+                    
+                    // Check if a multiplier is provided
+                    if (args.length === 0) {
+                        message.reply("Please specify a multiplier value: `$level-multiplier 1.5`");
+                        return;
+                    }
+                    
+                    const multiplier = parseFloat(args[0]);
+                    
+                    // Validate the multiplier
+                    if (isNaN(multiplier) || multiplier <= 0 || multiplier > 5) {
+                        message.reply("The multiplier must be a number between 0 and 5.");
+                        return;
+                    }
+                    
+                    // Update XP multiplier
+                    client.serverSettingsManager.updateLevelingSettings(message.guild.id, {
+                        xpMultiplier: multiplier
+                    });
+                    
+                    // Create success embed
+                    const multiplierEmbed = new EmbedBuilder()
+                        .setColor(config.colors.success)
+                        .setTitle("✅ XP Multiplier Updated")
+                        .setDescription(`XP multiplier has been set to **${multiplier}x**.`)
+                        .addFields({
+                            name: "Effect",
+                            value: `Members will now earn ${multiplier}x the normal amount of XP for each message.`
+                        })
+                        .setFooter({ text: "Server settings updated successfully", iconURL: client.user.displayAvatarURL() })
+                        .setTimestamp();
+                    
+                    message.reply({ embeds: [multiplierEmbed] });
                     break;
 
                 default:
