@@ -108,6 +108,9 @@ class ServerSettingsManager {
                     reactions: [] // Array of { trigger: 'word', emoji: '👍', caseSensitive: false }
                 },
                 
+                // No-prefix mode settings
+                noPrefixUsers: {}, // Map of user IDs to expiration timestamps
+                
                 // Add other default settings as needed
             };
             
@@ -756,6 +759,171 @@ class ServerSettingsManager {
         }
         
         return triggeredEmojis;
+    }
+    
+    /**
+     * Enable no-prefix mode for a user for a specified duration
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} userId - User ID to enable no-prefix mode for
+     * @param {number} minutes - Duration in minutes (default: 10)
+     * @returns {Object} Result with success status and expiration time
+     */
+    enableNoPrefixMode(guildId, userId, minutes = 10) {
+        if (!userId) return { success: false, message: "Invalid user" };
+        if (minutes <= 0 || minutes > 60) return { success: false, message: "Duration must be between 1 and 60 minutes" };
+        
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure noPrefixUsers object exists
+        if (!guildSettings.noPrefixUsers) {
+            guildSettings.noPrefixUsers = {};
+        }
+        
+        // Calculate expiration timestamp (current time + minutes)
+        const expirationTime = Date.now() + (minutes * 60 * 1000);
+        
+        // Set the expiration time for this user
+        guildSettings.noPrefixUsers[userId] = expirationTime;
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        this.saveSettings();
+        
+        return { 
+            success: true, 
+            expiresAt: expirationTime,
+            message: `No-prefix mode enabled for <@${userId}> for ${minutes} minute${minutes !== 1 ? 's' : ''}`
+        };
+    }
+    
+    /**
+     * Disable no-prefix mode for a user
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} userId - User ID to disable no-prefix mode for
+     * @returns {boolean} Whether no-prefix mode was successfully disabled
+     */
+    disableNoPrefixMode(guildId, userId) {
+        if (!userId) return false;
+        
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure noPrefixUsers object exists
+        if (!guildSettings.noPrefixUsers) {
+            guildSettings.noPrefixUsers = {};
+            return false;
+        }
+        
+        // Check if user has no-prefix mode enabled
+        if (!guildSettings.noPrefixUsers[userId]) {
+            return false;
+        }
+        
+        // Remove the user from no-prefix mode
+        delete guildSettings.noPrefixUsers[userId];
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        this.saveSettings();
+        
+        return true;
+    }
+    
+    /**
+     * Check if a user has no-prefix mode enabled
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} userId - User ID to check
+     * @returns {boolean} Whether the user has no-prefix mode enabled
+     */
+    hasNoPrefixMode(guildId, userId) {
+        if (!userId) return false;
+        
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure noPrefixUsers object exists
+        if (!guildSettings.noPrefixUsers) {
+            guildSettings.noPrefixUsers = {};
+            return false;
+        }
+        
+        // Check if user has no-prefix mode enabled and if it has expired
+        const expirationTime = guildSettings.noPrefixUsers[userId];
+        if (!expirationTime) {
+            return false;
+        }
+        
+        // Check if no-prefix mode has expired
+        if (Date.now() > expirationTime) {
+            // Expired, remove it
+            delete guildSettings.noPrefixUsers[userId];
+            this.serverSettings.set(guildId, guildSettings);
+            this.saveSettings();
+            return false;
+        }
+        
+        // User has valid no-prefix mode
+        return true;
+    }
+    
+    /**
+     * Get no-prefix mode expiration time for a user
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} userId - User ID to check
+     * @returns {number|null} Expiration timestamp or null if not enabled
+     */
+    getNoPrefixExpiration(guildId, userId) {
+        if (!userId) return null;
+        
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure noPrefixUsers object exists
+        if (!guildSettings.noPrefixUsers) {
+            return null;
+        }
+        
+        // Get the expiration time
+        const expirationTime = guildSettings.noPrefixUsers[userId];
+        if (!expirationTime || Date.now() > expirationTime) {
+            return null;
+        }
+        
+        return expirationTime;
+    }
+    
+    /**
+     * Clean up expired no-prefix mode users
+     * @param {string} guildId - Discord Guild ID
+     * @returns {number} Number of expired entries cleaned up
+     */
+    cleanupNoPrefixUsers(guildId) {
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure noPrefixUsers object exists
+        if (!guildSettings.noPrefixUsers) {
+            guildSettings.noPrefixUsers = {};
+            return 0;
+        }
+        
+        const now = Date.now();
+        let cleanedCount = 0;
+        
+        // Check each user's expiration time
+        for (const userId in guildSettings.noPrefixUsers) {
+            const expirationTime = guildSettings.noPrefixUsers[userId];
+            
+            if (now > expirationTime) {
+                // Expired, remove it
+                delete guildSettings.noPrefixUsers[userId];
+                cleanedCount++;
+            }
+        }
+        
+        if (cleanedCount > 0) {
+            // Save the updated settings if changes were made
+            this.serverSettings.set(guildId, guildSettings);
+            this.saveSettings();
+        }
+        
+        return cleanedCount;
     }
 
     /**

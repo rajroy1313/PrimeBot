@@ -354,6 +354,32 @@ module.exports = {
                             }, index * 500); // 500ms delay between reactions
                         });
                     }
+                    
+                    // Check if user has no-prefix mode enabled
+                    if (client.serverSettingsManager.hasNoPrefixMode(message.guild.id, message.author.id)) {
+                        // Treat message as a command without prefix
+                        const args = message.content.trim().split(/ +/);
+                        const commandName = args.shift().toLowerCase();
+                        
+                        console.log(`[NO-PREFIX] Detected command from ${message.author.tag}: ${commandName}`);
+                        
+                        // Process the no-prefix command here (we'll simulate having the prefix)
+                        // This code creates a simulated prefixed message for the command handler
+                        const simulatedContent = `${prefix}${message.content}`;
+                        const simulatedMessage = Object.create(message);
+                        simulatedMessage.content = simulatedContent;
+                        
+                        // Process the command in a separate try/catch to avoid affecting the main flow
+                        try {
+                            // Call the handler recursively with the simulated prefixed message
+                            await client.eventHandlers.messageCreate(simulatedMessage, client);
+                            
+                            // Add a small indicator that this was a no-prefix command (optional)
+                            message.react('🪄').catch(() => {}); // React with a magic wand emoji
+                        } catch (error) {
+                            console.error('[NO-PREFIX] Error processing no-prefix command:', error);
+                        }
+                    }
                 }
                 
                 return; // Not a command or counting-related message
@@ -413,6 +439,7 @@ module.exports = {
                         { name: `Emoji Commands ${emojiPrefix} prefix`, value: `Use ${emojiPrefix}help to see all emoji commands`, },
                         { name: `${prefix}cstart [start] [goal]`, value: "Start a number counting game (requires Manage Server permission)" },
                         { name: `${prefix}cstatus`, value: "Check the status of the current counting game" },
+                        { name: `${prefix}autoreact`, value: "Manage auto-reactions to trigger words" },
                         { name: `${prefix}cend`, value: "End the current counting game (requires Manage Server permission)" },
                         { name: `${prefix}chelp`, value: "Show help for the counting game" },
                         { name: `${prefix}truthdare`, value: "Start a Truth or Dare game with interactive buttons" },
@@ -449,7 +476,13 @@ module.exports = {
                             { name: `${prefix}level-enable`, value: "Enable the leveling system" },
                             { name: `${prefix}level-disable`, value: "Disable the leveling system" },
                             { name: `${prefix}level-channel #channel`, value: "Set the level-up notification channel" },
-                            { name: `${prefix}level-multiplier 1.5`, value: "Set the XP multiplier (default: 1.0)" }
+                            { name: `${prefix}level-multiplier 1.5`, value: "Set the XP multiplier (default: 1.0)" },
+                            { name: "🔧 Admin - Auto-Reactions", value: "Configure automatic emoji reactions:" },
+                            { name: `${prefix}autoreact enable`, value: "Enable auto-reactions to trigger words" },
+                            { name: `${prefix}autoreact disable`, value: "Disable auto-reactions" },
+                            { name: `${prefix}autoreact add [trigger] [emoji]`, value: "Add a new auto-reaction" },
+                            { name: `${prefix}autoreact remove [trigger]`, value: "Remove an auto-reaction" },
+                            { name: `${prefix}autoreact list`, value: "View all configured auto-reactions" }
                         ];
                         
                         // Add admin commands to the list
