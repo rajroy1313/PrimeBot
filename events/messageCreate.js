@@ -330,7 +330,7 @@ module.exports = {
                 const processed = await client.countingManager.processCountingMessage(message);
                 if (processed) return; // Message was processed as a count
                 
-                // Process message for XP and leveling (only in support server)
+                // Process message for XP and leveling in servers with leveling enabled
                 await client.levelingManager.processMessage(message);
                 
                 return; // Not a command or counting-related message
@@ -393,20 +393,23 @@ module.exports = {
                         { name: `${prefix}qadd [truth/dare] [question]`, value: "Add a custom truth or dare question to the collection" },
                     ];
                     
-                    // If we're in the support server, add the leveling commands to the list
-                    if (message.guild && message.guild.id === config.leveling.supportServerId) {
-                        // Leveling System Commands (only shown in support server)
-                        const levelingCommands = [
-                            { name: `${prefix}leaderboard [page]`, value: "Shows the community XP leaderboard" },
-                            { name: `${prefix}rank [@user]`, value: "Shows your or another user's level and XP" },
-                            { name: `${prefix}profile [@user]`, value: "Shows detailed stats and badges" },
-                            { name: `${prefix}badges [@user]`, value: "Shows available and earned badges" },
-                            { name: `${prefix}level [@user]`, value: "Alias for rank command" },
-                            { name: `${prefix}exp [@user]`, value: "Alias for rank command" },
-                        ];
-                        
-                        // Add leveling commands to the main commands list
-                        allCommands = [...allCommands, ...levelingCommands];
+                    // If leveling is enabled in the server, add the leveling commands to the list
+                    if (message.guild) {
+                        const helpServerSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
+                        if (helpServerSettings.leveling?.enabled) {
+                            // Leveling System Commands (only shown in servers with leveling enabled)
+                            const levelingCommands = [
+                                { name: `${prefix}leaderboard [page]`, value: "Shows the server XP leaderboard" },
+                                { name: `${prefix}rank [@user]`, value: "Shows your or another user's level and XP" },
+                                { name: `${prefix}profile [@user]`, value: "Shows detailed stats and badges" },
+                                { name: `${prefix}badges [@user]`, value: "Shows available and earned badges" },
+                                { name: `${prefix}level [@user]`, value: "Alias for rank command" },
+                                { name: `${prefix}exp [@user]`, value: "Alias for rank command" },
+                            ];
+                            
+                            // Add leveling commands to the main commands list
+                            allCommands = [...allCommands, ...levelingCommands];
+                        }
                     }
                     
                     // Settings for pagination
@@ -2311,9 +2314,10 @@ module.exports = {
                 case "viewbadges":
                 case "listbadges":
                 case "badgelist":
-                    // Only available in support server
-                    if (message.guild.id !== config.leveling.supportServerId) {
-                        message.reply("This command is only available in the support server.");
+                    // Check if leveling is enabled for this server
+                    const viewBadgesServerSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
+                    if (!viewBadgesServerSettings.leveling?.enabled) {
+                        message.reply("The leveling system is not enabled in this server. Server administrators can enable it with `/leveling settings setting:enable`.");
                         return;
                     }
                     
