@@ -9,7 +9,7 @@ const config = require('../config');
 class ServerSettingsManager {
     constructor(client) {
         this.client = client;
-        this.settings = new Map(); // Store server settings
+        this.serverSettings = new Map(); // Store server settings
         this.dataPath = path.join(__dirname, '../data/serverSettings.json');
         
         // Ensure data directory exists
@@ -30,10 +30,10 @@ class ServerSettingsManager {
                 const data = JSON.parse(fs.readFileSync(this.dataPath, 'utf8'));
                 
                 for (const [guildId, guildSettings] of Object.entries(data)) {
-                    this.settings.set(guildId, guildSettings);
+                    this.serverSettings.set(guildId, guildSettings);
                 }
                 
-                console.log(`Loaded settings for ${this.settings.size} servers.`);
+                console.log(`Loaded settings for ${this.serverSettings.size} servers.`);
             } else {
                 console.log('No server settings file found. Creating a new one.');
                 this.saveSettings();
@@ -41,7 +41,7 @@ class ServerSettingsManager {
         } catch (error) {
             console.error('Error loading server settings:', error);
             // Create a new settings file in case of corruption
-            this.settings = new Map();
+            this.serverSettings = new Map();
             this.saveSettings();
         }
     }
@@ -53,7 +53,7 @@ class ServerSettingsManager {
         try {
             // Convert Map to a plain object for JSON serialization
             const dataToSave = {};
-            for (const [guildId, settings] of this.settings.entries()) {
+            for (const [guildId, settings] of this.serverSettings.entries()) {
                 dataToSave[guildId] = settings;
             }
             
@@ -71,7 +71,7 @@ class ServerSettingsManager {
      * @returns {Object} Guild settings
      */
     getGuildSettings(guildId) {
-        if (!this.settings.has(guildId)) {
+        if (!this.serverSettings.has(guildId)) {
             // Initialize with default settings
             const defaultSettings = {
                 receiveBroadcasts: true, // By default, servers receive broadcasts
@@ -94,14 +94,22 @@ class ServerSettingsManager {
                 welcomeCustomTitle: null,
                 welcomeCustomFooter: null,
                 
+                // Leveling system settings
+                leveling: {
+                    enabled: true,
+                    levelUpChannelId: null,
+                    xpMultiplier: 1.0,
+                    xpCooldown: 60000 // Default 1 minute cooldown
+                },
+                
                 // Add other default settings as needed
             };
             
-            this.settings.set(guildId, defaultSettings);
+            this.serverSettings.set(guildId, defaultSettings);
             this.saveSettings();
         }
         
-        return this.settings.get(guildId);
+        return this.serverSettings.get(guildId);
     }
     
     /**
