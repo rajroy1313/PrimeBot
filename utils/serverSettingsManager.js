@@ -973,6 +973,186 @@ class ServerSettingsManager {
             return false;
         }
     }
+
+    /**
+     * Enable no-prefix mode for a user for a specified duration
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} userId - User ID to enable no-prefix mode for
+     * @param {number} minutes - Duration in minutes (default: 10)
+     * @returns {Object} Result with success status and expiration time
+     */
+    enableNoPrefixMode(guildId, userId, minutes = 10) {
+        // Validate duration (minimum 1 minute, maximum 60 minutes)
+        if (minutes < 1) minutes = 1;
+        if (minutes > 60) minutes = 60;
+        
+        try {
+            const settings = this.getGuildSettings(guildId);
+            
+            // Calculate expiration time
+            const now = Date.now();
+            const expiresAt = now + (minutes * 60 * 1000);
+            
+            // Initialize noPrefixUsers if it doesn't exist
+            if (!settings.noPrefixUsers) {
+                settings.noPrefixUsers = {};
+            }
+            
+            // Set expiration time for this user
+            settings.noPrefixUsers[userId] = expiresAt;
+            
+            // Save settings
+            this.saveSettings();
+            
+            return {
+                success: true,
+                expiresAt: expiresAt,
+                message: `No-prefix mode enabled for ${minutes} minute${minutes !== 1 ? 's' : ''}`
+            };
+        } catch (error) {
+            console.error(`[SERVER SETTINGS] Error enabling no-prefix mode for user ${userId} in guild ${guildId}:`, error);
+            
+            return {
+                success: false,
+                message: "Error enabling no-prefix mode"
+            };
+        }
+    }
+    
+    /**
+     * Disable no-prefix mode for a user
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} userId - User ID to disable no-prefix mode for
+     * @returns {boolean} Whether no-prefix mode was successfully disabled
+     */
+    disableNoPrefixMode(guildId, userId) {
+        try {
+            const settings = this.getGuildSettings(guildId);
+            
+            // If noPrefixUsers doesn't exist or user doesn't have no-prefix mode enabled
+            if (!settings.noPrefixUsers || !settings.noPrefixUsers[userId]) {
+                return false;
+            }
+            
+            // Remove user from no-prefix mode
+            delete settings.noPrefixUsers[userId];
+            
+            // Save settings
+            this.saveSettings();
+            
+            return true;
+        } catch (error) {
+            console.error(`[SERVER SETTINGS] Error disabling no-prefix mode for user ${userId} in guild ${guildId}:`, error);
+            return false;
+        }
+    }
+    
+    /**
+     * Check if a user has no-prefix mode enabled
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} userId - User ID to check
+     * @returns {boolean} Whether the user has no-prefix mode enabled
+     */
+    hasNoPrefixMode(guildId, userId) {
+        try {
+            const settings = this.getGuildSettings(guildId);
+            
+            // If noPrefixUsers doesn't exist or user doesn't have no-prefix mode enabled
+            if (!settings.noPrefixUsers || !settings.noPrefixUsers[userId]) {
+                return false;
+            }
+            
+            // Check if no-prefix mode hasn't expired
+            const now = Date.now();
+            const expiresAt = settings.noPrefixUsers[userId];
+            
+            if (now > expiresAt) {
+                // No-prefix mode has expired, clean it up
+                delete settings.noPrefixUsers[userId];
+                this.saveSettings();
+                return false;
+            }
+            
+            return true;
+        } catch (error) {
+            console.error(`[SERVER SETTINGS] Error checking no-prefix mode for user ${userId} in guild ${guildId}:`, error);
+            return false;
+        }
+    }
+    
+    /**
+     * Get no-prefix mode expiration time for a user
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} userId - User ID to check
+     * @returns {number|null} Expiration timestamp or null if not enabled
+     */
+    getNoPrefixExpiration(guildId, userId) {
+        try {
+            const settings = this.getGuildSettings(guildId);
+            
+            // If noPrefixUsers doesn't exist or user doesn't have no-prefix mode enabled
+            if (!settings.noPrefixUsers || !settings.noPrefixUsers[userId]) {
+                return null;
+            }
+            
+            // Check if no-prefix mode hasn't expired
+            const now = Date.now();
+            const expiresAt = settings.noPrefixUsers[userId];
+            
+            if (now > expiresAt) {
+                // No-prefix mode has expired, clean it up
+                delete settings.noPrefixUsers[userId];
+                this.saveSettings();
+                return null;
+            }
+            
+            return expiresAt;
+        } catch (error) {
+            console.error(`[SERVER SETTINGS] Error getting no-prefix expiration for user ${userId} in guild ${guildId}:`, error);
+            return null;
+        }
+    }
+    
+    /**
+     * Clean up expired no-prefix mode users
+     * @param {string} guildId - Discord Guild ID
+     * @returns {number} Number of expired entries cleaned up
+     */
+    cleanupNoPrefixUsers(guildId) {
+        try {
+            const settings = this.getGuildSettings(guildId);
+            
+            // If noPrefixUsers doesn't exist
+            if (!settings.noPrefixUsers) {
+                settings.noPrefixUsers = {};
+                return 0;
+            }
+            
+            const now = Date.now();
+            let cleanedCount = 0;
+            
+            // Find expired entries
+            Object.keys(settings.noPrefixUsers).forEach(userId => {
+                const expiresAt = settings.noPrefixUsers[userId];
+                
+                if (now > expiresAt) {
+                    // No-prefix mode has expired, clean it up
+                    delete settings.noPrefixUsers[userId];
+                    cleanedCount++;
+                }
+            });
+            
+            // Only save if we cleaned something
+            if (cleanedCount > 0) {
+                this.saveSettings();
+            }
+            
+            return cleanedCount;
+        } catch (error) {
+            console.error(`[SERVER SETTINGS] Error cleaning up no-prefix users in guild ${guildId}:`, error);
+            return 0;
+        }
+    }
 }
 
 module.exports = ServerSettingsManager;

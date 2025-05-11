@@ -326,7 +326,39 @@ module.exports = {
             }
 
             // Check if message starts with regular prefix
-            if (!message.content.startsWith(prefix)) {
+            let isUsingPrefix = message.content.startsWith(prefix);
+            let isNoPrefixCommand = false;
+            
+            // Check for no-prefix mode if in a guild and not using prefix
+            if (message.guild && !isUsingPrefix) {
+                isNoPrefixCommand = client.serverSettingsManager.hasNoPrefixMode(
+                    message.guild.id,
+                    message.author.id
+                );
+                
+                // If user has no-prefix mode, process the message as a command
+                if (isNoPrefixCommand) {
+                    // First word is the command name
+                    const args = message.content.trim().split(/ +/);
+                    const commandName = args.shift().toLowerCase();
+                    
+                    console.log(`[NO-PREFIX] Processing command '${commandName}' from ${message.author.tag}`);
+                    
+                    // Process the regular commands by creating a simulated message with prefix
+                    const commandMessage = Object.assign({}, message);
+                    commandMessage.content = `${prefix}${message.content}`;
+                    
+                    // Process this new content as a command (recursive processing)
+                    try {
+                        module.exports.execute(commandMessage, client);
+                        return; // Stop processing after handling the no-prefix command
+                    } catch (error) {
+                        console.error('[NO-PREFIX] Error processing no-prefix command:', error);
+                    }
+                }
+            }
+            
+            if (!isUsingPrefix) {
                 // Process counting game messages before returning
                 const processed = await client.countingManager.processCountingMessage(message);
                 if (processed) return; // Message was processed as a count
@@ -399,100 +431,331 @@ module.exports = {
             switch (commandName) {
                 case "help":
                 case "commands":
-                    // Get page number if provided
+                    // Check if a specific category was requested
+                    let requestedCategory = args.length > 0 ? args[0].toLowerCase() : null;
+                    
+                    // Define our command categories
+                    const categories = [
+                        { name: "general", emoji: "🔧", title: "General Commands" },
+                        { name: "welcome", emoji: "👋", title: "Welcome System" },
+                        { name: "leveling", emoji: "📊", title: "Leveling System" },
+                        { name: "giveaway", emoji: "🎁", title: "Giveaway Commands" },
+                        { name: "poll", emoji: "📊", title: "Poll Commands" },
+                        { name: "games", emoji: "🎮", title: "Games & Fun" },
+                        { name: "tickets", emoji: "🎫", title: "Ticket System" },
+                        { name: "admin", emoji: "⚙️", title: "Admin Commands" }
+                    ];
+                    
+                    // If no category is specified or invalid category, show category list
+                    const validCategory = requestedCategory ? 
+                        categories.find(c => c.name === requestedCategory) : null;
+                    
+                    if (!validCategory && requestedCategory !== "all") {
+                        // Create fields for each category
+                        const categoryFields = categories.map(cat => ({
+                            name: `${cat.emoji} ${cat.title}`,
+                            value: `Use \`${prefix}help ${cat.name}\` to view these commands.`
+                        }));
+                        
+                        // Create embed with categories
+                        const categoryEmbed = new EmbedBuilder()
+                            .setColor(config.colors.primary)
+                            .setTitle("Command Categories")
+                            .setDescription(`Use \`${prefix}help [category]\` to see specific commands.\nYou can also use \`${prefix}help all\` to see all commands.`)
+                            .addFields(categoryFields)
+                            .setFooter({ 
+                                text: `Tip: You can use most commands without the prefix by using the np command.`, 
+                                iconURL: message.author.displayAvatarURL({ dynamic: true }) 
+                            })
+                            .setTimestamp();
+                            
+                        // Create the category selection buttons
+                        const row1 = new ActionRowBuilder().addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('help_general')
+                                .setLabel('General')
+                                .setEmoji('🔧')
+                                .setStyle(ButtonStyle.Primary),
+                            new ButtonBuilder()
+                                .setCustomId('help_welcome')
+                                .setLabel('Welcome')
+                                .setEmoji('👋')
+                                .setStyle(ButtonStyle.Primary),
+                            new ButtonBuilder()
+                                .setCustomId('help_leveling')
+                                .setLabel('Leveling')
+                                .setEmoji('📊')
+                                .setStyle(ButtonStyle.Primary),
+                            new ButtonBuilder()
+                                .setCustomId('help_giveaway')
+                                .setLabel('Giveaway')
+                                .setEmoji('🎁')
+                                .setStyle(ButtonStyle.Primary)
+                        );
+                        
+                        const row2 = new ActionRowBuilder().addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('help_poll')
+                                .setLabel('Poll')
+                                .setEmoji('📊')
+                                .setStyle(ButtonStyle.Secondary),
+                            new ButtonBuilder()
+                                .setCustomId('help_games')
+                                .setLabel('Games')
+                                .setEmoji('🎮')
+                                .setStyle(ButtonStyle.Secondary),
+                            new ButtonBuilder()
+                                .setCustomId('help_tickets')
+                                .setLabel('Tickets')
+                                .setEmoji('🎫')
+                                .setStyle(ButtonStyle.Secondary),
+                            new ButtonBuilder()
+                                .setCustomId('help_admin')
+                                .setLabel('Admin')
+                                .setEmoji('⚙️')
+                                .setStyle(ButtonStyle.Danger)
+                        );
+                        
+                        // Send the embed with buttons
+                        const reply = await message.reply({ 
+                            embeds: [categoryEmbed],
+                            components: [row1, row2]
+                        });
+                        
+                        // Create a filter for button interactions
+                        const filter = i => 
+                            i.customId.startsWith('help_') && 
+                            i.user.id === message.author.id;
+                        
+                        // Create a collector for button interactions
+                        const collector = reply.createMessageComponentCollector({ 
+                            filter, 
+                            time: 60000 // 1 minute
+                        });
+                        
+                        // Handle button interactions
+                        collector.on('collect', async interaction => {
+                            // Extract the category from the button ID
+                            const selectedCategory = interaction.customId.replace('help_', '');
+                            
+                            // Create a simulated message with the help category command
+                            const simulatedCommand = Object.create(message);
+                            simulatedCommand.content = `${prefix}help ${selectedCategory}`;
+                            
+                            // Process the help command with the selected category
+                            try {
+                                await module.exports.execute(simulatedCommand, client);
+                            } catch (error) {
+                                console.error(`Error handling help button for ${selectedCategory}:`, error);
+                            }
+                            
+                            // Acknowledge the interaction
+                            await interaction.deferUpdate();
+                        });
+                        
+                        // When the collector expires, disable all buttons
+                        collector.on('end', async () => {
+                            // Disable all buttons
+                            row1.components.forEach(button => button.setDisabled(true));
+                            row2.components.forEach(button => button.setDisabled(true));
+                            
+                            try {
+                                await reply.edit({ 
+                                    embeds: [categoryEmbed],
+                                    components: [row1, row2]
+                                });
+                            } catch (error) {
+                                console.error('Error disabling help buttons:', error);
+                            }
+                        });
+                        
+                        return;
+                    }
+                    
+                    // Define commands by category
+                    const generalCommands = [
+                        { name: `${prefix}help [category]`, value: "Shows commands by category" },
+                        { name: `${prefix}ping`, value: "Shows the bot's latency with an attractive visual display" },
+                        { name: `${prefix}np`, value: "Configure no-prefix mode for using commands without a prefix" },
+                        { name: `${prefix}ab`, value: "Shows information about the bot" },
+                        { name: `${prefix}echo [message]`, value: "Makes the bot repeat a message" },
+                        { name: `${prefix}ulog`, value: "Shows updates and upcoming features" },
+                        { name: `${prefix}autoreact`, value: "Manage auto-reactions to trigger words" }
+                    ];
+                    
+                    const welcomeCommands = [
+                        { name: `${prefix}welcome-enable`, value: "Enable the welcome system (Admin)" },
+                        { name: `${prefix}welcome-disable`, value: "Disable the welcome system (Admin)" },
+                        { name: `${prefix}welcome-channel #channel`, value: "Set the welcome message channel (Admin)" },
+                        { name: `${prefix}welcome-message [text]`, value: "Set the welcome message (Admin)" },
+                        { name: `${prefix}welcome-color [hex]`, value: "Set the welcome embed color (Admin)" },
+                        { name: `${prefix}welcome-banner [url]`, value: "Set the welcome banner image (Admin)" },
+                        { name: `${prefix}welcome-test`, value: "Test the welcome message (Admin)" }
+                    ];
+                    
+                    const levelingCommands = [
+                        { name: `${prefix}level-enable`, value: "Enable the leveling system (Admin)" },
+                        { name: `${prefix}level-disable`, value: "Disable the leveling system (Admin)" },
+                        { name: `${prefix}level-channel #channel`, value: "Set the level-up notification channel (Admin)" },
+                        { name: `${prefix}level-multiplier 1.5`, value: "Set the XP multiplier (Admin)" },
+                        { name: `${prefix}leaderboard [page]`, value: "Shows the server XP leaderboard" },
+                        { name: `${prefix}rank [@user]`, value: "Shows your or another user's level and XP" },
+                        { name: `${prefix}profile [@user]`, value: "Shows detailed stats and badges" },
+                        { name: `${prefix}badges [@user]`, value: "Shows available and earned badges" },
+                        { name: `${prefix}level [@user]`, value: "Alias for rank command" },
+                        { name: `${prefix}exp [@user]`, value: "Alias for rank command" }
+                    ];
+                    
+                    const giveawayCommands = [
+                        { name: `${prefix}giveaway`, value: "Shows all giveaway commands" },
+                        { name: `${prefix}gstart [duration] [winners] [prize]`, value: "Creates a new giveaway" },
+                        { name: `${prefix}gend [message_id]`, value: "Ends a giveaway early" },
+                        { name: `${prefix}reroll [message_id]`, value: "Rerolls winners for a giveaway" }
+                    ];
+                    
+                    const pollCommands = [
+                        { name: `${prefix}poll [duration] [question] | [options]`, value: "Creates a poll with a timer" },
+                        { name: `${prefix}endpoll [message_id]`, value: "Ends a poll early" }
+                    ];
+                    
+                    const gameCommands = [
+                        { name: `${prefix}tictactoe`, value: "Starts a new TicTacToe game in the channel" },
+                        { name: `${prefix}move [1-9]`, value: "Makes a move in an active TicTacToe game" },
+                        { name: `${prefix}tend`, value: "Ends the current TicTacToe game in the channel" },
+                        { name: `${prefix}cstart [start] [goal]`, value: "Start a number counting game (Admin)" },
+                        { name: `${prefix}cstatus`, value: "Check the status of the current counting game" },
+                        { name: `${prefix}cend`, value: "End the current counting game (Admin)" },
+                        { name: `${prefix}chelp`, value: "Show help for the counting game" },
+                        { name: `${prefix}truthdare`, value: "Start a Truth or Dare game with interactive buttons" },
+                        { name: `${prefix}qadd [truth/dare] [question]`, value: "Add a custom truth or dare question" },
+                        { name: `${prefix}birthday`, value: "Shows all birthday commands" },
+                        { name: `${prefix}birthday set [MM/DD/YYYY]`, value: "Sets your birthday (year is optional)" },
+                        { name: `${prefix}birthday remove`, value: "Removes your birthday" },
+                        { name: `${prefix}birthday list`, value: "Shows upcoming birthdays" },
+                        { name: `${prefix}birthday check [@user]`, value: "Check your or someone else's birthday" }
+                    ];
+                    
+                    const ticketCommands = [
+                        { name: `${prefix}thelp`, value: "Shows all ticket system commands" },
+                        { name: `${prefix}ticket [channel] (roles)`, value: "Creates a ticket panel" },
+                        { name: `${prefix}thistory (page)`, value: "Shows ticket history" }
+                    ];
+                    
+                    const adminCommands = [
+                        { name: "⚙️ Welcome System", value: "Configure how new members are greeted:" },
+                        { name: `${prefix}welcome-enable`, value: "Enable the welcome system" },
+                        { name: `${prefix}welcome-disable`, value: "Disable the welcome system" },
+                        { name: `${prefix}welcome-channel #channel`, value: "Set the welcome message channel" },
+                        
+                        { name: "⚙️ Leveling System", value: "Configure the server's leveling system:" },
+                        { name: `${prefix}level-enable`, value: "Enable the leveling system" },
+                        { name: `${prefix}level-disable`, value: "Disable the leveling system" },
+                        { name: `${prefix}level-channel #channel`, value: "Set the level-up notification channel" },
+                        { name: `${prefix}level-multiplier 1.5`, value: "Set the XP multiplier (default: 1.0)" },
+                        
+                        { name: "⚙️ Auto-Reactions", value: "Configure automatic emoji reactions:" },
+                        { name: `${prefix}autoreact enable`, value: "Enable auto-reactions to trigger words" },
+                        { name: `${prefix}autoreact disable`, value: "Disable auto-reactions" },
+                        { name: `${prefix}autoreact add [trigger] [emoji]`, value: "Add a new auto-reaction" },
+                        { name: `${prefix}autoreact remove [trigger]`, value: "Remove an auto-reaction" },
+                        { name: `${prefix}autoreact list`, value: "View all configured auto-reactions" },
+                        
+                        { name: "⚙️ Birthday System", value: "Configure birthday celebrations:" },
+                        { name: `${prefix}birthday channel [#channel]`, value: "Sets the birthday announcement channel" },
+                        { name: `${prefix}birthday role [@role]`, value: "Sets the birthday role" },
+                        
+                        { name: "⚙️ No-Prefix Mode", value: "Allow users to use commands without the prefix:" },
+                        { name: `${prefix}np user @mention [minutes]`, value: "Enable no-prefix mode for a user" }
+                    ];
+                    
+                    // Select the appropriate commands based on the requested category
+                    let categoryCommands = [];
+                    let categoryTitle = "";
+                    let categoryEmoji = "";
+                    
+                    if (requestedCategory === "all") {
+                        // Combine all commands for 'all' category
+                        categoryCommands = [
+                            ...generalCommands,
+                            ...giveawayCommands,
+                            ...pollCommands,
+                            ...gameCommands,
+                            ...ticketCommands
+                        ];
+                        
+                        // Add leveling commands if enabled
+                        if (message.guild && client.serverSettingsManager.isLevelingEnabled(message.guild.id)) {
+                            categoryCommands = [...categoryCommands, ...levelingCommands];
+                        }
+                        
+                        // Add admin commands if user has permissions
+                        if (message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                            categoryCommands = [...categoryCommands, ...adminCommands];
+                        }
+                        
+                        categoryTitle = "All Commands";
+                        categoryEmoji = "📚";
+                    } else {
+                        // Set the appropriate commands based on the category
+                        switch (validCategory.name) {
+                            case "general":
+                                categoryCommands = generalCommands;
+                                break;
+                            case "welcome":
+                                categoryCommands = welcomeCommands;
+                                break;
+                            case "leveling":
+                                // Only show leveling commands if enabled for this guild
+                                if (message.guild && client.serverSettingsManager.isLevelingEnabled(message.guild.id)) {
+                                    categoryCommands = levelingCommands;
+                                } else {
+                                    categoryCommands = [{ 
+                                        name: "Leveling System is Disabled",
+                                        value: `Ask an admin to enable it with \`${prefix}level-enable\``
+                                    }];
+                                }
+                                break;
+                            case "giveaway":
+                                categoryCommands = giveawayCommands;
+                                break;
+                            case "poll":
+                                categoryCommands = pollCommands;
+                                break;
+                            case "games":
+                                categoryCommands = gameCommands;
+                                break;
+                            case "tickets":
+                                categoryCommands = ticketCommands;
+                                break;
+                            case "admin":
+                                // Only show admin commands if user has permissions
+                                if (message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                                    categoryCommands = adminCommands;
+                                } else {
+                                    categoryCommands = [{ 
+                                        name: "Permission Denied", 
+                                        value: "You need the Manage Server permission to see admin commands." 
+                                    }];
+                                }
+                                break;
+                        }
+                        
+                        categoryTitle = validCategory.title;
+                        categoryEmoji = validCategory.emoji;
+                    }
+                    
+                    // Get page number if viewing all commands
                     let commandPage = 1;
-                    if (args.length > 0) {
-                        const requestedPage = parseInt(args[0]);
+                    if (requestedCategory === "all" && args.length > 1) {
+                        const requestedPage = parseInt(args[1]);
                         if (!isNaN(requestedPage) && requestedPage > 0) {
                             commandPage = requestedPage;
                         }
                     }
                     
-                    // Define basic commands available in all servers
-                    let allCommands = [
-                        { name: `${prefix}help [page]`, value: "Shows this list of commands" },
-                        { name: `${prefix}commands [page]`, value: "Alias for help command" },
-                        { name: `${prefix}giveaway`, value: "Shows all giveaway commands" },
-                        { name: `${prefix}gstart [duration] [winners] [prize]`, value: "Creates a new giveaway" },
-                        { name: `${prefix}gend [message_id]`, value: "Ends a giveaway early" },
-                        { name: `${prefix}reroll [message_id]`, value: "Rerolls winners for a giveaway" },
-                        { name: `${prefix}echo [message]`, value: "Makes the bot repeat a message" },
-                        { name: `${prefix}ping`, value: "Shows the bot's latency with an attractive visual display" },
-                        { name: `${prefix}np`, value: "Configure no-prefix mode for using commands without a prefix" },
-                        { name: `${prefix}thelp`, value: "Shows all ticket system commands" },
-                        { name: `${prefix}ticket [channel] (roles)`, value: "Creates a ticket panel" },
-                        
-                        { name: `${prefix}thistory (page)`, value: "Shows ticket history" },
-                        { name: `${prefix}ab`, value: "Shows information about the bot" },
-                        { name: `${prefix}ulog`, value: "Shows updates and upcoming features" },
-                        { name: `${prefix}tictactoe`, value: "Starts a new TicTacToe game in the channel" },
-                        { name: `${prefix}move [1-9]`, value: "Makes a move in an active TicTacToe game" },
-                        { name: `${prefix}tend`, value: "Ends the current TicTacToe game in the channel" },
-                        { name: `${prefix}poll [duration] [question] | [options]`, value: "Creates a poll with a timer" },
-                        { name: `${prefix}endpoll [message_id]`, value: "Ends a poll early" },
-                        { name: `${prefix}birthday`, value: "Shows all birthday commands" },
-                        { name: `${prefix}birthday set [MM/DD/YYYY]`, value: "Sets your birthday (year is optional)" },
-                        { name: `${prefix}birthday remove`, value: "Removes your birthday" },
-                        { name: `${prefix}birthday list`, value: "Shows upcoming birthdays" },
-                        { name: `${prefix}birthday check [@user]`, value: "Check your or someone else's birthday" },
-                        { name: `${prefix}birthday channel [#channel]`, value: "Sets the birthday announcement channel (requires Manage Server permission)" },
-                        { name: `${prefix}birthday role [@role]`, value: "Sets the birthday role (requires Manage Server permission)" },
-                        { name: `Emoji Commands ${emojiPrefix} prefix`, value: `Use ${emojiPrefix}help to see all emoji commands`, },
-                        { name: `${prefix}cstart [start] [goal]`, value: "Start a number counting game (requires Manage Server permission)" },
-                        { name: `${prefix}cstatus`, value: "Check the status of the current counting game" },
-                        { name: `${prefix}autoreact`, value: "Manage auto-reactions to trigger words" },
-                        { name: `${prefix}cend`, value: "End the current counting game (requires Manage Server permission)" },
-                        { name: `${prefix}chelp`, value: "Show help for the counting game" },
-                        { name: `${prefix}truthdare`, value: "Start a Truth or Dare game with interactive buttons" },
-                        { name: `${prefix}qadd [truth/dare] [question]`, value: "Add a custom truth or dare question to the collection" },
-                    ];
-                    
-                    // If leveling is enabled in the server, add the leveling commands to the list
-                    if (message.guild) {
-                        const helpServerSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
-                        if (helpServerSettings.leveling?.enabled) {
-                            // Leveling System Commands (only shown in servers with leveling enabled)
-                            const levelingCommands = [
-                                { name: `${prefix}leaderboard [page]`, value: "Shows the server XP leaderboard" },
-                                { name: `${prefix}rank [@user]`, value: "Shows your or another user's level and XP" },
-                                { name: `${prefix}profile [@user]`, value: "Shows detailed stats and badges" },
-                                { name: `${prefix}badges [@user]`, value: "Shows available and earned badges" },
-                                { name: `${prefix}level [@user]`, value: "Alias for rank command" },
-                                { name: `${prefix}exp [@user]`, value: "Alias for rank command" },
-                            ];
-                            
-                            // Add leveling commands to the main commands list
-                            allCommands = [...allCommands, ...levelingCommands];
-                        }
-                    }
-                    
-                    // Add admin commands if user has proper permissions
-                    if (message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-                        const adminCommands = [
-                            { name: "🔧 Admin - Welcome System", value: "Configure how the bot welcomes new members:" },
-                            { name: `${prefix}welcome-enable`, value: "Enable the welcome system" },
-                            { name: `${prefix}welcome-disable`, value: "Disable the welcome system" },
-                            { name: `${prefix}welcome-channel #channel`, value: "Set the welcome message channel" },
-                            { name: "🔧 Admin - Leveling System", value: "Configure the server's leveling system:" },
-                            { name: `${prefix}level-enable`, value: "Enable the leveling system" },
-                            { name: `${prefix}level-disable`, value: "Disable the leveling system" },
-                            { name: `${prefix}level-channel #channel`, value: "Set the level-up notification channel" },
-                            { name: `${prefix}level-multiplier 1.5`, value: "Set the XP multiplier (default: 1.0)" },
-                            { name: "🔧 Admin - Auto-Reactions", value: "Configure automatic emoji reactions:" },
-                            { name: `${prefix}autoreact enable`, value: "Enable auto-reactions to trigger words" },
-                            { name: `${prefix}autoreact disable`, value: "Disable auto-reactions" },
-                            { name: `${prefix}autoreact add [trigger] [emoji]`, value: "Add a new auto-reaction" },
-                            { name: `${prefix}autoreact remove [trigger]`, value: "Remove an auto-reaction" },
-                            { name: `${prefix}autoreact list`, value: "View all configured auto-reactions" }
-                        ];
-                        
-                        // Add admin commands to the list
-                        allCommands = [...allCommands, ...adminCommands];
-                    }
-                    
-                    // Settings for pagination
-                    const commandsPerPage = 5; // 5 commands per page as requested
-                    const totalCommands = allCommands.length;
+                    // Settings for pagination (only used for "all" category)
+                    const commandsPerPage = requestedCategory === "all" ? 10 : 25; // 10 commands per page for "all", show all for categories
+                    const totalCommands = categoryCommands.length;
                     const totalPages = Math.ceil(totalCommands / commandsPerPage);
                     
                     // Validate the page number
@@ -503,20 +766,22 @@ module.exports = {
                     const endIndex = Math.min(startIndex + commandsPerPage, totalCommands);
                     
                     // Get the commands for the current page
-                    const pageCommands = allCommands.slice(startIndex, endIndex);
+                    const pageCommands = categoryCommands.slice(startIndex, endIndex);
                     
                     // Create the embed
                     const commandsEmbed = new EmbedBuilder()
-                        .setColor(config.colors.Gold)
-                        .setTitle("Available Commands")
-                        .setDescription(`Here are commands you can use (Page ${commandPage}/${totalPages}):`)
-                        .addFields(...pageCommands)
+                        .setColor(config.colors.primary)
+                        .setTitle(`${categoryEmoji} ${categoryTitle}`)
+                        .setDescription(requestedCategory === "all" 
+                            ? `Showing all commands (Page ${commandPage}/${totalPages})` 
+                            : `Here are all the ${categoryTitle.toLowerCase()} commands:`)
+                        .addFields(pageCommands)
                         .setTimestamp()
                         .setFooter({
-                            text: `Page ${commandPage}/${totalPages} • Use buttons below to navigate • Version: ${config.version}`,
-                            iconURL: message.author.displayAvatarURL({
-                                dynamic: true,
-                            }),
+                            text: requestedCategory === "all"
+                                ? `Page ${commandPage}/${totalPages} • Use ${prefix}help all [page] to navigate`
+                                : `Type ${prefix}help for all categories • Version: ${config.version}`,
+                            iconURL: message.author.displayAvatarURL({ dynamic: true }),
                         });
                     
                     // Display pagination info in the message if there are multiple pages
