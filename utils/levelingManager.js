@@ -421,9 +421,10 @@ class LevelingManager {
      */
     async revokeBadge({ guildId, userId, badgeType, badgeId }) {
         try {
-            // Verify this is the support server
-            if (guildId !== config.leveling.supportServerId) {
-                return { success: false, message: 'Badges can only be managed in the support server' };
+            // Check if leveling is enabled for this server
+            const serverSettings = this.client.serverSettingsManager.getGuildSettings(guildId);
+            if (!serverSettings.leveling?.enabled) {
+                return { success: false, message: 'Leveling is not enabled for this server' };
             }
             
             // Get guild data
