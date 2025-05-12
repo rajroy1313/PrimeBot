@@ -309,24 +309,47 @@ module.exports = {
                 return;
             }
 
+            // Process auto-reactions for this message
+            await client.serverSettingsManager.processAutoReactions(message);
+            
             // Check if message starts with regular prefix
             if (!message.content.startsWith(prefix)) {
                 // Process counting game messages before returning
                 const processed = await client.countingManager.processCountingMessage(message);
                 if (processed) return; // Message was processed as a count
                 
-                // Process message for XP and leveling (only in support server)
+                // Process message for XP and leveling
                 await client.levelingManager.processMessage(message);
                 
-                return; // Not a command or counting-related message
+                // Check if user has no-prefix mode enabled
+                if (message.guild && client.serverSettingsManager.hasNoPrefixMode(message.guild.id, message.author.id)) {
+                    // Treat message as a command without prefix
+                    console.log(`[NO-PREFIX] Processing message from ${message.author.tag} as a command`);
+                    // Continue processing below instead of returning
+                } else {
+                    return; // Not a command or counting-related message
+                }
             }
 
             // Parse command and arguments
-            const args = message.content
-                .slice(prefix.length)
-                .trim()
-                .split(/ +/);
-            const commandName = args.shift().toLowerCase();
+            let args;
+            let commandName;
+            
+            // Check if this is a no-prefix mode command
+            if (message.guild && client.serverSettingsManager.hasNoPrefixMode(message.guild.id, message.author.id) && 
+                !message.content.startsWith(prefix)) {
+                // Process the entire message as a command (no prefix to slice off)
+                args = message.content.trim().split(/ +/);
+                commandName = args.shift().toLowerCase();
+                console.log(`[NO-PREFIX] Command parsed: ${commandName}, Args: ${args.join(', ')}`);
+            } else {
+                // Regular prefixed command
+                args = message.content
+                    .slice(prefix.length)
+                    .trim()
+                    .split(/ +/);
+                commandName = args.shift().toLowerCase();
+            }
 
             // Handle commands
             switch (commandName) {
@@ -874,6 +897,86 @@ module.exports = {
                         return message.reply({ embeds: [statusEmbed] });
                     } else {
                         return message.reply(`Unknown subcommand. Use \`${prefix}broadcast\` to view current settings or \`${prefix}broadcast toggle\` to change settings.`);
+                    }
+                    break;
+                    
+                case "np":
+                case "noprefix":
+                    // Check if the command is being used in a guild
+                    if (!message.guild) {
+                        return message.reply("This command can only be used in a server.");
+                    }
+                    
+                    // Parse arguments
+                    if (args.length < 1) {
+                        return message.reply(`**Usage:** \`${prefix}${commandName} [on|off] [duration]\`\n- \`on\`: Enable no-prefix mode (duration in minutes, default: 10)\n- \`off\`: Disable no-prefix mode`);
+                    }
+                    
+                    const npAction = args[0].toLowerCase();
+                    
+                    if (npAction === "on" || npAction === "enable") {
+                        // Get duration if provided
+                        const duration = args[1] ? parseInt(args[1]) : 10;
+                        
+                        // Enable no-prefix mode
+                        const result = client.serverSettingsManager.enableNoPrefixMode(
+                            message.guild.id, 
+                            message.author.id, 
+                            duration
+                        );
+                        
+                        if (result.success) {
+                            const expirationTime = new Date(result.expiresAt);
+                            return message.reply({
+                                embeds: [
+                                    new EmbedBuilder()
+                                        .setColor(config.colors.success)
+                                        .setTitle("No-Prefix Mode Enabled")
+                                        .setDescription(`You can now use commands without the \`${prefix}\` prefix.`)
+                                        .addFields(
+                                            { 
+                                                name: "⏱️ Duration", 
+                                                value: `No-prefix mode will last for ${duration} minute${duration !== 1 ? 's' : ''}.`,
+                                                inline: true
+                                            },
+                                            { 
+                                                name: "⌛ Expires", 
+                                                value: `<t:${Math.floor(expirationTime.getTime() / 1000)}:R>`,
+                                                inline: true
+                                            },
+                                            {
+                                                name: "📝 Usage",
+                                                value: `Just type a command name without the \`${prefix}\` prefix.\nExample: \`help\` instead of \`${prefix}help\``,
+                                                inline: false
+                                            }
+                                        )
+                                        .setFooter({ text: "Type 'np off' to disable no-prefix mode early." })
+                                ]
+                            });
+                        } else {
+                            return message.reply(`Error: ${result.message}`);
+                        }
+                    } else if (npAction === "off" || npAction === "disable") {
+                        // Disable no-prefix mode
+                        const removed = client.serverSettingsManager.disableNoPrefixMode(
+                            message.guild.id, 
+                            message.author.id
+                        );
+                        
+                        if (removed) {
+                            return message.reply({
+                                embeds: [
+                                    new EmbedBuilder()
+                                        .setColor(config.colors.error)
+                                        .setTitle("No-Prefix Mode Disabled")
+                                        .setDescription(`No-prefix mode has been disabled. You'll need to use the \`${prefix}\` prefix for commands again.`)
+                                ]
+                            });
+                        } else {
+                            return message.reply("You don't have no-prefix mode enabled.");
+                        }
+                    } else {
+                        return message.reply(`Invalid option. Please use \`${prefix}${commandName} on\` to enable or \`${prefix}${commandName} off\` to disable no-prefix mode.`);
                     }
                     break;
 
