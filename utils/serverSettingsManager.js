@@ -762,6 +762,42 @@ class ServerSettingsManager {
     }
     
     /**
+     * Process auto-reactions for a message
+     * @param {Message} message - The Discord message to process
+     * @returns {Promise<boolean>} Whether any reactions were added
+     */
+    async processAutoReactions(message) {
+        try {
+            // Don't process messages from bots
+            if (message.author.bot) return false;
+            
+            // Only process messages in guilds
+            if (!message.guild) return false;
+            
+            // Get triggered reactions for this message
+            const emojis = this.getTriggeredReactions(message.guild.id, message.content);
+            
+            // If no reactions were triggered, return
+            if (emojis.length === 0) return false;
+            
+            // Add reactions to the message
+            for (const emoji of emojis) {
+                try {
+                    await message.react(emoji);
+                } catch (error) {
+                    console.error(`[AUTO-REACTION] Error adding reaction ${emoji}:`, error);
+                    // Continue with other emojis even if one fails
+                }
+            }
+            
+            return emojis.length > 0;
+        } catch (error) {
+            console.error('[AUTO-REACTION] Error processing auto-reactions:', error);
+            return false;
+        }
+    }
+    
+    /**
      * Enable no-prefix mode for a user for a specified duration
      * @param {string} guildId - Discord Guild ID
      * @param {string} userId - User ID to enable no-prefix mode for
@@ -834,35 +870,8 @@ class ServerSettingsManager {
      * @param {string} userId - User ID to check
      * @returns {boolean} Whether the user has no-prefix mode enabled
      */
-    hasNoPrefixMode(guildId, userId) {
-        if (!userId) return false;
-        
-        const guildSettings = this.getGuildSettings(guildId);
-        
-        // Ensure noPrefixUsers object exists
-        if (!guildSettings.noPrefixUsers) {
-            guildSettings.noPrefixUsers = {};
-            return false;
-        }
-        
-        // Check if user has no-prefix mode enabled and if it has expired
-        const expirationTime = guildSettings.noPrefixUsers[userId];
-        if (!expirationTime) {
-            return false;
-        }
-        
-        // Check if no-prefix mode has expired
-        if (Date.now() > expirationTime) {
-            // Expired, remove it
-            delete guildSettings.noPrefixUsers[userId];
-            this.serverSettings.set(guildId, guildSettings);
-            this.saveSettings();
-            return false;
-        }
-        
-        // User has valid no-prefix mode
-        return true;
-    }
+    // This method is implemented below to avoid duplication
+    // See the implementation at line ~1092
     
     /**
      * Get no-prefix mode expiration time for a user
