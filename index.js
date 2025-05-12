@@ -163,6 +163,3 @@ process.on('uncaughtException', (error) => {
 process.on('warning', (warning) => {
     console.warn('Warning:', warning.name, warning.message);
 });
-
-// Connect to Discord
-connectBot();

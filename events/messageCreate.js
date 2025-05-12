@@ -309,65 +309,151 @@ module.exports = {
                 return;
             }
 
-            // Process auto-reactions for this message
-            await client.serverSettingsManager.processAutoReactions(message);
+            // Process auto-reactions for trigger words if in a guild
+            if (message.guild) {
+                // Process reactions using serverSettingsManager
+                await client.serverSettingsManager.processAutoReactions(message);
+            }
             
-            // Check if message starts with regular prefix
-            if (!message.content.startsWith(prefix)) {
-                // Process counting game messages before returning
-                const processed = await client.countingManager.processCountingMessage(message);
-                if (processed) return; // Message was processed as a count
+            // Process counting game messages before checking commands
+            const processed = await client.countingManager.processCountingMessage(message);
+            if (processed) return; // Message was processed as a count
+            
+            // Process message for XP and leveling
+            await client.levelingManager.processMessage(message);
+            
+            // Check if user has no-prefix mode enabled (skip prefix check if they do)
+            const hasNoPrefixMode = message.guild && 
+                client.serverSettingsManager.hasNoPrefixMode(message.guild.id, message.author.id);
                 
-                // Process message for XP and leveling
-                await client.levelingManager.processMessage(message);
-                
-                // Check if user has no-prefix mode enabled
-                if (message.guild && client.serverSettingsManager.hasNoPrefixMode(message.guild.id, message.author.id)) {
-                    // Treat message as a command without prefix
-                    console.log(`[NO-PREFIX] Processing message from ${message.author.tag} as a command`);
-                    // Continue processing below instead of returning
-                } else {
-                    return; // Not a command or counting-related message
-                }
+            // Check if message either starts with prefix or user has no-prefix mode
+            const hasPrefix = message.content.startsWith(prefix);
+            
+            if (!hasPrefix && !hasNoPrefixMode) {
+                return; // Not a command message, and no-prefix mode is not enabled
             }
 
             // Parse command and arguments
-            let args;
-            let commandName;
-            
-            // Check if this is a no-prefix mode command
-            if (message.guild && client.serverSettingsManager.hasNoPrefixMode(message.guild.id, message.author.id) && 
-                !message.content.startsWith(prefix)) {
-                // Process the entire message as a command (no prefix to slice off)
-                args = message.content.trim().split(/ +/);
-                commandName = args.shift().toLowerCase();
-                console.log(`[NO-PREFIX] Command parsed: ${commandName}, Args: ${args.join(', ')}`);
-            } else {
-                // Regular prefixed command
-                args = message.content
-                    .slice(prefix.length)
-                    .trim()
-                    .split(/ +/);
-                commandName = args.shift().toLowerCase();
-            }
+            const args = hasPrefix
+                ? message.content.slice(prefix.length).trim().split(/ +/)
+                : message.content.trim().split(/ +/);
+                
+            const commandName = args.shift().toLowerCase();
 
             // Handle commands
             switch (commandName) {
                 case "help":
                 case "commands":
-                    // Get page number if provided
-                    let commandPage = 1;
+                    // Handle help command with categorized buttons
+                    
+                    // Define command categories
+                    const commandCategories = {
+                        general: {
+                            emoji: '🛠️',
+                            name: 'General',
+                            description: 'Basic bot commands and information',
+                            commands: [
+                                { name: 'help', description: 'Shows this help menu with categories' },
+                                { name: 'ping', description: 'Check bot latency and status' },
+                                { name: 'updates', description: 'View recent bot updates and changes' },
+                                { name: 'echo', description: 'Make the bot say something (Admin only)' },
+                                { name: 'np', description: 'Enable no-prefix mode for command usage' },
+                                { name: 'autoreact', description: 'Set up auto-reactions to trigger words' }
+                            ]
+                        },
+                        welcome: {
+                            emoji: '👋',
+                            name: 'Welcome',
+                            description: 'Customize welcome messages and settings',
+                            commands: [
+                                { name: 'welcomeconfig', description: 'Configure welcome messages' },
+                                { name: 'welcomeconfig test', description: 'Test current welcome message' },
+                                { name: 'welcomeconfig channel', description: 'Set welcome channel' },
+                                { name: 'welcomeconfig message', description: 'Set welcome message' },
+                                { name: 'welcomeconfig toggle', description: 'Toggle welcome messages on/off' },
+                                { name: 'welcomeconfig dm', description: 'Configure direct messages to new members' }
+                            ]
+                        },
+                        leveling: {
+                            emoji: '⭐',
+                            name: 'Leveling',
+                            description: 'User progression and leveling system',
+                            commands: [
+                                { name: 'leveling', description: 'Manage server leveling system' },
+                                { name: 'leveling rank', description: 'View your rank and level' },
+                                { name: 'leveling leaderboard', description: 'View server leaderboard' },
+                                { name: 'leveling settings', description: 'Configure leveling settings' },
+                                { name: 'leveling badges', description: 'View available badges' },
+                                { name: 'leveling reset', description: 'Reset levels for a user (Admin only)' }
+                            ]
+                        },
+                        tickets: {
+                            emoji: '🎫',
+                            name: 'Tickets',
+                            description: 'Support ticket system tools',
+                            commands: [
+                                { name: 'ticket', description: 'Create a support ticket' },
+                                { name: 'ticket close', description: 'Close an open ticket' },
+                                { name: 'ticket add', description: 'Add a user to a ticket' },
+                                { name: 'ticket remove', description: 'Remove a user from a ticket' },
+                                { name: 'tickethistory', description: 'View past ticket history (Admin only)' }
+                            ]
+                        },
+                        polls: {
+                            emoji: '📊',
+                            name: 'Polls',
+                            description: 'Create polls and collect responses',
+                            commands: [
+                                { name: 'poll', description: 'Create a new poll with options' },
+                                { name: 'endpoll', description: 'End a poll and show results' }
+                            ]
+                        },
+                        giveaways: {
+                            emoji: '🎁',
+                            name: 'Giveaways',
+                            description: 'Run giveaways with random winners',
+                            commands: [
+                                { name: 'giveaway', description: 'Start a new giveaway' },
+                                { name: 'gstart', description: 'Start a giveaway with specific settings' },
+                                { name: 'gend', description: 'End a giveaway early' },
+                                { name: 'reroll', description: 'Reroll a giveaway winner' }
+                            ]
+                        },
+                        games: {
+                            emoji: '🎮',
+                            name: 'Games',
+                            description: 'Interactive games and activities',
+                            commands: [
+                                { name: 'tictactoe', description: 'Play Tic Tac Toe with a friend' },
+                                { name: 'endgame', description: 'End an active game' },
+                                { name: 'truthdare', description: 'Play Truth or Dare' },
+                                { name: 'counting', description: 'Play a counting game in a channel' }
+                            ]
+                        },
+                        utility: {
+                            emoji: '⚙️',
+                            name: 'Utility',
+                            description: 'Server management and utility tools',
+                            commands: [
+                                { name: 'broadcastsettings', description: 'Control broadcast reception' },
+                                { name: 'move', description: 'Move messages to another channel' },
+                                { name: 'ses', description: 'View server enhancement suggestions' }
+                            ]
+                        }
+                    };
+                    
+                    // Check if user specified a category
                     if (args.length > 0) {
+                        // First check if it's a legacy page number request
                         const requestedPage = parseInt(args[0]);
                         if (!isNaN(requestedPage) && requestedPage > 0) {
-                            commandPage = requestedPage;
-                        }
-                    }
-                    
-                    // Define basic commands available in all servers
-                    let allCommands = [
-                        { name: `${prefix}help [page]`, value: "Shows this list of commands" },
-                        { name: `${prefix}commands [page]`, value: "Alias for help command" },
+                            // Handle legacy paginated help
+                            let commandPage = requestedPage;
+                            
+                            // Define basic commands available in all servers
+                            let allCommands = [
+                                { name: `${prefix}help`, value: "Shows categorized commands" },
+                                { name: `${prefix}commands`, value: "Alias for help command" },
                         { name: `${prefix}giveaway`, value: "Shows all giveaway commands" },
                         { name: `${prefix}gstart [duration] [winners] [prize]`, value: "Creates a new giveaway" },
                         { name: `${prefix}gend [message_id]`, value: "Ends a giveaway early" },
@@ -830,401 +916,6 @@ module.exports = {
                         );
 
                     // Don't return here to allow the confirmation to be sent
-                    break;
-
-                case "broadcast":
-                case "broadcasts":
-                    // Check if the command is being used in a guild
-                    if (!message.guild) {
-                        return message.reply("This command can only be used in a server.");
-                    }
-                    
-                    // Check permissions
-                    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-                        return message.reply("You need the 'Manage Server' permission to change broadcast settings.");
-                    }
-                    
-                    if (args.length === 0) {
-                        // Show current settings
-                        const settings = client.serverSettingsManager.getGuildSettings(message.guild.id);
-                        
-                        const statusEmbed = new EmbedBuilder()
-                            .setColor(config.colors.primary)
-                            .setTitle('Server Broadcast Settings')
-                            .addFields(
-                                { 
-                                    name: 'Developer Broadcasts Status', 
-                                    value: settings.receiveBroadcasts 
-                                        ? '✅ This server is receiving developer broadcasts'
-                                        : '🔕 This server has opted out of developer broadcasts'
-                                },
-                                {
-                                    name: 'How to Change',
-                                    value: `Use \`${prefix}broadcast toggle\` to change this setting\nYou can also use the slash command \`/broadcastsettings toggle\``
-                                }
-                            )
-                            .setFooter({ text: `Server ID: ${message.guild.id}` })
-                            .setTimestamp();
-                        
-                        return message.reply({ embeds: [statusEmbed] });
-                    }
-                    
-                    const subCommand = args[0].toLowerCase();
-                    
-                    if (subCommand === "toggle") {
-                        // Toggle broadcast reception for this server
-                        const newState = client.serverSettingsManager.toggleBroadcastReception(message.guild.id);
-                        
-                        const statusEmbed = new EmbedBuilder()
-                            .setColor(newState ? config.colors.success : config.colors.error)
-                            .setTitle('Broadcast Settings Updated')
-                            .setDescription(
-                                newState 
-                                ? '✅ This server will now receive developer broadcasts.'
-                                : '🔕 This server has opted out of developer broadcasts.'
-                            )
-                            .addFields(
-                                { 
-                                    name: 'What This Means', 
-                                    value: newState 
-                                        ? 'The bot developers can send important announcements to this server.'
-                                        : 'The bot developers cannot send broadcast announcements to this server.'
-                                }
-                            )
-                            .setFooter({ text: `Server ID: ${message.guild.id}` })
-                            .setTimestamp();
-                        
-                        return message.reply({ embeds: [statusEmbed] });
-                    } else {
-                        return message.reply(`Unknown subcommand. Use \`${prefix}broadcast\` to view current settings or \`${prefix}broadcast toggle\` to change settings.`);
-                    }
-                    break;
-                    
-                case "np":
-                case "noprefix":
-                    // Check if the command is being used in a guild
-                    if (!message.guild) {
-                        return message.reply("This command can only be used in a server.");
-                    }
-                    
-                    // Parse arguments
-                    if (args.length < 1) {
-                        return message.reply(`**Usage:** \`${prefix}${commandName} [on|off] [duration]\`\n- \`on\`: Enable no-prefix mode (duration in minutes, default: 10)\n- \`off\`: Disable no-prefix mode`);
-                    }
-                    
-                    const npAction = args[0].toLowerCase();
-                    
-                    if (npAction === "on" || npAction === "enable") {
-                        // Get duration if provided
-                        const duration = args[1] ? parseInt(args[1]) : 10;
-                        
-                        // Enable no-prefix mode
-                        const result = client.serverSettingsManager.enableNoPrefixMode(
-                            message.guild.id, 
-                            message.author.id, 
-                            duration
-                        );
-                        
-                        if (result.success) {
-                            const expirationTime = new Date(result.expiresAt);
-                            return message.reply({
-                                embeds: [
-                                    new EmbedBuilder()
-                                        .setColor(config.colors.success)
-                                        .setTitle("No-Prefix Mode Enabled")
-                                        .setDescription(`You can now use commands without the \`${prefix}\` prefix.`)
-                                        .addFields(
-                                            { 
-                                                name: "⏱️ Duration", 
-                                                value: `No-prefix mode will last for ${duration} minute${duration !== 1 ? 's' : ''}.`,
-                                                inline: true
-                                            },
-                                            { 
-                                                name: "⌛ Expires", 
-                                                value: `<t:${Math.floor(expirationTime.getTime() / 1000)}:R>`,
-                                                inline: true
-                                            },
-                                            {
-                                                name: "📝 Usage",
-                                                value: `Just type a command name without the \`${prefix}\` prefix.\nExample: \`help\` instead of \`${prefix}help\``,
-                                                inline: false
-                                            }
-                                        )
-                                        .setFooter({ text: "Type 'np off' to disable no-prefix mode early." })
-                                ]
-                            });
-                        } else {
-                            return message.reply(`Error: ${result.message}`);
-                        }
-                    } else if (npAction === "off" || npAction === "disable") {
-                        // Disable no-prefix mode
-                        const removed = client.serverSettingsManager.disableNoPrefixMode(
-                            message.guild.id, 
-                            message.author.id
-                        );
-                        
-                        if (removed) {
-                            return message.reply({
-                                embeds: [
-                                    new EmbedBuilder()
-                                        .setColor(config.colors.error)
-                                        .setTitle("No-Prefix Mode Disabled")
-                                        .setDescription(`No-prefix mode has been disabled. You'll need to use the \`${prefix}\` prefix for commands again.`)
-                                ]
-                            });
-                        } else {
-                            return message.reply("You don't have no-prefix mode enabled.");
-                        }
-                    } else {
-                        return message.reply(`Invalid option. Please use \`${prefix}${commandName} on\` to enable or \`${prefix}${commandName} off\` to disable no-prefix mode.`);
-                    }
-                    break;
-                    
-                case "autoreact":
-                case "autoreaction":
-                case "reactions":
-                    // Check if the command is being used in a guild
-                    if (!message.guild) {
-                        return message.reply("This command can only be used in a server.");
-                    }
-                    
-                    // Check permissions
-                    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-                        return message.reply("You need the 'Manage Server' permission to manage auto-reactions.");
-                    }
-                    
-                    if (args.length === 0) {
-                        // Show current auto-reaction settings
-                        const autoReactions = client.serverSettingsManager.getAutoReactions(message.guild.id);
-                        const isEnabled = autoReactions.enabled;
-                        const reactionCount = autoReactions.reactions.length;
-                        
-                        const statusEmbed = new EmbedBuilder()
-                            .setColor(config.colors.primary)
-                            .setTitle('Server Auto-Reaction Settings')
-                            .setDescription(
-                                `Auto-reactions are currently **${isEnabled ? 'enabled' : 'disabled'}**.` +
-                                `\nThere ${reactionCount === 1 ? 'is' : 'are'} ${reactionCount} configured auto-reaction${reactionCount !== 1 ? 's' : ''}.`
-                            )
-                            .addFields(
-                                {
-                                    name: 'Commands',
-                                    value: 
-                                        `\`${prefix}${commandName} toggle\` - Enable/disable auto-reactions\n` +
-                                        `\`${prefix}${commandName} add [trigger] [emoji] [case-sensitive?]\` - Add a new auto-reaction\n` +
-                                        `\`${prefix}${commandName} remove [trigger]\` - Remove an auto-reaction\n` +
-                                        `\`${prefix}${commandName} list\` - List all configured auto-reactions`
-                                }
-                            )
-                            .setFooter({ text: `Server ID: ${message.guild.id}` })
-                            .setTimestamp();
-                            
-                        if (reactionCount > 0) {
-                            const exampleReactions = autoReactions.reactions
-                                .slice(0, 3)
-                                .map(r => `• "${r.trigger}" → ${r.emoji} (${r.caseSensitive ? 'Case-sensitive' : 'Case-insensitive'})`)
-                                .join('\n');
-                                
-                            statusEmbed.addFields({
-                                name: 'Examples',
-                                value: exampleReactions + (reactionCount > 3 ? '\n*(and more...)*' : '')
-                            });
-                        }
-                        
-                        return message.reply({ embeds: [statusEmbed] });
-                    }
-                    
-                    const autoReactSubCommand = args.shift().toLowerCase();
-                    
-                    if (autoReactSubCommand === "toggle") {
-                        // Toggle auto-reactions
-                        const guildSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
-                        
-                        // Ensure autoReactions object exists
-                        if (!guildSettings.autoReactions) {
-                            guildSettings.autoReactions = {
-                                enabled: false,
-                                reactions: []
-                            };
-                        }
-                        
-                        // Toggle enabled state
-                        guildSettings.autoReactions.enabled = !guildSettings.autoReactions.enabled;
-                        const newState = guildSettings.autoReactions.enabled;
-                        
-                        // Save settings
-                        client.serverSettingsManager.serverSettings.set(message.guild.id, guildSettings);
-                        client.serverSettingsManager.saveSettings();
-                        
-                        const toggleEmbed = new EmbedBuilder()
-                            .setColor(newState ? config.colors.success : config.colors.error)
-                            .setTitle(`Auto-Reactions ${newState ? 'Enabled' : 'Disabled'}`)
-                            .setDescription(
-                                newState 
-                                ? '✅ The bot will now automatically react to messages containing specific triggers.'
-                                : '🔕 Auto-reactions have been disabled.'
-                            )
-                            .setFooter({ text: `Server ID: ${message.guild.id}` })
-                            .setTimestamp();
-                            
-                        return message.reply({ embeds: [toggleEmbed] });
-                    } else if (autoReactSubCommand === "add") {
-                        // Add a new auto-reaction
-                        if (args.length < 2) {
-                            return message.reply(
-                                `**Usage:** \`${prefix}${commandName} add [trigger] [emoji] [case-sensitive?]\`\n` +
-                                `Example: \`${prefix}${commandName} add hello 👋 true\``
-                            );
-                        }
-                        
-                        const trigger = args[0];
-                        const emoji = args[1];
-                        const caseSensitive = args[2] ? (args[2].toLowerCase() === 'true') : false;
-                        
-                        const guildSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
-                        
-                        // Ensure autoReactions object exists
-                        if (!guildSettings.autoReactions) {
-                            guildSettings.autoReactions = {
-                                enabled: true,
-                                reactions: []
-                            };
-                        }
-                        
-                        // Check if trigger already exists
-                        const existingIndex = guildSettings.autoReactions.reactions.findIndex(
-                            r => r.trigger.toLowerCase() === trigger.toLowerCase()
-                        );
-                        
-                        if (existingIndex >= 0) {
-                            // Update existing trigger
-                            guildSettings.autoReactions.reactions[existingIndex] = {
-                                trigger,
-                                emoji,
-                                caseSensitive
-                            };
-                        } else {
-                            // Add new trigger
-                            guildSettings.autoReactions.reactions.push({
-                                trigger,
-                                emoji,
-                                caseSensitive
-                            });
-                        }
-                        
-                        // Save settings
-                        client.serverSettingsManager.serverSettings.set(message.guild.id, guildSettings);
-                        client.serverSettingsManager.saveSettings();
-                        
-                        // Try to react to the command message to verify the emoji
-                        try {
-                            await message.react(emoji);
-                        } catch (err) {
-                            console.error(`[AUTO-REACT] Invalid emoji ${emoji}:`, err);
-                            // Continue anyway since some emojis might only work in text but not reactions
-                        }
-                        
-                        const addEmbed = new EmbedBuilder()
-                            .setColor(config.colors.success)
-                            .setTitle('Auto-Reaction Added')
-                            .setDescription(
-                                `When a message contains **${trigger}**${caseSensitive ? ' (case-sensitive)' : ''}, ` +
-                                `I will react with ${emoji}`
-                            )
-                            .setFooter({ text: `Server ID: ${message.guild.id}` })
-                            .setTimestamp();
-                            
-                        return message.reply({ embeds: [addEmbed] });
-                    } else if (autoReactSubCommand === "remove") {
-                        // Remove an auto-reaction
-                        if (args.length < 1) {
-                            return message.reply(`**Usage:** \`${prefix}${commandName} remove [trigger]\``);
-                        }
-                        
-                        const triggerToRemove = args[0];
-                        const guildSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
-                        
-                        // Ensure autoReactions object exists
-                        if (!guildSettings.autoReactions || !guildSettings.autoReactions.reactions) {
-                            return message.reply("There are no auto-reactions configured for this server.");
-                        }
-                        
-                        // Find and remove the trigger
-                        const initialLength = guildSettings.autoReactions.reactions.length;
-                        guildSettings.autoReactions.reactions = guildSettings.autoReactions.reactions.filter(
-                            r => r.trigger.toLowerCase() !== triggerToRemove.toLowerCase()
-                        );
-                        
-                        if (initialLength === guildSettings.autoReactions.reactions.length) {
-                            return message.reply(`Could not find an auto-reaction for trigger "${triggerToRemove}".`);
-                        }
-                        
-                        // Save settings
-                        client.serverSettingsManager.serverSettings.set(message.guild.id, guildSettings);
-                        client.serverSettingsManager.saveSettings();
-                        
-                        const removeEmbed = new EmbedBuilder()
-                            .setColor(config.colors.error)
-                            .setTitle('Auto-Reaction Removed')
-                            .setDescription(`Removed auto-reaction for trigger "${triggerToRemove}"`)
-                            .setFooter({ text: `Server ID: ${message.guild.id}` })
-                            .setTimestamp();
-                            
-                        return message.reply({ embeds: [removeEmbed] });
-                    } else if (autoReactSubCommand === "list") {
-                        // List all auto-reactions
-                        const autoReactions = client.serverSettingsManager.getAutoReactions(message.guild.id);
-                        
-                        if (!autoReactions.reactions || autoReactions.reactions.length === 0) {
-                            return message.reply("There are no auto-reactions configured for this server.");
-                        }
-                        
-                        // Create pages if there are many reactions
-                        const reactionsPerPage = 10;
-                        const pages = [];
-                        
-                        for (let i = 0; i < autoReactions.reactions.length; i += reactionsPerPage) {
-                            const pageReactions = autoReactions.reactions.slice(i, i + reactionsPerPage);
-                            
-                            const pageContent = pageReactions
-                                .map((r, index) => 
-                                    `${i + index + 1}. "${r.trigger}" → ${r.emoji} ${r.caseSensitive ? '(Case-sensitive)' : '(Case-insensitive)'}`
-                                )
-                                .join('\n');
-                                
-                            pages.push(pageContent);
-                        }
-                        
-                        // Get requested page number
-                        const requestedPage = args.length > 0 ? parseInt(args[0]) : 1;
-                        const pageNumber = isNaN(requestedPage) ? 1 : Math.max(1, Math.min(requestedPage, pages.length));
-                        const pageContent = pages[pageNumber - 1];
-                        
-                        const listEmbed = new EmbedBuilder()
-                            .setColor(config.colors.primary)
-                            .setTitle('Auto-Reactions')
-                            .setDescription(
-                                `Auto-reactions are currently **${autoReactions.enabled ? 'enabled' : 'disabled'}**.\n\n` +
-                                pageContent
-                            )
-                            .setFooter({ 
-                                text: `Page ${pageNumber}/${pages.length} • Server ID: ${message.guild.id}` 
-                            })
-                            .setTimestamp();
-                            
-                        if (pages.length > 1) {
-                            listEmbed.addFields({
-                                name: 'Navigation',
-                                value: `Use \`${prefix}${commandName} list [page]\` to view other pages.`
-                            });
-                        }
-                        
-                        return message.reply({ embeds: [listEmbed] });
-                    } else {
-                        return message.reply(
-                            `Unknown subcommand. Use \`${prefix}${commandName}\` to see available commands.`
-                        );
-                    }
                     break;
 
                 case "poll":
@@ -1954,6 +1645,383 @@ module.exports = {
                         });
 
                     return message.reply({ embeds: [updateEmbed] });
+                
+                case "np":
+                case "noprefix":
+                    // Check if the command is being used in a guild
+                    if (!message.guild) {
+                        message.reply("This command can only be used in a server.");
+                        return;
+                    }
+                    
+                    if (args.length === 0) {
+                        // Show usage info
+                        const npHelpEmbed = new EmbedBuilder()
+                            .setColor(config.colors.primary)
+                            .setTitle("🪄 No-Prefix Mode")
+                            .setDescription("Enable no-prefix mode for yourself or others, allowing commands to be used without the prefix.")
+                            .addFields(
+                                { name: `${prefix}np enable [minutes]`, value: "Enable no-prefix mode for yourself (default: 10 minutes)" },
+                                { name: `${prefix}np disable`, value: "Disable no-prefix mode for yourself" },
+                                { name: `${prefix}np status`, value: "Check your current no-prefix mode status" },
+                                { name: `${prefix}np user @mention [minutes]`, value: "Enable no-prefix mode for another user (requires Manage Server permission)" }
+                            )
+                            .setFooter({ text: "No-prefix mode allows you to use commands without typing the prefix", iconURL: client.user.displayAvatarURL() });
+                            
+                        message.reply({ embeds: [npHelpEmbed] });
+                        return;
+                    }
+                    
+                    const npSubCommand = args[0].toLowerCase();
+                    
+                    switch(npSubCommand) {
+                        case "enable":
+                        case "on":
+                            // Parse duration if provided
+                            let duration = 10; // Default 10 minutes
+                            if (args.length > 1) {
+                                const requestedDuration = parseInt(args[1]);
+                                if (!isNaN(requestedDuration) && requestedDuration > 0 && requestedDuration <= 60) {
+                                    duration = requestedDuration;
+                                }
+                            }
+                            
+                            // Enable no-prefix mode for the user
+                            const result = client.serverSettingsManager.enableNoPrefixMode(
+                                message.guild.id,
+                                message.author.id,
+                                duration
+                            );
+                            
+                            if (result.success) {
+                                // Calculate expiration time for display
+                                const expirationDate = new Date(result.expiresAt);
+                                const timeString = expirationDate.toLocaleTimeString();
+                                
+                                const enableEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle("🪄 No-Prefix Mode Enabled")
+                                    .setDescription("You can now use commands without the prefix!")
+                                    .addFields(
+                                        { name: "Duration", value: `${duration} minute${duration !== 1 ? 's' : ''}` },
+                                        { name: "Expires", value: `<t:${Math.floor(result.expiresAt / 1000)}:R>` },
+                                        { name: "How to use", value: "Simply type command names without the prefix. For example: `ping` instead of `$ping`." }
+                                    )
+                                    .setFooter({ text: "To disable early, use $np disable", iconURL: client.user.displayAvatarURL() })
+                                    .setTimestamp();
+                                    
+                                message.reply({ embeds: [enableEmbed] });
+                            } else {
+                                message.reply(result.message || "Failed to enable no-prefix mode.");
+                            }
+                            break;
+                            
+                        case "disable":
+                        case "off":
+                            // Disable no-prefix mode for the user
+                            const disabled = client.serverSettingsManager.disableNoPrefixMode(
+                                message.guild.id,
+                                message.author.id
+                            );
+                            
+                            if (disabled) {
+                                const disableEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.error)
+                                    .setTitle("🪄 No-Prefix Mode Disabled")
+                                    .setDescription("No-prefix mode has been disabled. You'll need to use the command prefix again.")
+                                    .setFooter({ text: `Prefix: ${prefix}`, iconURL: client.user.displayAvatarURL() })
+                                    .setTimestamp();
+                                    
+                                message.reply({ embeds: [disableEmbed] });
+                            } else {
+                                message.reply("You don't have no-prefix mode enabled.");
+                            }
+                            break;
+                            
+                        case "status":
+                        case "check":
+                            // Check no-prefix mode status
+                            const expirationTime = client.serverSettingsManager.getNoPrefixExpiration(
+                                message.guild.id,
+                                message.author.id
+                            );
+                            
+                            if (expirationTime) {
+                                const statusEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.primary)
+                                    .setTitle("🪄 No-Prefix Mode Status")
+                                    .setDescription("Your no-prefix mode is currently active!")
+                                    .addFields(
+                                        { name: "Expires", value: `<t:${Math.floor(expirationTime / 1000)}:R>` }
+                                    )
+                                    .setFooter({ text: "To disable early, use $np disable", iconURL: client.user.displayAvatarURL() })
+                                    .setTimestamp();
+                                    
+                                message.reply({ embeds: [statusEmbed] });
+                            } else {
+                                message.reply("You don't have no-prefix mode enabled.");
+                            }
+                            break;
+                            
+                        case "user":
+                            // Only available to admins with proper permissions
+                            if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                                message.reply("You don't have permission to enable no-prefix mode for other users.");
+                                return;
+                            }
+                            
+                            // Check if a user is mentioned
+                            if (message.mentions.users.size === 0) {
+                                message.reply("Please mention a user to enable no-prefix mode for them.");
+                                return;
+                            }
+                            
+                            const targetUser = message.mentions.users.first();
+                            
+                            // Parse duration if provided
+                            let userDuration = 10; // Default 10 minutes
+                            if (args.length > 2) {
+                                const requestedDuration = parseInt(args[2]);
+                                if (!isNaN(requestedDuration) && requestedDuration > 0 && requestedDuration <= 60) {
+                                    userDuration = requestedDuration;
+                                }
+                            }
+                            
+                            // Enable no-prefix mode for the target user
+                            const userResult = client.serverSettingsManager.enableNoPrefixMode(
+                                message.guild.id,
+                                targetUser.id,
+                                userDuration
+                            );
+                            
+                            if (userResult.success) {
+                                const userEnableEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle("🪄 No-Prefix Mode Enabled")
+                                    .setDescription(`No-prefix mode has been enabled for ${targetUser}.`)
+                                    .addFields(
+                                        { name: "Duration", value: `${userDuration} minute${userDuration !== 1 ? 's' : ''}` },
+                                        { name: "Expires", value: `<t:${Math.floor(userResult.expiresAt / 1000)}:R>` }
+                                    )
+                                    .setFooter({ text: `Enabled by ${message.author.tag}`, iconURL: message.author.displayAvatarURL() })
+                                    .setTimestamp();
+                                    
+                                message.reply({ embeds: [userEnableEmbed] });
+                            } else {
+                                message.reply(userResult.message || "Failed to enable no-prefix mode for the user.");
+                            }
+                            break;
+                            
+                        default:
+                            message.reply(`Unknown no-prefix command: ${npSubCommand}. Use \`${prefix}np\` to see available commands.`);
+                    }
+                    break;
+                    
+                case "autoreact":
+                case "ar":
+                    // Check if the command is being used in a guild
+                    if (!message.guild) {
+                        message.reply("This command can only be used in a server.");
+                        return;
+                    }
+                    
+                    // Check permissions
+                    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                        message.reply("You need the 'Manage Server' permission to use auto-reaction commands.");
+                        return;
+                    }
+                    
+                    if (args.length === 0) {
+                        // Show usage info
+                        const arHelpEmbed = new EmbedBuilder()
+                            .setColor(config.colors.primary)
+                            .setTitle("⚡ Auto-Reactions")
+                            .setDescription("Set up automatic emoji reactions to trigger words.")
+                            .addFields(
+                                { name: `${prefix}ar list`, value: "List all configured auto-reactions" },
+                                { name: `${prefix}ar add [trigger] [emoji]`, value: "Add a new auto-reaction" },
+                                { name: `${prefix}ar addcs [trigger] [emoji]`, value: "Add a case-sensitive auto-reaction" },
+                                { name: `${prefix}ar remove [trigger]`, value: "Remove an auto-reaction" },
+                                { name: `${prefix}ar toggle`, value: "Toggle auto-reactions on/off" }
+                            )
+                            .setFooter({ text: "Auto-reactions will be applied to all messages containing the trigger words", iconURL: client.user.displayAvatarURL() });
+                            
+                        message.reply({ embeds: [arHelpEmbed] });
+                        return;
+                    }
+                    
+                    const arSubCommand = args[0].toLowerCase();
+                    
+                    switch(arSubCommand) {
+                        case "toggle":
+                            // Toggle auto-reactions for the server
+                            const newState = client.serverSettingsManager.toggleAutoReactions(message.guild.id);
+                            
+                            const toggleEmbed = new EmbedBuilder()
+                                .setColor(newState ? config.colors.success : config.colors.error)
+                                .setTitle(`Auto-Reactions ${newState ? "Enabled" : "Disabled"}`)
+                                .setDescription(`Auto-reactions are now ${newState ? "enabled" : "disabled"} for this server.`)
+                                .setFooter({ text: `Requested by ${message.author.tag}`, iconURL: message.author.displayAvatarURL() })
+                                .setTimestamp();
+                                
+                            message.reply({ embeds: [toggleEmbed] });
+                            break;
+                            
+                        case "list":
+                            // Get all auto-reactions for this server
+                            const autoReactions = client.serverSettingsManager.getAutoReactions(message.guild.id);
+                            
+                            if (!autoReactions.enabled) {
+                                message.reply("Auto-reactions are currently disabled for this server. Use `ar toggle` to enable them.");
+                                return;
+                            }
+                            
+                            if (autoReactions.reactions.length === 0) {
+                                message.reply("No auto-reactions are configured for this server. Use `ar add [trigger] [emoji]` to add one.");
+                                return;
+                            }
+                            
+                            // Create pages of 10 reactions each
+                            const reactionsPerPage = 10;
+                            const totalPages = Math.ceil(autoReactions.reactions.length / reactionsPerPage);
+                            
+                            // Get requested page (default to first page)
+                            let page = 1;
+                            if (args.length > 1) {
+                                const requestedPage = parseInt(args[1]);
+                                if (!isNaN(requestedPage) && requestedPage > 0 && requestedPage <= totalPages) {
+                                    page = requestedPage;
+                                }
+                            }
+                            
+                            // Get reactions for this page
+                            const startIndex = (page - 1) * reactionsPerPage;
+                            const endIndex = Math.min(startIndex + reactionsPerPage, autoReactions.reactions.length);
+                            const pageReactions = autoReactions.reactions.slice(startIndex, endIndex);
+                            
+                            // Create embed
+                            const listEmbed = new EmbedBuilder()
+                                .setColor(config.colors.primary)
+                                .setTitle("⚡ Auto-Reactions")
+                                .setDescription(`Found ${autoReactions.reactions.length} auto-reaction${autoReactions.reactions.length !== 1 ? 's' : ''}.`)
+                                .setFooter({ text: `Page ${page}/${totalPages} • Use ${prefix}ar list [page] to see more`, iconURL: client.user.displayAvatarURL() });
+                                
+                            // Add reactions to embed
+                            pageReactions.forEach((reaction, index) => {
+                                listEmbed.addFields({
+                                    name: `${startIndex + index + 1}. ${reaction.caseSensitive ? '(Case Sensitive)' : ''}`,
+                                    value: `Trigger: \`${reaction.trigger}\` ➡️ Emoji: ${reaction.emoji}`
+                                });
+                            });
+                            
+                            message.reply({ embeds: [listEmbed] });
+                            break;
+                            
+                        case "add":
+                            // Need at least trigger and emoji
+                            if (args.length < 3) {
+                                message.reply(`Missing parameters. Usage: \`${prefix}ar add [trigger] [emoji]\``);
+                                return;
+                            }
+                            
+                            // Extract trigger and emoji
+                            const trigger = args[1].toLowerCase();
+                            const emoji = args[2];
+                            
+                            // Add auto-reaction
+                            const addResult = client.serverSettingsManager.addAutoReaction(
+                                message.guild.id,
+                                trigger,
+                                emoji,
+                                false // Not case-sensitive by default
+                            );
+                            
+                            if (addResult) {
+                                const addEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle("Auto-Reaction Added")
+                                    .setDescription(`Messages containing \`${trigger}\` will now automatically receive the ${emoji} reaction.`)
+                                    .setFooter({ text: `Added by ${message.author.tag}`, iconURL: message.author.displayAvatarURL() })
+                                    .setTimestamp();
+                                    
+                                message.reply({ embeds: [addEmbed] });
+                            } else {
+                                message.reply("Failed to add auto-reaction. It might already exist or the emoji may be invalid.");
+                            }
+                            break;
+                            
+                        case "addcs":
+                            // Need at least trigger and emoji
+                            if (args.length < 3) {
+                                message.reply(`Missing parameters. Usage: \`${prefix}ar addcs [trigger] [emoji]\``);
+                                return;
+                            }
+                            
+                            // Extract trigger and emoji (preserve case for case-sensitive)
+                            const csTrigger = args[1];
+                            const csEmoji = args[2];
+                            
+                            // Add case-sensitive auto-reaction
+                            const csAddResult = client.serverSettingsManager.addAutoReaction(
+                                message.guild.id,
+                                csTrigger,
+                                csEmoji,
+                                true // Case-sensitive
+                            );
+                            
+                            if (csAddResult) {
+                                const csAddEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle("Case-Sensitive Auto-Reaction Added")
+                                    .setDescription(`Messages containing \`${csTrigger}\` will now automatically receive the ${csEmoji} reaction.`)
+                                    .addFields({
+                                        name: "Case-Sensitive",
+                                        value: "This trigger is case-sensitive and will only match exact capitalization."
+                                    })
+                                    .setFooter({ text: `Added by ${message.author.tag}`, iconURL: message.author.displayAvatarURL() })
+                                    .setTimestamp();
+                                    
+                                message.reply({ embeds: [csAddEmbed] });
+                            } else {
+                                message.reply("Failed to add auto-reaction. It might already exist or the emoji may be invalid.");
+                            }
+                            break;
+                            
+                        case "remove":
+                        case "delete":
+                            // Need trigger to remove
+                            if (args.length < 2) {
+                                message.reply(`Missing parameters. Usage: \`${prefix}ar remove [trigger]\``);
+                                return;
+                            }
+                            
+                            // Extract trigger
+                            const removeTrigger = args[1];
+                            
+                            // Remove auto-reaction
+                            const removeResult = client.serverSettingsManager.removeAutoReaction(
+                                message.guild.id,
+                                removeTrigger
+                            );
+                            
+                            if (removeResult) {
+                                const removeEmbed = new EmbedBuilder()
+                                    .setColor(config.colors.success)
+                                    .setTitle("Auto-Reaction Removed")
+                                    .setDescription(`The auto-reaction for \`${removeTrigger}\` has been removed.`)
+                                    .setFooter({ text: `Removed by ${message.author.tag}`, iconURL: message.author.displayAvatarURL() })
+                                    .setTimestamp();
+                                    
+                                message.reply({ embeds: [removeEmbed] });
+                            } else {
+                                message.reply(`No auto-reaction found for trigger \`${removeTrigger}\`.`);
+                            }
+                            break;
+                            
+                        default:
+                            message.reply(`Unknown auto-reaction command: ${arSubCommand}. Use \`${prefix}ar\` to see available commands.`);
+                    }
+                    break;
                     
                 case "broadcast":
                     // Check if user is a developer
