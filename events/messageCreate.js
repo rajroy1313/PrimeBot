@@ -979,6 +979,253 @@ module.exports = {
                         return message.reply(`Invalid option. Please use \`${prefix}${commandName} on\` to enable or \`${prefix}${commandName} off\` to disable no-prefix mode.`);
                     }
                     break;
+                    
+                case "autoreact":
+                case "autoreaction":
+                case "reactions":
+                    // Check if the command is being used in a guild
+                    if (!message.guild) {
+                        return message.reply("This command can only be used in a server.");
+                    }
+                    
+                    // Check permissions
+                    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                        return message.reply("You need the 'Manage Server' permission to manage auto-reactions.");
+                    }
+                    
+                    if (args.length === 0) {
+                        // Show current auto-reaction settings
+                        const autoReactions = client.serverSettingsManager.getAutoReactions(message.guild.id);
+                        const isEnabled = autoReactions.enabled;
+                        const reactionCount = autoReactions.reactions.length;
+                        
+                        const statusEmbed = new EmbedBuilder()
+                            .setColor(config.colors.primary)
+                            .setTitle('Server Auto-Reaction Settings')
+                            .setDescription(
+                                `Auto-reactions are currently **${isEnabled ? 'enabled' : 'disabled'}**.` +
+                                `\nThere ${reactionCount === 1 ? 'is' : 'are'} ${reactionCount} configured auto-reaction${reactionCount !== 1 ? 's' : ''}.`
+                            )
+                            .addFields(
+                                {
+                                    name: 'Commands',
+                                    value: 
+                                        `\`${prefix}${commandName} toggle\` - Enable/disable auto-reactions\n` +
+                                        `\`${prefix}${commandName} add [trigger] [emoji] [case-sensitive?]\` - Add a new auto-reaction\n` +
+                                        `\`${prefix}${commandName} remove [trigger]\` - Remove an auto-reaction\n` +
+                                        `\`${prefix}${commandName} list\` - List all configured auto-reactions`
+                                }
+                            )
+                            .setFooter({ text: `Server ID: ${message.guild.id}` })
+                            .setTimestamp();
+                            
+                        if (reactionCount > 0) {
+                            const exampleReactions = autoReactions.reactions
+                                .slice(0, 3)
+                                .map(r => `• "${r.trigger}" → ${r.emoji} (${r.caseSensitive ? 'Case-sensitive' : 'Case-insensitive'})`)
+                                .join('\n');
+                                
+                            statusEmbed.addFields({
+                                name: 'Examples',
+                                value: exampleReactions + (reactionCount > 3 ? '\n*(and more...)*' : '')
+                            });
+                        }
+                        
+                        return message.reply({ embeds: [statusEmbed] });
+                    }
+                    
+                    const subCommand = args.shift().toLowerCase();
+                    
+                    if (subCommand === "toggle") {
+                        // Toggle auto-reactions
+                        const guildSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
+                        
+                        // Ensure autoReactions object exists
+                        if (!guildSettings.autoReactions) {
+                            guildSettings.autoReactions = {
+                                enabled: false,
+                                reactions: []
+                            };
+                        }
+                        
+                        // Toggle enabled state
+                        guildSettings.autoReactions.enabled = !guildSettings.autoReactions.enabled;
+                        const newState = guildSettings.autoReactions.enabled;
+                        
+                        // Save settings
+                        client.serverSettingsManager.serverSettings.set(message.guild.id, guildSettings);
+                        client.serverSettingsManager.saveSettings();
+                        
+                        const toggleEmbed = new EmbedBuilder()
+                            .setColor(newState ? config.colors.success : config.colors.error)
+                            .setTitle(`Auto-Reactions ${newState ? 'Enabled' : 'Disabled'}`)
+                            .setDescription(
+                                newState 
+                                ? '✅ The bot will now automatically react to messages containing specific triggers.'
+                                : '🔕 Auto-reactions have been disabled.'
+                            )
+                            .setFooter({ text: `Server ID: ${message.guild.id}` })
+                            .setTimestamp();
+                            
+                        return message.reply({ embeds: [toggleEmbed] });
+                    } else if (subCommand === "add") {
+                        // Add a new auto-reaction
+                        if (args.length < 2) {
+                            return message.reply(
+                                `**Usage:** \`${prefix}${commandName} add [trigger] [emoji] [case-sensitive?]\`\n` +
+                                `Example: \`${prefix}${commandName} add hello 👋 true\``
+                            );
+                        }
+                        
+                        const trigger = args[0];
+                        const emoji = args[1];
+                        const caseSensitive = args[2] ? (args[2].toLowerCase() === 'true') : false;
+                        
+                        const guildSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
+                        
+                        // Ensure autoReactions object exists
+                        if (!guildSettings.autoReactions) {
+                            guildSettings.autoReactions = {
+                                enabled: true,
+                                reactions: []
+                            };
+                        }
+                        
+                        // Check if trigger already exists
+                        const existingIndex = guildSettings.autoReactions.reactions.findIndex(
+                            r => r.trigger.toLowerCase() === trigger.toLowerCase()
+                        );
+                        
+                        if (existingIndex >= 0) {
+                            // Update existing trigger
+                            guildSettings.autoReactions.reactions[existingIndex] = {
+                                trigger,
+                                emoji,
+                                caseSensitive
+                            };
+                        } else {
+                            // Add new trigger
+                            guildSettings.autoReactions.reactions.push({
+                                trigger,
+                                emoji,
+                                caseSensitive
+                            });
+                        }
+                        
+                        // Save settings
+                        client.serverSettingsManager.serverSettings.set(message.guild.id, guildSettings);
+                        client.serverSettingsManager.saveSettings();
+                        
+                        // Try to react to the command message to verify the emoji
+                        try {
+                            await message.react(emoji);
+                        } catch (err) {
+                            console.error(`[AUTO-REACT] Invalid emoji ${emoji}:`, err);
+                            // Continue anyway since some emojis might only work in text but not reactions
+                        }
+                        
+                        const addEmbed = new EmbedBuilder()
+                            .setColor(config.colors.success)
+                            .setTitle('Auto-Reaction Added')
+                            .setDescription(
+                                `When a message contains **${trigger}**${caseSensitive ? ' (case-sensitive)' : ''}, ` +
+                                `I will react with ${emoji}`
+                            )
+                            .setFooter({ text: `Server ID: ${message.guild.id}` })
+                            .setTimestamp();
+                            
+                        return message.reply({ embeds: [addEmbed] });
+                    } else if (subCommand === "remove") {
+                        // Remove an auto-reaction
+                        if (args.length < 1) {
+                            return message.reply(`**Usage:** \`${prefix}${commandName} remove [trigger]\``);
+                        }
+                        
+                        const triggerToRemove = args[0];
+                        const guildSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
+                        
+                        // Ensure autoReactions object exists
+                        if (!guildSettings.autoReactions || !guildSettings.autoReactions.reactions) {
+                            return message.reply("There are no auto-reactions configured for this server.");
+                        }
+                        
+                        // Find and remove the trigger
+                        const initialLength = guildSettings.autoReactions.reactions.length;
+                        guildSettings.autoReactions.reactions = guildSettings.autoReactions.reactions.filter(
+                            r => r.trigger.toLowerCase() !== triggerToRemove.toLowerCase()
+                        );
+                        
+                        if (initialLength === guildSettings.autoReactions.reactions.length) {
+                            return message.reply(`Could not find an auto-reaction for trigger "${triggerToRemove}".`);
+                        }
+                        
+                        // Save settings
+                        client.serverSettingsManager.serverSettings.set(message.guild.id, guildSettings);
+                        client.serverSettingsManager.saveSettings();
+                        
+                        const removeEmbed = new EmbedBuilder()
+                            .setColor(config.colors.error)
+                            .setTitle('Auto-Reaction Removed')
+                            .setDescription(`Removed auto-reaction for trigger "${triggerToRemove}"`)
+                            .setFooter({ text: `Server ID: ${message.guild.id}` })
+                            .setTimestamp();
+                            
+                        return message.reply({ embeds: [removeEmbed] });
+                    } else if (subCommand === "list") {
+                        // List all auto-reactions
+                        const autoReactions = client.serverSettingsManager.getAutoReactions(message.guild.id);
+                        
+                        if (!autoReactions.reactions || autoReactions.reactions.length === 0) {
+                            return message.reply("There are no auto-reactions configured for this server.");
+                        }
+                        
+                        // Create pages if there are many reactions
+                        const reactionsPerPage = 10;
+                        const pages = [];
+                        
+                        for (let i = 0; i < autoReactions.reactions.length; i += reactionsPerPage) {
+                            const pageReactions = autoReactions.reactions.slice(i, i + reactionsPerPage);
+                            
+                            const pageContent = pageReactions
+                                .map((r, index) => 
+                                    `${i + index + 1}. "${r.trigger}" → ${r.emoji} ${r.caseSensitive ? '(Case-sensitive)' : '(Case-insensitive)'}`
+                                )
+                                .join('\n');
+                                
+                            pages.push(pageContent);
+                        }
+                        
+                        // Get requested page number
+                        const requestedPage = args.length > 0 ? parseInt(args[0]) : 1;
+                        const pageNumber = isNaN(requestedPage) ? 1 : Math.max(1, Math.min(requestedPage, pages.length));
+                        const pageContent = pages[pageNumber - 1];
+                        
+                        const listEmbed = new EmbedBuilder()
+                            .setColor(config.colors.primary)
+                            .setTitle('Auto-Reactions')
+                            .setDescription(
+                                `Auto-reactions are currently **${autoReactions.enabled ? 'enabled' : 'disabled'}**.\n\n` +
+                                pageContent
+                            )
+                            .setFooter({ 
+                                text: `Page ${pageNumber}/${pages.length} • Server ID: ${message.guild.id}` 
+                            })
+                            .setTimestamp();
+                            
+                        if (pages.length > 1) {
+                            listEmbed.addFields({
+                                name: 'Navigation',
+                                value: `Use \`${prefix}${commandName} list [page]\` to view other pages.`
+                            });
+                        }
+                        
+                        return message.reply({ embeds: [listEmbed] });
+                    } else {
+                        return message.reply(
+                            `Unknown subcommand. Use \`${prefix}${commandName}\` to see available commands.`
+                        );
+                    }
+                    break;
 
                 case "poll":
                     try {

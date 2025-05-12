@@ -838,31 +838,8 @@ class ServerSettingsManager {
      * @param {string} userId - User ID to disable no-prefix mode for
      * @returns {boolean} Whether no-prefix mode was successfully disabled
      */
-    disableNoPrefixMode(guildId, userId) {
-        if (!userId) return false;
-        
-        const guildSettings = this.getGuildSettings(guildId);
-        
-        // Ensure noPrefixUsers object exists
-        if (!guildSettings.noPrefixUsers) {
-            guildSettings.noPrefixUsers = {};
-            return false;
-        }
-        
-        // Check if user has no-prefix mode enabled
-        if (!guildSettings.noPrefixUsers[userId]) {
-            return false;
-        }
-        
-        // Remove the user from no-prefix mode
-        delete guildSettings.noPrefixUsers[userId];
-        
-        // Save the updated settings
-        this.serverSettings.set(guildId, guildSettings);
-        this.saveSettings();
-        
-        return true;
-    }
+    // This method is implemented below to avoid duplication
+    // See the implementation at line ~1037
     
     /**
      * Check if a user has no-prefix mode enabled
