@@ -808,6 +808,74 @@ module.exports = {
                     // Don't return here to allow the confirmation to be sent
                     break;
 
+                case "broadcast":
+                case "broadcasts":
+                    // Check if the command is being used in a guild
+                    if (!message.guild) {
+                        return message.reply("This command can only be used in a server.");
+                    }
+                    
+                    // Check permissions
+                    if (!message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                        return message.reply("You need the 'Manage Server' permission to change broadcast settings.");
+                    }
+                    
+                    if (args.length === 0) {
+                        // Show current settings
+                        const settings = client.serverSettingsManager.getGuildSettings(message.guild.id);
+                        
+                        const statusEmbed = new EmbedBuilder()
+                            .setColor(config.colors.primary)
+                            .setTitle('Server Broadcast Settings')
+                            .addFields(
+                                { 
+                                    name: 'Developer Broadcasts Status', 
+                                    value: settings.receiveBroadcasts 
+                                        ? '✅ This server is receiving developer broadcasts'
+                                        : '🔕 This server has opted out of developer broadcasts'
+                                },
+                                {
+                                    name: 'How to Change',
+                                    value: `Use \`${prefix}broadcast toggle\` to change this setting\nYou can also use the slash command \`/broadcastsettings toggle\``
+                                }
+                            )
+                            .setFooter({ text: `Server ID: ${message.guild.id}` })
+                            .setTimestamp();
+                        
+                        return message.reply({ embeds: [statusEmbed] });
+                    }
+                    
+                    const subCommand = args[0].toLowerCase();
+                    
+                    if (subCommand === "toggle") {
+                        // Toggle broadcast reception for this server
+                        const newState = client.serverSettingsManager.toggleBroadcastReception(message.guild.id);
+                        
+                        const statusEmbed = new EmbedBuilder()
+                            .setColor(newState ? config.colors.success : config.colors.error)
+                            .setTitle('Broadcast Settings Updated')
+                            .setDescription(
+                                newState 
+                                ? '✅ This server will now receive developer broadcasts.'
+                                : '🔕 This server has opted out of developer broadcasts.'
+                            )
+                            .addFields(
+                                { 
+                                    name: 'What This Means', 
+                                    value: newState 
+                                        ? 'The bot developers can send important announcements to this server.'
+                                        : 'The bot developers cannot send broadcast announcements to this server.'
+                                }
+                            )
+                            .setFooter({ text: `Server ID: ${message.guild.id}` })
+                            .setTimestamp();
+                        
+                        return message.reply({ embeds: [statusEmbed] });
+                    } else {
+                        return message.reply(`Unknown subcommand. Use \`${prefix}broadcast\` to view current settings or \`${prefix}broadcast toggle\` to change settings.`);
+                    }
+                    break;
+
                 case "poll":
                     try {
                         // Parse the command format: $poll <duration> <question> | <option1> | <option2> | ...
