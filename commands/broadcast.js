@@ -206,7 +206,17 @@ module.exports = {
                         console.log(`[BROADCAST] Bot has SendMessages permission: ${hasPermission}`);
                         
                         if (hasPermission) {
-                            await channel.send({ embeds: [broadcastEmbed] });
+                            // Create a server-specific copy of the embed with its broadcast status
+                            const serverEmbed = EmbedBuilder.from(broadcastEmbed);
+                            
+                            // Add server-specific broadcast status field at the end
+                            serverEmbed.addFields({
+                                name: 'Server Broadcast Settings',
+                                value: `✅ This server is receiving developer broadcasts\nUse \`/broadcastsettings toggle\` or \`${config.prefix}broadcast toggle\` to change this setting`,
+                                inline: false
+                            });
+                            
+                            await channel.send({ embeds: [serverEmbed] });
                             console.log(`[BROADCAST] Successfully sent broadcast to guild: ${guild.name}`);
                             successCount++;
                         } else {
