@@ -1034,9 +1034,9 @@ module.exports = {
                         return message.reply({ embeds: [statusEmbed] });
                     }
                     
-                    const subCommand = args.shift().toLowerCase();
+                    const autoReactSubCommand = args.shift().toLowerCase();
                     
-                    if (subCommand === "toggle") {
+                    if (autoReactSubCommand === "toggle") {
                         // Toggle auto-reactions
                         const guildSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
                         
@@ -1068,7 +1068,7 @@ module.exports = {
                             .setTimestamp();
                             
                         return message.reply({ embeds: [toggleEmbed] });
-                    } else if (subCommand === "add") {
+                    } else if (autoReactSubCommand === "add") {
                         // Add a new auto-reaction
                         if (args.length < 2) {
                             return message.reply(
@@ -1135,7 +1135,7 @@ module.exports = {
                             .setTimestamp();
                             
                         return message.reply({ embeds: [addEmbed] });
-                    } else if (subCommand === "remove") {
+                    } else if (autoReactSubCommand === "remove") {
                         // Remove an auto-reaction
                         if (args.length < 1) {
                             return message.reply(`**Usage:** \`${prefix}${commandName} remove [trigger]\``);
@@ -1171,7 +1171,7 @@ module.exports = {
                             .setTimestamp();
                             
                         return message.reply({ embeds: [removeEmbed] });
-                    } else if (subCommand === "list") {
+                    } else if (autoReactSubCommand === "list") {
                         // List all auto-reactions
                         const autoReactions = client.serverSettingsManager.getAutoReactions(message.guild.id);
                         
