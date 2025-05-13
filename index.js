@@ -52,15 +52,32 @@ console.log(`============================\n`);
 const eventsPath = path.join(__dirname, 'events');
 const eventFiles = fs.readdirSync(eventsPath).filter(file => file.endsWith('.js'));
 
+// Debug event loading
+console.log('\n===== LOADING EVENTS =====');
+console.log(`Found ${eventFiles.length} event files`);
+
 for (const file of eventFiles) {
     const filePath = path.join(eventsPath, file);
     const event = require(filePath);
+    
+    console.log(`Loading event: ${file} (${event.name}, once: ${event.once ? 'true' : 'false'})`);
+    
     if (event.once) {
-        client.once(event.name, (...args) => event.execute(...args));
+        client.once(event.name, (...args) => {
+            console.log(`[EVENT] Executing once event: ${event.name}`);
+            event.execute(...args, client);
+        });
     } else {
-        client.on(event.name, (...args) => event.execute(...args, client));
+        client.on(event.name, (...args) => {
+            // Only log first messageCreate and then every 100th one to avoid log spam
+            if (event.name !== 'messageCreate' || (global.messageCounter = (global.messageCounter || 0) + 1) % 100 === 1) {
+                console.log(`[EVENT] Executing event: ${event.name}${event.name === 'messageCreate' ? ` #${global.messageCounter}` : ''}`);
+            }
+            event.execute(...args, client);
+        });
     }
 }
+console.log('===== EVENTS LOADED =====\n');
 
 // Initialize giveaway manager
 const GiveawayManager = require('./utils/giveawayManager');
