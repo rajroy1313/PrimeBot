@@ -46,6 +46,15 @@ module.exports = {
                 }
             }
 
+            // Process message for counting game if available
+            if (client.countingManager && typeof client.countingManager.processCountingMessage === 'function') {
+                // Check if message was processed by counting
+                const wasProcessedByCounting = await client.countingManager.processCountingMessage(message);
+                
+                // If message was processed as a counting message, stop further processing
+                if (wasProcessedByCounting) return;
+            }
+
             // Process message for XP and leveling if available
             if (client.levelingManager && typeof client.levelingManager.processMessage === 'function') {
                 await client.levelingManager.processMessage(message);
