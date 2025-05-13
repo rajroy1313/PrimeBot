@@ -11,12 +11,18 @@ const config = require("../config");
 module.exports = {
     name: "messageCreate",
     async execute(message, client) {
-        // Debug log for every message
-        console.log(`[MESSAGE] Received message from ${message.author.tag}: ${message.content.substring(0, 30)}${message.content.length > 30 ? '...' : ''}`);
+        // Enhanced debug log for every message with full details
+        console.log(`[MESSAGE RECEIVED] Author: ${message.author.tag} | Content: "${message.content}" | Channel: ${message.channel.name} | Guild: ${message.guild?.name || 'DM'}`);
         
         try {
-            // Ignore messages from bots
-            if (message.author.bot) return;
+            // Debug important message properties
+            console.log(`[MESSAGE DEBUG] ID: ${message.id} | Type: ${message.type} | Has client mention: ${message.mentions.has(client.user.id)}`);
+            
+            // Ignore messages from bots with debug
+            if (message.author.bot) {
+                console.log(`[MESSAGE SKIP] Ignoring bot message from ${message.author.tag}`);
+                return;
+            }
 
             const prefix = config.prefix;
 
@@ -63,13 +69,17 @@ module.exports = {
                 await client.levelingManager.processMessage(message);
             }
 
+            // Check if message starts with prefix (debug deeply)
+            console.log(`[PREFIX CHECK] Message: "${message.content}" | Prefix: "${prefix}" | Starts with prefix: ${message.content.startsWith(prefix)}`);
+            
             // Basic command handling with prefix
             if (message.content.startsWith(prefix)) {
                 const args = message.content.slice(prefix.length).trim().split(/ +/);
                 const commandName = args.shift().toLowerCase();
                 
-                // Log prefix command received for debugging
-                console.log(`[PREFIX CMD] Received prefix command: ${commandName}, Args: ${args.join(', ')}`);
+                // Enhanced log for prefix command debugging
+                console.log(`[PREFIX CMD DETECTED] Command: ${commandName} | Args: [${args.join(', ')}] | Full message: "${message.content}"`);
+                console.log(`[PREFIX CMD DEBUG] message.author.id: ${message.author.id} | message.guild.id: ${message.guild?.id || 'DM'} | message.channel.id: ${message.channel.id}`);
 
                 // Handle counting game commands
                 if (client.countingManager && commandName.startsWith('c')) {
