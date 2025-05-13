@@ -65,15 +65,28 @@ for (const file of eventFiles) {
     if (event.once) {
         client.once(event.name, (...args) => {
             console.log(`[EVENT] Executing once event: ${event.name}`);
-            event.execute(...args, client);
+            try {
+                event.execute(...args, client);
+            } catch (error) {
+                console.error(`[EVENT ERROR] Error in once event ${event.name}:`, error);
+            }
         });
     } else {
         client.on(event.name, (...args) => {
-            // Only log first messageCreate and then every 100th one to avoid log spam
-            if (event.name !== 'messageCreate' || (global.messageCounter = (global.messageCounter || 0) + 1) % 100 === 1) {
-                console.log(`[EVENT] Executing event: ${event.name}${event.name === 'messageCreate' ? ` #${global.messageCounter}` : ''}`);
+            // Always log message events for debugging
+            console.log(`[EVENT] Executing event: ${event.name}`);
+            
+            try {
+                // For message events, log key details
+                if (event.name === 'messageCreate') {
+                    const message = args[0];
+                    console.log(`[MESSAGE DEBUG] Content: "${message.content}", Author: ${message.author.tag}, Channel: ${message.channel.type === 'DM' ? 'DM' : message.channel.name}, Guild: ${message.guild ? message.guild.name : 'None'}`);
+                }
+                
+                event.execute(...args, client);
+            } catch (error) {
+                console.error(`[EVENT ERROR] Error in event ${event.name}:`, error);
             }
-            event.execute(...args, client);
         });
     }
 }
