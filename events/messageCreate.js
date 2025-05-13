@@ -11,6 +11,9 @@ const config = require("../config");
 module.exports = {
     name: "messageCreate",
     async execute(message, client) {
+        // Debug log for every message
+        console.log(`[MESSAGE] Received message from ${message.author.tag}: ${message.content.substring(0, 30)}${message.content.length > 30 ? '...' : ''}`);
+        
         try {
             // Ignore messages from bots
             if (message.author.bot) return;
@@ -64,9 +67,13 @@ module.exports = {
             if (message.content.startsWith(prefix)) {
                 const args = message.content.slice(prefix.length).trim().split(/ +/);
                 const commandName = args.shift().toLowerCase();
+                
+                // Log prefix command received for debugging
+                console.log(`[PREFIX CMD] Received prefix command: ${commandName}, Args: ${args.join(', ')}`);
 
                 // Handle counting game commands
                 if (client.countingManager && commandName.startsWith('c')) {
+                    console.log(`[PREFIX CMD] Processing counting command: ${commandName}`);
                     // Counting command handling
                     switch (commandName) {
                         case 'cstart': {
@@ -161,7 +168,16 @@ module.exports = {
                 }
                 // Generic help command
                 else if (commandName === 'help') {
+                    console.log(`[PREFIX CMD] Processing help command`);
                     message.reply("This is a placeholder help command. The bot is currently being reconfigured.");
+                }
+                // Debug command - responds to $ping to confirm bot is working
+                else if (commandName === 'ping') {
+                    console.log(`[PREFIX CMD] Processing ping command`);
+                    message.reply(`Pong! Bot is online and responding to prefix commands. Latency: ${client.ws.ping}ms`);
+                }
+                else {
+                    console.log(`[PREFIX CMD] Unknown command: ${commandName}`);
                 }
             }
         } catch (error) {
