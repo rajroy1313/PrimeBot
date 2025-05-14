@@ -260,16 +260,17 @@ class BirthdayManager {
         // Add the celebration image
         embed.setImage(currentStyle.image);
         
-        // Update the embed index for next time (cycle through 0-3)
-        this.currentEmbedIndex = (this.currentEmbedIndex + 1) % 4;
-        
         // Send the celebration
         await channel.send({ 
             content: users.map(user => `Happy Birthday ${user.member}! 🎉`).join('\n'),
             embeds: [embed] 
         });
         
-        console.log(`[BIRTHDAY] Sent celebration message with style #${this.currentEmbedIndex}`);
+        console.log(`[BIRTHDAY] Sent celebration message with style #${this.currentEmbedIndex + 1}`);
+        
+        // Update the embed index for next time (cycle through 0-3)
+        this.currentEmbedIndex = (this.currentEmbedIndex + 1) % 4;
+        console.log(`[BIRTHDAY] Next celebration will use style #${this.currentEmbedIndex + 1}`);
     }
     
     /**
