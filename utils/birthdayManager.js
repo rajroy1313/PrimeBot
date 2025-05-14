@@ -10,6 +10,9 @@ class BirthdayManager {
         this.birthdays = new Map();
         this.dataPath = path.join(__dirname, '../data/birthdays.json');
         
+        // Track which embed style to use next (cycles through 0-3)
+        this.currentEmbedIndex = 0;
+        
         // Ensure data directory exists
         const dataDir = path.join(__dirname, '../data');
         if (!fs.existsSync(dataDir)) {
@@ -109,6 +112,10 @@ class BirthdayManager {
         const today = new Date();
         const month = today.getMonth() + 1; // JavaScript months are 0-indexed
         const day = today.getDate();
+        const currentYear = today.getFullYear();
+        const todayString = `${currentYear}-${month}-${day}`; // Format: YYYY-MM-DD
+        
+        console.log(`[BIRTHDAY] Checking for birthdays on ${todayString}`);
         
         // Loop through each guild
         for (const [guildId, guildData] of this.birthdays.entries()) {
@@ -121,20 +128,33 @@ class BirthdayManager {
             const channel = await guild.channels.fetch(guildData.announcementChannel).catch(() => null);
             if (!channel) continue;
             
-            // Find users with birthdays today
+            // Find users with birthdays today that haven't been celebrated yet
             const birthdayUsers = [];
+            const updatedUsers = new Map(); // Track users that need to be updated
             
             for (const [userId, userData] of guildData.users.entries()) {
                 const birthMonth = userData.month;
                 const birthDay = userData.day;
                 
                 if (birthMonth === month && birthDay === day) {
+                    // Check if we already celebrated this birthday today
+                    if (userData.lastCelebrated === todayString) {
+                        console.log(`[BIRTHDAY] Already celebrated birthday for user ${userId} today`);
+                        continue;
+                    }
+                    
                     const member = await guild.members.fetch(userId).catch(() => null);
                     if (member) {
+                        console.log(`[BIRTHDAY] Found birthday for ${member.user.tag}`);
+                        
                         birthdayUsers.push({
                             member,
-                            age: userData.year ? today.getFullYear() - userData.year : null
+                            age: userData.year ? currentYear - userData.year : null
                         });
+                        
+                        // Update the lastCelebrated date for this user
+                        const updatedUserData = {...userData, lastCelebrated: todayString};
+                        updatedUsers.set(userId, updatedUserData);
                         
                         // Assign birthday role if configured
                         if (guildData.role) {
@@ -159,8 +179,19 @@ class BirthdayManager {
                 }
             }
             
-            // Send birthday celebration messages
+            // Update user data for those with birthdays
+            for (const [userId, updatedData] of updatedUsers.entries()) {
+                guildData.users.set(userId, updatedData);
+            }
+            
+            // Save changes if we updated any users
+            if (updatedUsers.size > 0) {
+                this.saveBirthdays();
+            }
+            
+            // Send birthday celebration messages (only once per day per user)
             if (birthdayUsers.length > 0) {
+                console.log(`[BIRTHDAY] Sending celebration for ${birthdayUsers.length} users`);
                 await this.sendBirthdayCelebration(channel, birthdayUsers);
             }
         }
@@ -172,24 +203,49 @@ class BirthdayManager {
      * @param {Array} users - Array of users with birthdays
      */
     async sendBirthdayCelebration(channel, users) {
-        // Get celebration quotes
-        const celebrationQuotes = [
-            "May your birthday be filled with joy and surrounded by the people you love!",
-            "Happy Birthday! Wishing you a fantastic day and an amazing year ahead!",
-            "Another year, another adventure. Happy Birthday!",
-            "May your birthday be as awesome as you are!",
-            "Wishing you a day filled with happiness and a year filled with joy!",
-            "Happy Birthday! May all your dreams come true!"
+        // Define the 4 sequential celebration embed styles
+        const embedStyles = [
+            // Style 1: Playful - Pink with cake
+            {
+                color: '#FF69B4', // Hot Pink
+                title: '🎂 Happy Birthday Celebration! 🎉',
+                image: 'https://i.imgur.com/KxoO5Ih.gif', // Cake gif
+                quote: "May your birthday be filled with joy and surrounded by the people you love!"
+            },
+            // Style 2: Elegant - Blue with balloons
+            {
+                color: '#1E90FF', // Dodger Blue
+                title: '🎈 Birthday Wishes! 🎁',
+                image: 'https://i.imgur.com/VKgLOgY.gif', // Birthday balloons
+                quote: "Another year, another adventure. Happy Birthday!"
+            },
+            // Style 3: Festive - Gold with confetti
+            {
+                color: '#FFD700', // Gold
+                title: '✨ Celebrate Your Special Day! ✨',
+                image: 'https://i.imgur.com/oDnVXdL.gif', // Birthday confetti
+                quote: "Wishing you a day filled with happiness and a year filled with joy!"
+            },
+            // Style 4: Fun - Green with presents
+            {
+                color: '#32CD32', // Lime Green
+                title: '🎁 Birthday Joy! 🥳',
+                image: 'https://i.imgur.com/FrVGrVN.gif', // Birthday present
+                quote: "Happy Birthday! May all your dreams come true!"
+            }
         ];
         
-        // Random quote
-        const quote = celebrationQuotes[Math.floor(Math.random() * celebrationQuotes.length)];
+        // Get the current style to use
+        const currentStyle = embedStyles[this.currentEmbedIndex];
+        
+        // Log which style we're using
+        console.log(`[BIRTHDAY] Using embed style #${this.currentEmbedIndex + 1}`);
         
         // Create the celebration embed
         const embed = new EmbedBuilder()
-            .setColor('#FFC0CB') // Pink
-            .setTitle('🎂 Birthday Celebration! 🎉')
-            .setDescription(quote)
+            .setColor(currentStyle.color)
+            .setTitle(currentStyle.title)
+            .setDescription(currentStyle.quote)
             .setTimestamp();
         
         // Add users to the embed
@@ -201,23 +257,19 @@ class BirthdayManager {
             });
         }
         
-        // Add a random celebration image
-        const celebrationImages = [
-            'https://i.imgur.com/KxoO5Ih.gif', // Cake gif
-            'https://i.imgur.com/1XXtUx0.gif', // Party gif
-            'https://i.imgur.com/VKgLOgY.gif', // Birthday balloons
-            'https://i.imgur.com/oDnVXdL.gif', // Birthday confetti
-            'https://i.imgur.com/FrVGrVN.gif'  // Birthday present
-        ];
+        // Add the celebration image
+        embed.setImage(currentStyle.image);
         
-        const randomImage = celebrationImages[Math.floor(Math.random() * celebrationImages.length)];
-        embed.setImage(randomImage);
+        // Update the embed index for next time (cycle through 0-3)
+        this.currentEmbedIndex = (this.currentEmbedIndex + 1) % 4;
         
         // Send the celebration
         await channel.send({ 
             content: users.map(user => `Happy Birthday ${user.member}! 🎉`).join('\n'),
             embeds: [embed] 
         });
+        
+        console.log(`[BIRTHDAY] Sent celebration message with style #${this.currentEmbedIndex}`);
     }
     
     /**
