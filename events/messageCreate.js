@@ -344,13 +344,24 @@ module.exports = {
                     
                     console.log(`[NO-PREFIX] Processing command '${commandName}' from ${message.author.tag}`);
                     
-                    // Process the regular commands by creating a simulated message with prefix
-                    const commandMessage = Object.assign({}, message);
-                    commandMessage.content = `${prefix}${message.content}`;
+                    // Create a simulated prefixed message for the command handler
+                    const simulatedContent = `${prefix}${message.content}`;
+                    
+                    // Create a completely new message object to avoid reference issues
+                    const simulatedMessage = {...message};
+                    simulatedMessage.content = simulatedContent;
                     
                     // Process this new content as a command (recursive processing)
                     try {
-                        module.exports.execute(commandMessage, client);
+                        // Adding a direct flag to avoid infinite recursion
+                        simulatedMessage._processedAsNoPrefix = true;
+                        
+                        // Process the command
+                        await module.exports.execute(simulatedMessage, client);
+                        
+                        // Add a small indicator that this was a no-prefix command
+                        message.react('🪄').catch(() => {}); // React with a magic wand emoji
+                        
                         return; // Stop processing after handling the no-prefix command
                     } catch (error) {
                         console.error('[NO-PREFIX] Error processing no-prefix command:', error);
@@ -386,32 +397,6 @@ module.exports = {
                             }, index * 500); // 500ms delay between reactions
                         });
                     }
-                    
-                    // Check if user has no-prefix mode enabled
-                    if (client.serverSettingsManager.hasNoPrefixMode(message.guild.id, message.author.id)) {
-                        // Treat message as a command without prefix
-                        const args = message.content.trim().split(/ +/);
-                        const commandName = args.shift().toLowerCase();
-                        
-                        console.log(`[NO-PREFIX] Detected command from ${message.author.tag}: ${commandName}`);
-                        
-                        // Process the no-prefix command here (we'll simulate having the prefix)
-                        // This code creates a simulated prefixed message for the command handler
-                        const simulatedContent = `${prefix}${message.content}`;
-                        const simulatedMessage = Object.create(message);
-                        simulatedMessage.content = simulatedContent;
-                        
-                        // Process the command in a separate try/catch to avoid affecting the main flow
-                        try {
-                            // Call the handler recursively with the simulated prefixed message
-                            await client.eventHandlers.messageCreate(simulatedMessage, client);
-                            
-                            // Add a small indicator that this was a no-prefix command (optional)
-                            message.react('🪄').catch(() => {}); // React with a magic wand emoji
-                        } catch (error) {
-                            console.error('[NO-PREFIX] Error processing no-prefix command:', error);
-                        }
-                    }
                 }
                 
                 return; // Not a command or counting-related message
@@ -429,6 +414,46 @@ module.exports = {
 
             // Handle commands
             switch (commandName) {
+                case "np":
+                case "noprefix":
+                    // Toggle no-prefix mode
+                    if (!message.guild) {
+                        return message.reply("No-prefix mode can only be used in servers.");
+                    }
+                    
+                    // Get current status
+                    const hasNoPrefix = client.serverSettingsManager.hasNoPrefixMode(
+                        message.guild.id,
+                        message.author.id
+                    );
+                    
+                    if (hasNoPrefix) {
+                        // Disable no-prefix mode
+                        client.serverSettingsManager.disableNoPrefixMode(message.guild.id, message.author.id);
+                        return message.reply("No-prefix mode has been disabled. You now need to use the command prefix.");
+                    } else {
+                        // Enable no-prefix mode (default 10 minutes)
+                        let duration = 10;
+                        if (args.length > 0) {
+                            const parsedDuration = parseInt(args[0]);
+                            if (!isNaN(parsedDuration) && parsedDuration > 0 && parsedDuration <= 60) {
+                                duration = parsedDuration;
+                            }
+                        }
+                        
+                        const result = client.serverSettingsManager.enableNoPrefixMode(
+                            message.guild.id, 
+                            message.author.id, 
+                            duration
+                        );
+                        
+                        if (result.success) {
+                            return message.reply(`No-prefix mode has been enabled for ${duration} minutes. You can now use commands without the prefix.`);
+                        } else {
+                            return message.reply(`Failed to enable no-prefix mode: ${result.message}`);
+                        }
+                    }
+                    
                 case "help":
                 case "commands":
                     // Get page number if provided

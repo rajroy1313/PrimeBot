@@ -160,6 +160,166 @@ class ServerSettingsManager {
     }
     
     /**
+     * Enable no-prefix mode for a user
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} userId - User ID to enable no-prefix mode for
+     * @param {number} minutes - Duration in minutes (default: 10)
+     * @returns {Object} Result with success status and message
+     */
+    enableNoPrefixMode(guildId, userId, minutes = 10) {
+        if (!userId) return { success: false, message: "Invalid user" };
+        if (minutes <= 0 || minutes > 60) return { success: false, message: "Duration must be between 1 and 60 minutes" };
+        
+        try {
+            const guildSettings = this.getGuildSettings(guildId);
+            
+            // Ensure noPrefixUsers object exists
+            if (!guildSettings.noPrefixUsers) {
+                guildSettings.noPrefixUsers = {};
+            }
+            
+            // Calculate expiration timestamp (current time + minutes)
+            const expirationTime = Date.now() + (minutes * 60 * 1000);
+            
+            // Set the expiration time for this user
+            guildSettings.noPrefixUsers[userId] = expirationTime;
+            
+            // Save the updated settings
+            this.serverSettings.set(guildId, guildSettings);
+            this.saveSettings();
+            
+            console.log(`[NO-PREFIX] Enabled no-prefix mode for user ${userId} in guild ${guildId} for ${minutes} minutes (expires at ${new Date(expirationTime)})`);
+            
+            return { 
+                success: true, 
+                message: `No-prefix mode enabled for ${minutes} minute${minutes !== 1 ? 's' : ''}`
+            };
+        } catch (error) {
+            console.error(`[SERVER SETTINGS] Error enabling no-prefix mode for user ${userId} in guild ${guildId}:`, error);
+            return { 
+                success: false, 
+                message: "An error occurred while enabling no-prefix mode." 
+            };
+        }
+    }
+    
+    /**
+     * Disable no-prefix mode for a user
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} userId - User ID to disable no-prefix mode for
+     * @returns {boolean} Whether no-prefix mode was successfully disabled
+     */
+    disableNoPrefixMode(guildId, userId) {
+        if (!userId) return false;
+        
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure noPrefixUsers object exists
+        if (!guildSettings.noPrefixUsers) {
+            guildSettings.noPrefixUsers = {};
+            return false;
+        }
+        
+        // Check if user has no-prefix mode enabled
+        if (!guildSettings.noPrefixUsers[userId]) {
+            return false;
+        }
+        
+        // Remove the user from no-prefix mode
+        delete guildSettings.noPrefixUsers[userId];
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        this.saveSettings();
+        
+        return true;
+    }
+    
+    /**
+     * Check if a user has no-prefix mode enabled
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} userId - User ID to check
+     * @returns {boolean} Whether the user has no-prefix mode enabled
+     */
+    hasNoPrefixMode(guildId, userId) {
+        try {
+            if (!guildId || !userId) {
+                console.log(`[SERVER SETTINGS] Invalid parameters for hasNoPrefixMode: guildId=${guildId}, userId=${userId}`);
+                return false;
+            }
+            
+            const settings = this.getGuildSettings(guildId);
+            
+            // Debug output to help diagnose no-prefix issues
+            console.log(`[NO-PREFIX DEBUG] Checking no-prefix for user ${userId} in guild ${guildId}`);
+            console.log(`[NO-PREFIX DEBUG] Has noPrefixUsers: ${!!settings.noPrefixUsers}`);
+            if (settings.noPrefixUsers) {
+                console.log(`[NO-PREFIX DEBUG] User has entry: ${!!settings.noPrefixUsers[userId]}`);
+            }
+            
+            // If noPrefixUsers doesn't exist or user doesn't have no-prefix mode enabled
+            if (!settings.noPrefixUsers || !settings.noPrefixUsers[userId]) {
+                return false;
+            }
+            
+            // Check if no-prefix mode hasn't expired
+            const now = Date.now();
+            const expiresAt = settings.noPrefixUsers[userId];
+            
+            console.log(`[NO-PREFIX DEBUG] Current time: ${now}, Expiration: ${expiresAt}, Expired: ${now > expiresAt}`);
+            
+            if (now > expiresAt) {
+                // No-prefix mode has expired, clean it up
+                console.log(`[NO-PREFIX] No-prefix mode expired for user ${userId} in guild ${guildId}`);
+                delete settings.noPrefixUsers[userId];
+                this.saveSettings();
+                return false;
+            }
+            
+            console.log(`[NO-PREFIX] User ${userId} has active no-prefix mode in guild ${guildId}`);
+            return true;
+        } catch (error) {
+            console.error(`[SERVER SETTINGS] Error checking no-prefix mode for user ${userId} in guild ${guildId}:`, error);
+            return false;
+        }
+    }
+    
+    /**
+     * Get no-prefix mode expiration time for a user
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} userId - User ID to check
+     * @returns {number|null} Expiration timestamp or null if not enabled
+     */
+    getNoPrefixExpiration(guildId, userId) {
+        if (!userId) return null;
+        
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure noPrefixUsers object exists
+        if (!guildSettings.noPrefixUsers) {
+            return null;
+        }
+        
+        // Get expiration time
+        const expirationTime = guildSettings.noPrefixUsers[userId];
+        if (!expirationTime) {
+            return null;
+        }
+        
+        // Check if expired
+        const now = Date.now();
+        if (now > expirationTime) {
+            // No-prefix mode has expired, clean it up
+            delete guildSettings.noPrefixUsers[userId];
+            this.serverSettings.set(guildId, guildSettings);
+            this.saveSettings();
+            return null;
+        }
+        
+        return expirationTime;
+    }
+    
+    /**
      * Check if a guild has opted out of broadcasts
      * @param {string} guildId - Discord Guild ID
      * @returns {boolean} Whether the guild receives broadcasts
@@ -482,451 +642,6 @@ class ServerSettingsManager {
     }
 
     /**
-     * Update welcome settings for a guild with an options object
-     * @param {string} guildId - Discord Guild ID
-     * @param {Object} options - Welcome settings to update
-     * @returns {boolean} Whether the settings were successfully updated
-     */
-    updateWelcomeSettings(guildId, options) {
-        const guildSettings = this.getGuildSettings(guildId);
-        let updated = false;
-        
-        if (options.hasOwnProperty('enabled')) {
-            guildSettings.welcomeEnabled = options.enabled;
-            updated = true;
-        }
-        
-        if (options.channelId) {
-            guildSettings.welcomeChannelId = options.channelId;
-            updated = true;
-        }
-        
-        if (options.message) {
-            guildSettings.welcomeMessage = options.message;
-            updated = true;
-        }
-        
-        if (options.bannerUrl) {
-            guildSettings.welcomeBannerUrl = options.bannerUrl;
-            updated = true;
-        }
-        
-        if (options.color) {
-            guildSettings.welcomeColor = options.color;
-            updated = true;
-        }
-        
-        if (options.hasOwnProperty('dmEnabled')) {
-            guildSettings.welcomeDmEnabled = options.dmEnabled;
-            updated = true;
-        }
-        
-        if (options.dmMessage) {
-            guildSettings.welcomeDmMessage = options.dmMessage;
-            updated = true;
-        }
-        
-        if (updated) {
-            this.serverSettings.set(guildId, guildSettings);
-            return this.saveSettings();
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Update leveling settings for a guild with an options object
-     * @param {string} guildId - Discord Guild ID
-     * @param {Object} options - Leveling settings to update
-     * @returns {boolean} Whether the settings were successfully updated
-     */
-    updateLevelingSettings(guildId, options) {
-        const guildSettings = this.getGuildSettings(guildId);
-        
-        // Ensure leveling object exists
-        if (!guildSettings.leveling) {
-            guildSettings.leveling = {
-                enabled: true,
-                levelUpChannelId: null,
-                xpMultiplier: 1.0,
-                xpCooldown: 60000
-            };
-        }
-        
-        let updated = false;
-        
-        if (options.hasOwnProperty('enabled')) {
-            guildSettings.leveling.enabled = options.enabled;
-            updated = true;
-        }
-        
-        if (options.channelId) {
-            guildSettings.leveling.levelUpChannelId = options.channelId;
-            updated = true;
-        }
-        
-        if (options.multiplier) {
-            // Validate multiplier
-            if (options.multiplier > 0 && options.multiplier <= 5) {
-                guildSettings.leveling.xpMultiplier = parseFloat(options.multiplier.toFixed(2));
-                updated = true;
-            }
-        }
-        
-        if (options.cooldown) {
-            // Validate cooldown
-            if (options.cooldown >= 5 && options.cooldown <= 300) {
-                guildSettings.leveling.xpCooldown = options.cooldown * 1000;
-                updated = true;
-            }
-        }
-        
-        if (updated) {
-            this.serverSettings.set(guildId, guildSettings);
-            return this.saveSettings();
-        }
-        
-        return false;
-    }
-
-    /**
-     * Toggle auto-reactions for a guild
-     * @param {string} guildId - Discord Guild ID
-     * @returns {boolean} The new state (true = enabled, false = disabled)
-     */
-    toggleAutoReactions(guildId) {
-        const guildSettings = this.getGuildSettings(guildId);
-        
-        // Ensure autoReactions object exists
-        if (!guildSettings.autoReactions) {
-            guildSettings.autoReactions = {
-                enabled: false,
-                reactions: []
-            };
-        }
-        
-        // Toggle the current value
-        const newValue = !guildSettings.autoReactions.enabled;
-        guildSettings.autoReactions.enabled = newValue;
-        
-        // Save the updated settings
-        this.serverSettings.set(guildId, guildSettings);
-        this.saveSettings();
-        
-        return newValue;
-    }
-
-    /**
-     * Add an auto-reaction for a guild
-     * @param {string} guildId - Discord Guild ID
-     * @param {string} trigger - The trigger word/phrase
-     * @param {string} emoji - The emoji to react with
-     * @param {boolean} caseSensitive - Whether the trigger is case-sensitive
-     * @returns {Object|boolean} The created reaction object or false if failed
-     */
-    addAutoReaction(guildId, trigger, emoji, caseSensitive = false) {
-        if (!trigger || !emoji) return false;
-        
-        const guildSettings = this.getGuildSettings(guildId);
-        
-        // Ensure autoReactions object exists
-        if (!guildSettings.autoReactions) {
-            guildSettings.autoReactions = {
-                enabled: true,
-                reactions: []
-            };
-        }
-        
-        // Check if the trigger already exists
-        const existingIndex = guildSettings.autoReactions.reactions.findIndex(
-            r => r.trigger.toLowerCase() === trigger.toLowerCase()
-        );
-        
-        if (existingIndex !== -1) {
-            // Update existing reaction
-            guildSettings.autoReactions.reactions[existingIndex] = {
-                trigger,
-                emoji,
-                caseSensitive
-            };
-        } else {
-            // Add new reaction
-            guildSettings.autoReactions.reactions.push({
-                trigger,
-                emoji,
-                caseSensitive
-            });
-        }
-        
-        // Save the updated settings
-        this.serverSettings.set(guildId, guildSettings);
-        this.saveSettings();
-        
-        return guildSettings.autoReactions.reactions.find(
-            r => r.trigger.toLowerCase() === trigger.toLowerCase()
-        );
-    }
-
-    /**
-     * Remove an auto-reaction for a guild
-     * @param {string} guildId - Discord Guild ID
-     * @param {string} trigger - The trigger word/phrase to remove
-     * @returns {boolean} Whether the reaction was successfully removed
-     */
-    removeAutoReaction(guildId, trigger) {
-        if (!trigger) return false;
-        
-        const guildSettings = this.getGuildSettings(guildId);
-        
-        // Ensure autoReactions object exists
-        if (!guildSettings.autoReactions) {
-            return false;
-        }
-        
-        // Check if the trigger exists
-        const initialLength = guildSettings.autoReactions.reactions.length;
-        guildSettings.autoReactions.reactions = guildSettings.autoReactions.reactions.filter(
-            r => r.trigger.toLowerCase() !== trigger.toLowerCase()
-        );
-        
-        if (initialLength === guildSettings.autoReactions.reactions.length) {
-            return false; // No reaction was removed
-        }
-        
-        // Save the updated settings
-        this.serverSettings.set(guildId, guildSettings);
-        this.saveSettings();
-        
-        return true;
-    }
-
-    /**
-     * Get all auto-reactions for a guild
-     * @param {string} guildId - Discord Guild ID
-     * @returns {Array} Array of reaction objects
-     */
-    getAutoReactions(guildId) {
-        const guildSettings = this.getGuildSettings(guildId);
-        
-        if (!guildSettings.autoReactions) {
-            guildSettings.autoReactions = {
-                enabled: false,
-                reactions: []
-            };
-            this.serverSettings.set(guildId, guildSettings);
-            this.saveSettings();
-        }
-        
-        return {
-            enabled: guildSettings.autoReactions.enabled,
-            reactions: guildSettings.autoReactions.reactions
-        };
-    }
-
-    /**
-     * Check a message for auto-reaction triggers
-     * @param {string} guildId - Discord Guild ID
-     * @param {string} content - The message content to check
-     * @returns {Array} Array of emoji to react with
-     */
-    getTriggeredReactions(guildId, content) {
-        const autoReactions = this.getAutoReactions(guildId);
-        
-        if (!autoReactions.enabled || autoReactions.reactions.length === 0) {
-            return [];
-        }
-        
-        const triggeredEmojis = [];
-        
-        for (const reaction of autoReactions.reactions) {
-            let match = false;
-            
-            if (reaction.caseSensitive) {
-                // Case-sensitive match
-                if (content.includes(reaction.trigger)) {
-                    match = true;
-                }
-            } else {
-                // Case-insensitive match
-                if (content.toLowerCase().includes(reaction.trigger.toLowerCase())) {
-                    match = true;
-                }
-            }
-            
-            if (match && !triggeredEmojis.includes(reaction.emoji)) {
-                triggeredEmojis.push(reaction.emoji);
-            }
-        }
-        
-        return triggeredEmojis;
-    }
-    
-    /**
-     * Enable no-prefix mode for a user for a specified duration
-     * @param {string} guildId - Discord Guild ID
-     * @param {string} userId - User ID to enable no-prefix mode for
-     * @param {number} minutes - Duration in minutes (default: 10)
-     * @returns {Object} Result with success status and expiration time
-     */
-    enableNoPrefixMode(guildId, userId, minutes = 10) {
-        if (!userId) return { success: false, message: "Invalid user" };
-        if (minutes <= 0 || minutes > 60) return { success: false, message: "Duration must be between 1 and 60 minutes" };
-        
-        const guildSettings = this.getGuildSettings(guildId);
-        
-        // Ensure noPrefixUsers object exists
-        if (!guildSettings.noPrefixUsers) {
-            guildSettings.noPrefixUsers = {};
-        }
-        
-        // Calculate expiration timestamp (current time + minutes)
-        const expirationTime = Date.now() + (minutes * 60 * 1000);
-        
-        // Set the expiration time for this user
-        guildSettings.noPrefixUsers[userId] = expirationTime;
-        
-        // Save the updated settings
-        this.serverSettings.set(guildId, guildSettings);
-        this.saveSettings();
-        
-        return { 
-            success: true, 
-            expiresAt: expirationTime,
-            message: `No-prefix mode enabled for <@${userId}> for ${minutes} minute${minutes !== 1 ? 's' : ''}`
-        };
-    }
-    
-    /**
-     * Disable no-prefix mode for a user
-     * @param {string} guildId - Discord Guild ID
-     * @param {string} userId - User ID to disable no-prefix mode for
-     * @returns {boolean} Whether no-prefix mode was successfully disabled
-     */
-    disableNoPrefixMode(guildId, userId) {
-        if (!userId) return false;
-        
-        const guildSettings = this.getGuildSettings(guildId);
-        
-        // Ensure noPrefixUsers object exists
-        if (!guildSettings.noPrefixUsers) {
-            guildSettings.noPrefixUsers = {};
-            return false;
-        }
-        
-        // Check if user has no-prefix mode enabled
-        if (!guildSettings.noPrefixUsers[userId]) {
-            return false;
-        }
-        
-        // Remove the user from no-prefix mode
-        delete guildSettings.noPrefixUsers[userId];
-        
-        // Save the updated settings
-        this.serverSettings.set(guildId, guildSettings);
-        this.saveSettings();
-        
-        return true;
-    }
-    
-    /**
-     * Check if a user has no-prefix mode enabled
-     * @param {string} guildId - Discord Guild ID
-     * @param {string} userId - User ID to check
-     * @returns {boolean} Whether the user has no-prefix mode enabled
-     */
-    hasNoPrefixMode(guildId, userId) {
-        if (!userId) return false;
-        
-        const guildSettings = this.getGuildSettings(guildId);
-        
-        // Ensure noPrefixUsers object exists
-        if (!guildSettings.noPrefixUsers) {
-            guildSettings.noPrefixUsers = {};
-            return false;
-        }
-        
-        // Check if user has no-prefix mode enabled and if it has expired
-        const expirationTime = guildSettings.noPrefixUsers[userId];
-        if (!expirationTime) {
-            return false;
-        }
-        
-        // Check if no-prefix mode has expired
-        if (Date.now() > expirationTime) {
-            // Expired, remove it
-            delete guildSettings.noPrefixUsers[userId];
-            this.serverSettings.set(guildId, guildSettings);
-            this.saveSettings();
-            return false;
-        }
-        
-        // User has valid no-prefix mode
-        return true;
-    }
-    
-    /**
-     * Get no-prefix mode expiration time for a user
-     * @param {string} guildId - Discord Guild ID
-     * @param {string} userId - User ID to check
-     * @returns {number|null} Expiration timestamp or null if not enabled
-     */
-    getNoPrefixExpiration(guildId, userId) {
-        if (!userId) return null;
-        
-        const guildSettings = this.getGuildSettings(guildId);
-        
-        // Ensure noPrefixUsers object exists
-        if (!guildSettings.noPrefixUsers) {
-            return null;
-        }
-        
-        // Get the expiration time
-        const expirationTime = guildSettings.noPrefixUsers[userId];
-        if (!expirationTime || Date.now() > expirationTime) {
-            return null;
-        }
-        
-        return expirationTime;
-    }
-    
-    /**
-     * Clean up expired no-prefix mode users
-     * @param {string} guildId - Discord Guild ID
-     * @returns {number} Number of expired entries cleaned up
-     */
-    cleanupNoPrefixUsers(guildId) {
-        const guildSettings = this.getGuildSettings(guildId);
-        
-        // Ensure noPrefixUsers object exists
-        if (!guildSettings.noPrefixUsers) {
-            guildSettings.noPrefixUsers = {};
-            return 0;
-        }
-        
-        const now = Date.now();
-        let cleanedCount = 0;
-        
-        // Check each user's expiration time
-        for (const userId in guildSettings.noPrefixUsers) {
-            const expirationTime = guildSettings.noPrefixUsers[userId];
-            
-            if (now > expirationTime) {
-                // Expired, remove it
-                delete guildSettings.noPrefixUsers[userId];
-                cleanedCount++;
-            }
-        }
-        
-        if (cleanedCount > 0) {
-            // Save the updated settings if changes were made
-            this.serverSettings.set(guildId, guildSettings);
-            this.saveSettings();
-        }
-        
-        return cleanedCount;
-    }
-
-    /**
      * Get leveling settings for a guild
      * @param {string} guildId - Discord Guild ID
      * @returns {Object} Leveling settings
@@ -940,10 +655,10 @@ class ServerSettingsManager {
                 enabled: true,
                 levelUpChannelId: null,
                 xpMultiplier: 1.0,
-                xpCooldown: 60000
+                xpCooldown: 60000 // Default 1 minute cooldown
             };
             
-            // Save the updated settings
+            // Save the default settings
             this.serverSettings.set(guildId, settings);
             this.saveSettings();
         }
@@ -952,206 +667,169 @@ class ServerSettingsManager {
     }
 
     /**
-     * Reset all XP data for a guild
+     * Add an auto-reaction trigger to a guild
      * @param {string} guildId - Discord Guild ID
-     * @returns {boolean} Whether the reset was successful
+     * @param {string} trigger - The trigger word or phrase
+     * @param {string} emoji - The emoji to react with
+     * @param {boolean} caseSensitive - Whether the trigger is case-sensitive
+     * @returns {boolean} Whether the trigger was successfully added
      */
-    resetGuildXp(guildId) {
-        try {
-            // Check if the guild has any XP data in the leveling manager
-            if (this.client.levelingManager && this.client.levelingManager.userLevels.has(guildId)) {
-                // Clear the guild's data
-                this.client.levelingManager.userLevels.set(guildId, new Map());
-                
-                // Save the updates
-                this.client.levelingManager.saveLevels();
-            }
-            
-            return true;
-        } catch (error) {
-            console.error('[SERVER SETTINGS] Error resetting guild XP:', error);
-            return false;
+    addAutoReaction(guildId, trigger, emoji, caseSensitive = false) {
+        if (!trigger || !emoji) return false;
+        
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure autoReactions object exists and is enabled
+        if (!guildSettings.autoReactions) {
+            guildSettings.autoReactions = {
+                enabled: true,
+                reactions: []
+            };
         }
+        
+        // Check if trigger already exists
+        const existingIndex = guildSettings.autoReactions.reactions.findIndex(
+            r => r.trigger.toLowerCase() === trigger.toLowerCase()
+        );
+        
+        if (existingIndex !== -1) {
+            // Update existing trigger
+            guildSettings.autoReactions.reactions[existingIndex] = {
+                trigger,
+                emoji,
+                caseSensitive
+            };
+        } else {
+            // Add new trigger
+            guildSettings.autoReactions.reactions.push({
+                trigger,
+                emoji,
+                caseSensitive
+            });
+        }
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        return this.saveSettings();
     }
 
     /**
-     * Enable no-prefix mode for a user for a specified duration
+     * Remove an auto-reaction trigger from a guild
      * @param {string} guildId - Discord Guild ID
-     * @param {string} userId - User ID to enable no-prefix mode for
-     * @param {number} minutes - Duration in minutes (default: 10)
-     * @returns {Object} Result with success status and expiration time
+     * @param {string} trigger - The trigger word or phrase to remove
+     * @returns {boolean} Whether the trigger was successfully removed
      */
-    enableNoPrefixMode(guildId, userId, minutes = 10) {
-        // Validate duration (minimum 1 minute, maximum 60 minutes)
-        if (minutes < 1) minutes = 1;
-        if (minutes > 60) minutes = 60;
+    removeAutoReaction(guildId, trigger) {
+        if (!trigger) return false;
         
-        try {
-            const settings = this.getGuildSettings(guildId);
-            
-            // Calculate expiration time
-            const now = Date.now();
-            const expiresAt = now + (minutes * 60 * 1000);
-            
-            // Initialize noPrefixUsers if it doesn't exist
-            if (!settings.noPrefixUsers) {
-                settings.noPrefixUsers = {};
-            }
-            
-            // Set expiration time for this user
-            settings.noPrefixUsers[userId] = expiresAt;
-            
-            // Save settings
-            this.saveSettings();
-            
-            return {
-                success: true,
-                expiresAt: expiresAt,
-                message: `No-prefix mode enabled for ${minutes} minute${minutes !== 1 ? 's' : ''}`
-            };
-        } catch (error) {
-            console.error(`[SERVER SETTINGS] Error enabling no-prefix mode for user ${userId} in guild ${guildId}:`, error);
-            
-            return {
-                success: false,
-                message: "Error enabling no-prefix mode"
-            };
-        }
-    }
-    
-    /**
-     * Disable no-prefix mode for a user
-     * @param {string} guildId - Discord Guild ID
-     * @param {string} userId - User ID to disable no-prefix mode for
-     * @returns {boolean} Whether no-prefix mode was successfully disabled
-     */
-    disableNoPrefixMode(guildId, userId) {
-        try {
-            const settings = this.getGuildSettings(guildId);
-            
-            // If noPrefixUsers doesn't exist or user doesn't have no-prefix mode enabled
-            if (!settings.noPrefixUsers || !settings.noPrefixUsers[userId]) {
-                return false;
-            }
-            
-            // Remove user from no-prefix mode
-            delete settings.noPrefixUsers[userId];
-            
-            // Save settings
-            this.saveSettings();
-            
-            return true;
-        } catch (error) {
-            console.error(`[SERVER SETTINGS] Error disabling no-prefix mode for user ${userId} in guild ${guildId}:`, error);
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure autoReactions object exists
+        if (!guildSettings.autoReactions || !guildSettings.autoReactions.reactions) {
             return false;
         }
-    }
-    
-    /**
-     * Check if a user has no-prefix mode enabled
-     * @param {string} guildId - Discord Guild ID
-     * @param {string} userId - User ID to check
-     * @returns {boolean} Whether the user has no-prefix mode enabled
-     */
-    hasNoPrefixMode(guildId, userId) {
-        try {
-            const settings = this.getGuildSettings(guildId);
-            
-            // If noPrefixUsers doesn't exist or user doesn't have no-prefix mode enabled
-            if (!settings.noPrefixUsers || !settings.noPrefixUsers[userId]) {
-                return false;
-            }
-            
-            // Check if no-prefix mode hasn't expired
-            const now = Date.now();
-            const expiresAt = settings.noPrefixUsers[userId];
-            
-            if (now > expiresAt) {
-                // No-prefix mode has expired, clean it up
-                delete settings.noPrefixUsers[userId];
-                this.saveSettings();
-                return false;
-            }
-            
-            return true;
-        } catch (error) {
-            console.error(`[SERVER SETTINGS] Error checking no-prefix mode for user ${userId} in guild ${guildId}:`, error);
+        
+        // Find and remove the trigger
+        const initialLength = guildSettings.autoReactions.reactions.length;
+        guildSettings.autoReactions.reactions = guildSettings.autoReactions.reactions.filter(
+            r => r.trigger.toLowerCase() !== trigger.toLowerCase()
+        );
+        
+        // Check if a trigger was removed
+        if (guildSettings.autoReactions.reactions.length === initialLength) {
             return false;
         }
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        return this.saveSettings();
     }
-    
+
     /**
-     * Get no-prefix mode expiration time for a user
+     * Toggle auto-reactions for a guild
      * @param {string} guildId - Discord Guild ID
-     * @param {string} userId - User ID to check
-     * @returns {number|null} Expiration timestamp or null if not enabled
+     * @returns {boolean} The new state (true = enabled, false = disabled)
      */
-    getNoPrefixExpiration(guildId, userId) {
-        try {
-            const settings = this.getGuildSettings(guildId);
-            
-            // If noPrefixUsers doesn't exist or user doesn't have no-prefix mode enabled
-            if (!settings.noPrefixUsers || !settings.noPrefixUsers[userId]) {
-                return null;
-            }
-            
-            // Check if no-prefix mode hasn't expired
-            const now = Date.now();
-            const expiresAt = settings.noPrefixUsers[userId];
-            
-            if (now > expiresAt) {
-                // No-prefix mode has expired, clean it up
-                delete settings.noPrefixUsers[userId];
-                this.saveSettings();
-                return null;
-            }
-            
-            return expiresAt;
-        } catch (error) {
-            console.error(`[SERVER SETTINGS] Error getting no-prefix expiration for user ${userId} in guild ${guildId}:`, error);
-            return null;
+    toggleAutoReactions(guildId) {
+        const guildSettings = this.getGuildSettings(guildId);
+        
+        // Ensure autoReactions object exists
+        if (!guildSettings.autoReactions) {
+            guildSettings.autoReactions = {
+                enabled: true,
+                reactions: []
+            };
+        } else {
+            // Toggle the current value
+            guildSettings.autoReactions.enabled = !guildSettings.autoReactions.enabled;
         }
+        
+        // Save the updated settings
+        this.serverSettings.set(guildId, guildSettings);
+        this.saveSettings();
+        
+        return guildSettings.autoReactions.enabled;
     }
-    
+
     /**
-     * Clean up expired no-prefix mode users
+     * Get auto-reactions for a guild
      * @param {string} guildId - Discord Guild ID
-     * @returns {number} Number of expired entries cleaned up
+     * @returns {Object} Auto-reaction settings
      */
-    cleanupNoPrefixUsers(guildId) {
-        try {
-            const settings = this.getGuildSettings(guildId);
+    getAutoReactions(guildId) {
+        const settings = this.getGuildSettings(guildId);
+        
+        // Ensure autoReactions object exists
+        if (!settings.autoReactions) {
+            settings.autoReactions = {
+                enabled: false,
+                reactions: []
+            };
             
-            // If noPrefixUsers doesn't exist
-            if (!settings.noPrefixUsers) {
-                settings.noPrefixUsers = {};
-                return 0;
-            }
-            
-            const now = Date.now();
-            let cleanedCount = 0;
-            
-            // Find expired entries
-            Object.keys(settings.noPrefixUsers).forEach(userId => {
-                const expiresAt = settings.noPrefixUsers[userId];
-                
-                if (now > expiresAt) {
-                    // No-prefix mode has expired, clean it up
-                    delete settings.noPrefixUsers[userId];
-                    cleanedCount++;
-                }
-            });
-            
-            // Only save if we cleaned something
-            if (cleanedCount > 0) {
-                this.saveSettings();
-            }
-            
-            return cleanedCount;
-        } catch (error) {
-            console.error(`[SERVER SETTINGS] Error cleaning up no-prefix users in guild ${guildId}:`, error);
-            return 0;
+            // Save the default settings
+            this.serverSettings.set(guildId, settings);
+            this.saveSettings();
         }
+        
+        return settings.autoReactions;
+    }
+
+    /**
+     * Get triggered reactions for a message
+     * @param {string} guildId - Discord Guild ID
+     * @param {string} content - Message content
+     * @returns {Array<string>} Array of emojis to react with
+     */
+    getTriggeredReactions(guildId, content) {
+        if (!content) return [];
+        
+        const settings = this.getGuildSettings(guildId);
+        
+        // If auto-reactions are disabled or not configured
+        if (!settings.autoReactions || !settings.autoReactions.enabled) {
+            return [];
+        }
+        
+        // Check each trigger against the message content
+        const triggeredEmojis = [];
+        
+        for (const reaction of settings.autoReactions.reactions) {
+            let messageContent = content;
+            let trigger = reaction.trigger;
+            
+            // Handle case sensitivity
+            if (!reaction.caseSensitive) {
+                messageContent = messageContent.toLowerCase();
+                trigger = trigger.toLowerCase();
+            }
+            
+            // Check if message contains the trigger
+            if (messageContent.includes(trigger)) {
+                triggeredEmojis.push(reaction.emoji);
+            }
+        }
+        
+        return triggeredEmojis;
     }
 }
 
