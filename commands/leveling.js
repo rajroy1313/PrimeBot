@@ -67,6 +67,41 @@ module.exports = {
                         .setRequired(false))
         )
         
+        // Role Rewards Management Subcommands (Admin only)
+        .addSubcommand(subcommand => 
+            subcommand
+                .setName('addrole')
+                .setDescription('Add a role reward for reaching a specific level')
+                .addIntegerOption(option => 
+                    option.setName('level')
+                        .setDescription('The level required to earn this role')
+                        .setRequired(true)
+                        .setMinValue(1)
+                        .setMaxValue(100))
+                .addRoleOption(option => 
+                    option.setName('role')
+                        .setDescription('The role to award at this level')
+                        .setRequired(true))
+        )
+        
+        .addSubcommand(subcommand => 
+            subcommand
+                .setName('removerole')
+                .setDescription('Remove a role reward for a specific level')
+                .addIntegerOption(option => 
+                    option.setName('level')
+                        .setDescription('The level to remove the role reward from')
+                        .setRequired(true)
+                        .setMinValue(1)
+                        .setMaxValue(100))
+        )
+        
+        .addSubcommand(subcommand => 
+            subcommand
+                .setName('listroles')
+                .setDescription('List all role rewards configured for this server')
+        )
+        
         // Award XP Subcommand (Admin only)
         .addSubcommand(subcommand => 
             subcommand
@@ -198,9 +233,147 @@ module.exports = {
                 
                 await handleAwardBadgeCommand(interaction, client);
                 break;
+                
+            case 'addrole':
+                // Check if user has permission to manage role rewards
+                if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                    return interaction.reply({
+                        content: '❌ You need the **Manage Server** permission to manage role rewards.',
+                        ephemeral: true
+                    });
+                }
+                
+                await handleAddRoleCommand(interaction, client);
+                break;
+                
+            case 'removerole':
+                // Check if user has permission to manage role rewards
+                if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
+                    return interaction.reply({
+                        content: '❌ You need the **Manage Server** permission to manage role rewards.',
+                        ephemeral: true
+                    });
+                }
+                
+                await handleRemoveRoleCommand(interaction, client);
+                break;
+                
+            case 'listroles':
+                await handleListRolesCommand(interaction, client);
+                break;
         }
     }
 };
+
+/**
+ * Handle the add role reward subcommand
+ * @param {Interaction} interaction - The Discord interaction
+ * @param {Client} client - The Discord client
+ */
+async function handleAddRoleCommand(interaction, client) {
+    const level = interaction.options.getInteger('level');
+    const role = interaction.options.getRole('role');
+    
+    // Check if bot can manage this role
+    const botMember = interaction.guild.members.me;
+    if (role.position >= botMember.roles.highest.position) {
+        return interaction.reply({
+            content: `❌ I cannot manage the role **${role.name}** because it's higher than or equal to my highest role.`,
+            ephemeral: true
+        });
+    }
+    
+    // Add the role reward
+    const success = client.levelingManager.addRoleReward(interaction.guild.id, level, role.id);
+    
+    if (success) {
+        const embed = new EmbedBuilder()
+            .setColor(config.colors.success)
+            .setTitle('✅ Role Reward Added')
+            .setDescription(`Users who reach **Level ${level}** will now automatically receive the **${role.name}** role!`)
+            .addFields(
+                { name: '📊 Level', value: `${level}`, inline: true },
+                { name: '🎭 Role', value: `${role}`, inline: true }
+            )
+            .setTimestamp();
+            
+        await interaction.reply({ embeds: [embed] });
+    } else {
+        await interaction.reply({
+            content: '❌ Failed to add role reward. Please try again.',
+            ephemeral: true
+        });
+    }
+}
+
+/**
+ * Handle the remove role reward subcommand
+ * @param {Interaction} interaction - The Discord interaction
+ * @param {Client} client - The Discord client
+ */
+async function handleRemoveRoleCommand(interaction, client) {
+    const level = interaction.options.getInteger('level');
+    
+    // Remove the role reward
+    const success = client.levelingManager.removeRoleReward(interaction.guild.id, level);
+    
+    if (success) {
+        const embed = new EmbedBuilder()
+            .setColor(config.colors.success)
+            .setTitle('✅ Role Reward Removed')
+            .setDescription(`The role reward for **Level ${level}** has been removed.`)
+            .setTimestamp();
+            
+        await interaction.reply({ embeds: [embed] });
+    } else {
+        await interaction.reply({
+            content: `❌ No role reward found for Level ${level}.`,
+            ephemeral: true
+        });
+    }
+}
+
+/**
+ * Handle the list role rewards subcommand
+ * @param {Interaction} interaction - The Discord interaction
+ * @param {Client} client - The Discord client
+ */
+async function handleListRolesCommand(interaction, client) {
+    const roleRewards = client.levelingManager.getRoleRewards(interaction.guild.id);
+    
+    if (roleRewards.length === 0) {
+        return interaction.reply({
+            content: '📝 No role rewards are currently configured for this server.\n\nUse `/leveling addrole` to set up automatic role rewards for leveling up!',
+            ephemeral: true
+        });
+    }
+    
+    // Sort role rewards by level
+    roleRewards.sort((a, b) => a.level - b.level);
+    
+    const embed = new EmbedBuilder()
+        .setColor(config.colors.primary)
+        .setTitle('🎭 Role Rewards')
+        .setDescription('Here are all the role rewards configured for this server:')
+        .setTimestamp();
+    
+    let description = '';
+    for (const reward of roleRewards) {
+        const role = interaction.guild.roles.cache.get(reward.roleId);
+        if (role) {
+            description += `**Level ${reward.level}** → ${role}\n`;
+        } else {
+            description += `**Level ${reward.level}** → *Role not found* (${reward.roleId})\n`;
+        }
+    }
+    
+    embed.addFields({
+        name: '📊 Level Requirements',
+        value: description || 'No role rewards configured.'
+    });
+    
+    await interaction.reply({ embeds: [embed] });
+}
 
 /**
  * Handle the rank/profile subcommand

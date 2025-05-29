@@ -233,8 +233,15 @@ class LevelingManager {
                 enabled: true,
                 levelUpChannelId: null,
                 xpMultiplier: 1.0,
-                xpCooldown: 60000
+                xpCooldown: 60000,
+                roleRewards: []
             };
+            
+            // Check for role rewards
+            const roleReward = this.checkForRoleReward(newLevel, levelingSettings.roleRewards || []);
+            if (roleReward) {
+                await this.awardLevelRole(message, user, roleReward);
+            }
             
             // Check for new badges
             const newBadges = this.checkForNewBadges(userData, oldLevel, newLevel);
@@ -275,28 +282,191 @@ class LevelingManager {
             
             // Determine which channel to send the level up message to
             let targetChannel = message.channel;
+            let useConfiguredChannel = false;
             
             // Check server-specific level up channel first
             if (levelingSettings.levelUpChannelId) {
+                console.log(`[LEVELING] Looking for configured level-up channel: ${levelingSettings.levelUpChannelId} in guild ${message.guild.id}`);
                 const serverLevelUpChannel = message.guild.channels.cache.get(levelingSettings.levelUpChannelId);
-                if (serverLevelUpChannel && serverLevelUpChannel.permissionsFor(message.guild.members.me).has('SendMessages')) {
-                    targetChannel = serverLevelUpChannel;
+                if (serverLevelUpChannel) {
+                    if (serverLevelUpChannel.permissionsFor(message.guild.members.me).has('SendMessages')) {
+                        console.log(`[LEVELING] Using configured level-up channel: ${serverLevelUpChannel.name}`);
+                        targetChannel = serverLevelUpChannel;
+                        useConfiguredChannel = true;
+                    } else {
+                        console.log(`[LEVELING] Missing permissions for level-up channel: ${serverLevelUpChannel.name}`);
+                    }
+                } else {
+                    console.log(`[LEVELING] Configured level-up channel not found: ${levelingSettings.levelUpChannelId}`);
                 }
             }
             // Fall back to global config if no server-specific channel
-            else if (config.leveling.levelUpChannelId) {
+            else if (config.leveling.levelUpChannelId && !useConfiguredChannel) {
+                console.log(`[LEVELING] Looking for global level-up channel: ${config.leveling.levelUpChannelId}`);
                 const globalLevelUpChannel = message.guild.channels.cache.get(config.leveling.levelUpChannelId);
-                if (globalLevelUpChannel && globalLevelUpChannel.permissionsFor(message.guild.members.me).has('SendMessages')) {
-                    targetChannel = globalLevelUpChannel;
+                if (globalLevelUpChannel) {
+                    if (globalLevelUpChannel.permissionsFor(message.guild.members.me).has('SendMessages')) {
+                        console.log(`[LEVELING] Using global level-up channel: ${globalLevelUpChannel.name}`);
+                        targetChannel = globalLevelUpChannel;
+                        useConfiguredChannel = true;
+                    } else {
+                        console.log(`[LEVELING] Missing permissions for global level-up channel: ${globalLevelUpChannel.name}`);
+                    }
+                } else {
+                    console.log(`[LEVELING] Global level-up channel not found: ${config.leveling.levelUpChannelId}`);
+                }
+            }
+            
+            // Fallback to current channel with permission check
+            if (!useConfiguredChannel) {
+                console.log(`[LEVELING] Using message channel as fallback: ${message.channel.name}`);
+                // Check permissions for current channel
+                if (!message.channel.permissionsFor(message.guild.members.me).has('SendMessages')) {
+                    console.log(`[LEVELING] Missing permissions for message channel, cannot send level-up message`);
+                    return; // Can't send the level-up message anywhere
                 }
             }
             
             // Send the level up message
-            await targetChannel.send({ embeds: [embed] });
+            try {
+                await targetChannel.send({ embeds: [embed] });
+                console.log(`[LEVELING] Successfully sent level-up message to ${targetChannel.name}`);
+            } catch (error) {
+                console.error(`[LEVELING] Error sending level-up message:`, error.message);
+                
+                // Try to send to original channel if we failed to send to the configured channel
+                if (useConfiguredChannel && message.channel.permissionsFor(message.guild.members.me).has('SendMessages')) {
+                    try {
+                        console.log(`[LEVELING] Attempting to send level-up message to original channel: ${message.channel.name}`);
+                        await message.channel.send({ embeds: [embed] });
+                    } catch (fallbackError) {
+                        console.error(`[LEVELING] Failed to send level-up message to fallback channel:`, fallbackError.message);
+                    }
+                }
+            }
             
         } catch (error) {
             console.error('[LEVELING] Error handling level up:', error);
         }
+    }
+    
+    /**
+     * Check if user earned a role reward at this level
+     * @param {number} level - The level reached
+     * @param {Array} roleRewards - Array of role reward configurations
+     * @returns {Object|null} Role reward object or null
+     */
+    checkForRoleReward(level, roleRewards) {
+        return roleRewards.find(reward => reward.level === level) || null;
+    }
+    
+    /**
+     * Award a role to a user for reaching a level
+     * @param {Message} message - The Discord message
+     * @param {User} user - The user to award the role to
+     * @param {Object} roleReward - Role reward configuration
+     */
+    async awardLevelRole(message, user, roleReward) {
+        try {
+            const member = await message.guild.members.fetch(user.id);
+            const role = message.guild.roles.cache.get(roleReward.roleId);
+            
+            if (!role) {
+                console.log(`[LEVELING] Role ${roleReward.roleId} not found for level ${roleReward.level}`);
+                return;
+            }
+            
+            if (member.roles.cache.has(roleReward.roleId)) {
+                console.log(`[LEVELING] User ${user.tag} already has role ${role.name}`);
+                return;
+            }
+            
+            await member.roles.add(role);
+            console.log(`[LEVELING] Awarded role ${role.name} to ${user.tag} for reaching level ${roleReward.level}`);
+            
+            // Send role reward notification
+            const roleEmbed = new EmbedBuilder()
+                .setColor(config.colors.success)
+                .setTitle('🎯 Role Reward!')
+                .setDescription(`**${user.displayName || user.username}** has been awarded the **${role.name}** role for reaching Level ${roleReward.level}!`)
+                .setThumbnail(user.displayAvatarURL({ dynamic: true }))
+                .setTimestamp();
+                
+            await message.channel.send({ embeds: [roleEmbed] });
+            
+        } catch (error) {
+            console.error('[LEVELING] Error awarding level role:', error);
+        }
+    }
+    
+    /**
+     * Add a role reward for a specific level
+     * @param {string} guildId - Guild ID
+     * @param {number} level - Level requirement
+     * @param {string} roleId - Role ID to award
+     * @returns {boolean} Success status
+     */
+    addRoleReward(guildId, level, roleId) {
+        try {
+            const serverSettings = this.client.serverSettingsManager.getGuildSettings(guildId);
+            if (!serverSettings.leveling) {
+                serverSettings.leveling = { enabled: true, roleRewards: [] };
+            }
+            if (!serverSettings.leveling.roleRewards) {
+                serverSettings.leveling.roleRewards = [];
+            }
+            
+            // Check if role reward already exists for this level
+            const existingReward = serverSettings.leveling.roleRewards.find(reward => reward.level === level);
+            if (existingReward) {
+                existingReward.roleId = roleId;
+            } else {
+                serverSettings.leveling.roleRewards.push({ level, roleId });
+            }
+            
+            this.client.serverSettingsManager.saveSettings();
+            return true;
+        } catch (error) {
+            console.error('[LEVELING] Error adding role reward:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Remove a role reward for a specific level
+     * @param {string} guildId - Guild ID
+     * @param {number} level - Level requirement
+     * @returns {boolean} Success status
+     */
+    removeRoleReward(guildId, level) {
+        try {
+            const serverSettings = this.client.serverSettingsManager.getGuildSettings(guildId);
+            if (!serverSettings.leveling || !serverSettings.leveling.roleRewards) {
+                return false;
+            }
+            
+            const index = serverSettings.leveling.roleRewards.findIndex(reward => reward.level === level);
+            if (index !== -1) {
+                serverSettings.leveling.roleRewards.splice(index, 1);
+                this.client.serverSettingsManager.saveSettings();
+                return true;
+            }
+            
+            return false;
+        } catch (error) {
+            console.error('[LEVELING] Error removing role reward:', error);
+            return false;
+        }
+    }
+    
+    /**
+     * Get all role rewards for a guild
+     * @param {string} guildId - Guild ID
+     * @returns {Array} Array of role rewards
+     */
+    getRoleRewards(guildId) {
+        const serverSettings = this.client.serverSettingsManager.getGuildSettings(guildId);
+        return serverSettings.leveling?.roleRewards || [];
     }
     
     /**
@@ -828,7 +998,8 @@ class LevelingManager {
             
             embed.addFields({
                 name: '🌟 Level Badges',
-                value: levelBadgesText || 'No level badges configured.'
+                value: levelBadgesText || 'No level badges configured.',
+                inline: true
             });
             
             // Add achievement badges
@@ -844,7 +1015,8 @@ class LevelingManager {
             
             embed.addFields({
                 name: '🏆 Achievement Badges',
-                value: achievementBadgesText || 'No achievement badges configured.'
+                value: achievementBadgesText || 'No achievement badges configured.',
+                inline: true
             });
             
             // Add special badges (these are rare, so only show them if the user has any)
@@ -859,7 +1031,8 @@ class LevelingManager {
                     
                     embed.addFields({
                         name: '💎 Special Badges',
-                        value: specialBadgesText
+                        value: specialBadgesText,
+                        inline: true
                     });
                 }
             }

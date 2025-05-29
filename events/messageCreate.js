@@ -38,14 +38,33 @@ module.exports = {
                     .setStyle(ButtonStyle.Link)
                     .setURL(
                         `https://discord.com/api/oauth2/authorize?client_id=${client.user.id}&permissions=563242011339808&scope=bot%20applications.commands`,
-                    );
+                    )
+                .setEmoji('➕');
+                
                     
                 const supportServerButton = new ButtonBuilder()
                     .setLabel("Support Server")
                     .setStyle(ButtonStyle.Link)
-                    .setURL(config.supportServer);
+                    .setURL(config.supportServer)
+                  .setEmoji('ℹ️');
 
-                const row = new ActionRowBuilder().addComponents(inviteButton, supportServerButton);
+                const VoteButton = new ButtonBuilder()
+
+                    .setLabel("Vote me")
+
+                    .setStyle(ButtonStyle.Link)
+
+                    .setURL(
+
+                        `https://top.gg/bot/1356575287151951943/vote`,
+
+                    )
+                  .setEmoji('✔️');
+          
+                
+                
+                
+                const row = new ActionRowBuilder().addComponents(inviteButton, supportServerButton, VoteButton);
 
                 const pingEmbed = new EmbedBuilder()
                     .setColor(config.colors.primary)
@@ -121,10 +140,10 @@ module.exports = {
             }
 
             // Check if message starts with emoji prefix (A!)
-            const emojiPrefix = "+";
+            const emojiPrefix = "#";
             if (message.content.startsWith(emojiPrefix)) {
                 // Handle emoji commands
-                const args = message.content.slice(emojiPrefix.length).trim().split(/ +/);
+                const args = message.content.slice(emojiPrefix.length).trim().split(/ #/);
                 const commandName = args.shift().toLowerCase();
 
                 // Process emoji commands

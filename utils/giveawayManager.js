@@ -219,7 +219,7 @@ class GiveawayManager {
      * @param {Object} options - Giveaway options
      * @returns {Promise<Object>} The created giveaway object
      */
-    async startGiveaway({ channelId, duration, prize, winnerCount, thumbnail = null, description = null }) {
+    async startGiveaway({ channelId, duration, prize, winnerCount, thumbnail = null, description = null, requiredRoleId = null }) {
         try {
             const channel = await this.client.channels.fetch(channelId);
             if (!channel) throw new Error(`Channel with ID ${channelId} not found`);
@@ -244,10 +244,25 @@ class GiveawayManager {
                 );
             }
             
+            // Add required role info if specified
+            if (requiredRoleId) {
+                const role = channel.guild.roles.cache.get(requiredRoleId);
+                if (role) {
+                    giveawayEmbed.addFields(
+                        { name: '🎭 Required Role', value: `${role}`, inline: true }
+                    );
+                }
+            }
+            
             // Add entry instructions
+            let entryInstructions = 'Click the button below to enter the giveaway!';
+            if (requiredRoleId) {
+                entryInstructions += '\n**Note:** You must have the required role to participate.';
+            }
+            
             giveawayEmbed.addFields(
                 { name: '\u200B', value: '\u200B' },
-                { name: '📝 How to Enter', value: 'Click the button below to enter the giveaway!' }
+                { name: '📝 How to Enter', value: entryInstructions }
             );
             
             // Add thumbnail or image
@@ -256,10 +271,10 @@ class GiveawayManager {
             }
             
             // Always set the banner image
-            giveawayEmbed.setImage('https://i.imgur.com/4MfQzYa.png');
+         //   giveawayEmbed.setImage('https://i.imgur.com/4MfQzYa.png');
             
             // Set footer
-            giveawayEmbed.setFooter({ text: 'Good luck! • Powered by AFK Devs' })
+            giveawayEmbed.setFooter({ text: 'Good luck! • Powered by ProjectHub' })
                          .setTimestamp();
             
             // Create entry button
@@ -287,6 +302,7 @@ class GiveawayManager {
                 ended: false,
                 description,
                 thumbnail,
+                requiredRoleId,
                 participants: new Set()
             };
             
@@ -352,6 +368,21 @@ class GiveawayManager {
                 
             } else {
                 console.log(`[GIVEAWAY] User ${interaction.user.tag} is entering giveaway ${messageId}`);
+                
+                // Check if user has required role (if specified)
+                if (giveaway.requiredRoleId) {
+                    const member = await interaction.guild.members.fetch(userId).catch(() => null);
+                    if (!member || !member.roles.cache.has(giveaway.requiredRoleId)) {
+                        const role = interaction.guild.roles.cache.get(giveaway.requiredRoleId);
+                        const roleName = role ? role.name : 'required role';
+                        
+                        return interaction.reply({
+                            content: `You need the **${roleName}** role to enter this giveaway.`,
+                            ephemeral: true
+                        });
+                    }
+                }
+                
                 giveaway.participants.add(userId);
                 await interaction.reply({ 
                     content: 'You have entered the giveaway! Good luck!', 
@@ -438,8 +469,7 @@ class GiveawayManager {
             }
             
             // Set banner for ended giveaways
-            endedEmbed.setImage('https://i.imgur.com/YlrGQlJ.png')
-                      .setFooter({ text: 'Thanks for participating! • Powered by AFK Devs' })
+           endedEmbed.setFooter({ text: 'Thanks for participating! • Powered by ProjectHub' })
                       .setTimestamp();
             
             // Disable the button
