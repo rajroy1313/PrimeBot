@@ -295,7 +295,7 @@ async function handleAddRoleCommand(interaction, client) {
                 { name: '📊 Level', value: `${level}`, inline: true },
                 { name: '🎭 Role', value: `${role}`, inline: true }
             )
-            .setTimestamp();
+            .setFooter({ text: 'Version 2.5.0', iconURL: this.client?.user?.displayAvatarURL() || client?.user?.displayAvatarURL() }).setTimestamp();
             
         await interaction.reply({ embeds: [embed] });
     } else {
@@ -322,7 +322,7 @@ async function handleRemoveRoleCommand(interaction, client) {
             .setColor(config.colors.success)
             .setTitle('✅ Role Reward Removed')
             .setDescription(`The role reward for **Level ${level}** has been removed.`)
-            .setTimestamp();
+            .setFooter({ text: 'Version 2.5.0', iconURL: this.client?.user?.displayAvatarURL() || client?.user?.displayAvatarURL() }).setTimestamp();
             
         await interaction.reply({ embeds: [embed] });
     } else {
@@ -355,7 +355,7 @@ async function handleListRolesCommand(interaction, client) {
         .setColor(config.colors.primary)
         .setTitle('🎭 Role Rewards')
         .setDescription('Here are all the role rewards configured for this server:')
-        .setTimestamp();
+        .setFooter({ text: 'Version 2.5.0', iconURL: this.client?.user?.displayAvatarURL() || client?.user?.displayAvatarURL() }).setTimestamp();
     
     let description = '';
     for (const reward of roleRewards) {
@@ -451,10 +451,8 @@ async function handleLeaderboardCommand(interaction, client) {
             .setColor(config.colors.primary)
             .setTitle(`🏆 ${guild.name} XP Leaderboard`)
             .setDescription(`Top members ranked by experience points`)
-            .setFooter({ 
-                text: `Page ${validPage}/${totalPages} • ${leaderboard.length} members ranked`,
-                iconURL: client.user.displayAvatarURL()
-            })
+            .setFooter({ text: 'Page ${validPage}/${totalPages} • ${leaderboard.length} members ranked • Version 2.5.0', iconURL: client.user.displayAvatarURL()
+             })
             .setTimestamp();
         
         // Add leaderboard entries
@@ -488,10 +486,8 @@ async function handleLeaderboardCommand(interaction, client) {
         
         // Add navigation instructions if there are multiple pages
         if (totalPages > 1) {
-            embed.setFooter({ 
-                text: `Page ${validPage}/${totalPages} • Use /leveling leaderboard page:[number] to see more`,
-                iconURL: client.user.displayAvatarURL()
-            });
+            embed.setFooter({ text: 'Page ${validPage}/${totalPages} • Use /leveling leaderboard page:[number] to see more • Version 2.5.0', iconURL: client.user.displayAvatarURL()
+             });
         }
         
         interaction.editReply({ embeds: [embed] });
@@ -683,7 +679,7 @@ async function handleSettingsCommand(interaction, client) {
                     .setColor(config.colors.error)
                     .setTitle('⚠️ Reset All XP Data?')
                     .setDescription('**WARNING:** This will delete all user XP, levels, and progress in this server.\n\nThis action cannot be undone. Are you sure you want to proceed?')
-                    .setFooter({ text: 'This confirmation will expire in 30 seconds' });
+                    .setFooter({ text: 'This confirmation will expire in 30 seconds • Version 2.5.0' });
                 
                 interaction.editReply({
                     content: 'Please confirm:',
@@ -767,7 +763,7 @@ async function handleAwardCommand(interaction, client) {
                 { name: 'Previous Messages', value: `${oldMessages}`, inline: true },
                 { name: 'New Messages', value: `${userData.messages}`, inline: true }
             )
-            .setTimestamp();
+            .setFooter({ text: 'Version 2.5.0', iconURL: this.client?.user?.displayAvatarURL() || client?.user?.displayAvatarURL() }).setTimestamp();
         
         // Check if user leveled up
         if (newLevel > oldLevel) {
@@ -839,7 +835,7 @@ async function handleAwardBadgeCommand(interaction, client) {
                     { name: 'Description', value: badge.description, inline: true },
                     { name: 'Type', value: badgeType.charAt(0).toUpperCase() + badgeType.slice(1), inline: true }
                 )
-                .setTimestamp();
+                .setFooter({ text: 'Version 2.5.0', iconURL: this.client?.user?.displayAvatarURL() || client?.user?.displayAvatarURL() }).setTimestamp();
             
             interaction.editReply({ embeds: [embed], ephemeral: true });
         } else {

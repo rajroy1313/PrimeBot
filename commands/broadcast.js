@@ -81,11 +81,9 @@ module.exports = {
                 .setColor(embedColor)
                 .setTitle(customTitle)
                 .setDescription(broadcastMessage)
-                .setTimestamp()
-                .setFooter({ 
-                    text: `Sent by ${interaction.user.tag} • ${interaction.client.user.username}`,
-                    iconURL: interaction.client.user.displayAvatarURL()
-                });
+                .setFooter({ text: 'Version 2.5.0', iconURL: this.client?.user?.displayAvatarURL() || client?.user?.displayAvatarURL() }).setTimestamp()
+                .setFooter({ text: 'Sent by ${interaction.user.tag} • ${interaction.client.user.username} • Version 2.5.0', iconURL: interaction.client.user.displayAvatarURL()
+                 });
                 
             // Add image if provided
             if (imageUrl) {
@@ -137,7 +135,7 @@ module.exports = {
                         { name: '⏰ Timing', value: `Estimated time to complete: ${Math.ceil(receptiveServers * 0.5)} seconds`, inline: false },
                         { name: 'Opt-Out Compliance', value: 'Servers can opt out using the `/broadcastsettings toggle` command to comply with Discord ToS.', inline: false }
                     )
-                    .setTimestamp();
+                    .setFooter({ text: 'Version 2.5.0', iconURL: this.client?.user?.displayAvatarURL() || client?.user?.displayAvatarURL() }).setTimestamp();
                 
                 // Send the preview with buttons
                 await interaction.reply({
@@ -261,8 +259,8 @@ Progress: ${processedCount}/${totalGuilds} servers
                         { name: "📝 Opt-Out Note", value: "Servers can configure broadcast preferences with `/broadcastsettings toggle`", inline: false },
                         { name: "💬 Potential Reach", value: `Message potentially reached all members across ${successCount} servers`, inline: false }
                     )
-                    .setTimestamp()
-                    .setFooter({ text: `Broadcast ID: ${Date.now().toString(36)}` });
+                    .setFooter({ text: 'Version 2.5.0', iconURL: this.client?.user?.displayAvatarURL() || client?.user?.displayAvatarURL() }).setTimestamp()
+                    .setFooter({ text: 'Broadcast ID: ${Date.now().toString(36)} • Version 2.5.0' });
                     
                 await interaction.editReply({
                     content: "✅ Broadcast successfully completed!",

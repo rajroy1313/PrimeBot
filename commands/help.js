@@ -92,10 +92,8 @@ module.exports = {
                         value: "Add a Truth or Dare question",
                     }
                 )
-                .setFooter({
-                    text: `${interaction.client.user.username} v1.1.0`,
-                    iconURL: interaction.client.user.displayAvatarURL()
-                })
+                .setFooter({ text: '${interaction.client.user.username} v1.1.0 • Version 2.5.0', iconURL: interaction.client.user.displayAvatarURL()
+                 })
                 .setTimestamp();
             
             await interaction.reply({ embeds: [commandsEmbed] });

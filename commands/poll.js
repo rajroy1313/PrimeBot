@@ -84,9 +84,7 @@ module.exports = {
                     { name: '🔢 Options', value: options.map((opt, i) => `${interaction.client.pollManager.getOptionEmoji(i)} **${opt}**`).join('\n') },
                     { name: '📝 Poll ID', value: `\`${pollMessage.id}\` *(Save this ID if you need to end the poll early with \`/endpoll\`)*` }
                 )
-                .setFooter({ 
-                    text: `Created by ${interaction.user.tag}`, 
-                    iconURL: interaction.user.displayAvatarURL({ dynamic: true }) 
+                .setFooter({ text: 'Created by ${interaction.user.tag} • Version 2.5.0', iconURL: interaction.user.displayAvatarURL({ dynamic: true  }) 
                 })
                 .setTimestamp();
             

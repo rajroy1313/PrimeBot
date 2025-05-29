@@ -44,7 +44,7 @@ module.exports = {
                                 : 'The bot developers cannot send broadcast announcements to this server.'
                         }
                     )
-                    .setFooter({ text: `Server ID: ${interaction.guild.id}` })
+                    .setFooter({ text: 'Server ID: ${interaction.guild.id} • Version 2.5.0' })
                     .setTimestamp();
                 
                 await interaction.reply({ embeds: [statusEmbed] });
@@ -68,7 +68,7 @@ module.exports = {
                             value: 'Use `/broadcastsettings toggle` to change this setting'
                         }
                     )
-                    .setFooter({ text: `Server ID: ${interaction.guild.id}` })
+                    .setFooter({ text: 'Server ID: ${interaction.guild.id} • Version 2.5.0' })
                     .setTimestamp();
                 
                 await interaction.reply({ embeds: [statusEmbed] });

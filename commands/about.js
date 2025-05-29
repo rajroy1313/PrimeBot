@@ -5,7 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('about')
         .setDescription('Display information about the bot')
-		.setDefaultMemberPermissions('0')
+                .setDefaultMemberPermissions('0')
         ,
     
     async execute(interaction) {
@@ -71,7 +71,7 @@ module.exports = {
                         value: 
                             `• Servers: ${guildCount}\n` +
                             `• Uptime: ${uptimeString}\n` +
-                            "• Version: 1.1.0",
+                            `• Version: ${config.version}`,
                         inline: true
                     },
                     {
@@ -85,9 +85,7 @@ module.exports = {
                     }
                 )
                 .setThumbnail(interaction.client.user.displayAvatarURL({ dynamic: true }))
-                .setFooter({
-                    text: `Requested by ${interaction.user.tag}`,
-                    iconURL: interaction.user.displayAvatarURL({ dynamic: true })
+                .setFooter({ text: `Requested by ${interaction.user.tag} • Version ${config.version}`, iconURL: interaction.user.displayAvatarURL({ dynamic: true })
                 })
                 .setTimestamp();
             

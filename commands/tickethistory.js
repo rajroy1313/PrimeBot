@@ -61,9 +61,7 @@ module.exports = {
                     • Closed: ${closedDate}
                     • Closed by: ${ticket.closedBy}`;
                 }).join('\n\n'))
-                .setFooter({
-                    text: `Page ${page}/${maxPage} • Total tickets: ${ticketHistory.length}`
-                });
+                .setFooter({ text: 'Page ${page}/${maxPage} • Total tickets: ${ticketHistory.length} • Version 2.5.0' });
             
             await interaction.reply({ embeds: [embed] });
             

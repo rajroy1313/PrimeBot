@@ -38,7 +38,7 @@ module.exports = {
                             '• Auto-responses for common questions'
                     },
                 )
-                .setTimestamp()
+                .setFooter({ text: 'Version 2.5.0', iconURL: this.client?.user?.displayAvatarURL() || client?.user?.displayAvatarURL() }).setTimestamp()
                 .setFooter({
                     text: `Current Version: 1.1.0`,
                     iconURL: interaction.client.user.displayAvatarURL()
