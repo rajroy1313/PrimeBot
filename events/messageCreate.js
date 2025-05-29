@@ -1697,7 +1697,7 @@ module.exports = {
 
                 case "ab":
                     // Create bot description embed
-                    const aboutEmbed = new EmbedBuilder()
+                    const aboutEmbedAb = new EmbedBuilder()
                         .setColor(config.colors.primary)
                         .setTitle("About this Bot")
                         .setDescription(
@@ -1735,7 +1735,7 @@ module.exports = {
                             iconURL: client.user.displayAvatarURL(),
                         });
 
-                    return message.reply({ embeds: [aboutEmbed] });
+                    return message.reply({ embeds: [aboutEmbedAb] });
 
                 case "ulog":
                     // Create update log embed
@@ -3265,7 +3265,7 @@ module.exports = {
                         .setFooter({ text: `Version: ${config.version}` })
                         .setTimestamp();
                     
-                    message.reply({ embeds: [aboutEmbed] });
+                    message.reply({ embeds: [prefixAboutEmbed] });
                     break;
 
                 // Updates Command

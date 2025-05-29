@@ -50,5 +50,19 @@
       "reactions": []
     },
     "noPrefixUsers": {}
+  },
+  "1371881712061251736": {
+    "leveling": {
+      "enabled": true,
+      "levelUpChannelId": null,
+      "xpMultiplier": 1,
+      "xpCooldown": 60000,
+      "roleRewards": [
+        {
+          "level": 10,
+          "roleId": "1377574844186624050"
+        }
+      ]
+    }
   }
 }
