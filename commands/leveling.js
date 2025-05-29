@@ -155,37 +155,40 @@ module.exports = {
         ),
     
     async execute(interaction) {
-        const { client, guild, user, options } = interaction;
-        const subcommand = options.getSubcommand();
-        
-        // Ensure the server settings manager has leveling data initialized
-        if (!client.serverSettingsManager.serverSettings.has(guild.id)) {
-            client.serverSettingsManager.serverSettings.set(guild.id, {
-                leveling: {
+        try {
+            const { client, guild, user, options } = interaction;
+            const subcommand = options.getSubcommand();
+            
+            console.log(`[LEVELING] Processing subcommand: ${subcommand} for user: ${user.tag}`);
+            
+            // Ensure the server settings manager has leveling data initialized
+            if (!client.serverSettingsManager.serverSettings.has(guild.id)) {
+                client.serverSettingsManager.serverSettings.set(guild.id, {
+                    leveling: {
+                        enabled: true,
+                        levelUpChannelId: null,
+                        xpMultiplier: 1.0,
+                        xpCooldown: 60000 // Default 1 minute cooldown
+                    }
+                });
+                client.serverSettingsManager.saveSettings();
+            } else if (!client.serverSettingsManager.serverSettings.get(guild.id).leveling) {
+                const serverSettings = client.serverSettingsManager.serverSettings.get(guild.id);
+                serverSettings.leveling = {
                     enabled: true,
                     levelUpChannelId: null,
                     xpMultiplier: 1.0,
                     xpCooldown: 60000 // Default 1 minute cooldown
-                }
-            });
-            client.serverSettingsManager.saveSettings();
-        } else if (!client.serverSettingsManager.serverSettings.get(guild.id).leveling) {
+                };
+                client.serverSettingsManager.saveSettings();
+            }
+            
+            // Get server leveling settings
             const serverSettings = client.serverSettingsManager.serverSettings.get(guild.id);
-            serverSettings.leveling = {
-                enabled: true,
-                levelUpChannelId: null,
-                xpMultiplier: 1.0,
-                xpCooldown: 60000 // Default 1 minute cooldown
-            };
-            client.serverSettingsManager.saveSettings();
-        }
-        
-        // Get server leveling settings
-        const serverSettings = client.serverSettingsManager.serverSettings.get(guild.id);
-        const levelingSettings = serverSettings.leveling;
-        
-        // Handle different subcommands
-        switch (subcommand) {
+            const levelingSettings = serverSettings.leveling;
+            
+            // Handle different subcommands
+            switch (subcommand) {
             case 'rank':
                 await handleRankCommand(interaction, client);
                 break;
@@ -261,6 +264,22 @@ module.exports = {
             case 'listroles':
                 await handleListRolesCommand(interaction, client);
                 break;
+                
+            default:
+                await interaction.reply({
+                    content: `❌ Unknown subcommand: ${subcommand}`,
+                    ephemeral: true
+                });
+                break;
+        }
+        } catch (error) {
+            console.error('[LEVELING] Error executing leveling command:', error);
+            if (!interaction.replied && !interaction.deferred) {
+                await interaction.reply({
+                    content: '❌ There was an error processing your leveling command. Please try again later.',
+                    ephemeral: true
+                });
+            }
         }
     }
 };
