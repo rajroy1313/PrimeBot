@@ -521,6 +521,14 @@ module.exports = {
                         { name: `${prefix}chelp`, value: "Show help for the counting game" },
                         { name: `${prefix}truthdare`, value: "Start a Truth or Dare game with interactive buttons" },
                         { name: `${prefix}qadd [truth/dare] [question]`, value: "Add a custom truth or dare question to the collection" },
+                        { name: `${prefix}about`, value: "Shows information about the bot" },
+                        { name: `${prefix}updates`, value: "Shows bot updates and new features" },
+                        { name: `${prefix}ses`, value: "Shows bot session information" },
+                        { name: `${prefix}leveling`, value: "Shows leveling system commands" },
+                        { name: `${prefix}move`, value: "Move members between voice channels (requires Move Members permission)" },
+                        { name: `${prefix}welcomeconfig`, value: "Configure welcome settings (requires Manage Server permission)" },
+                        { name: `${prefix}broadcastsettings`, value: "Configure broadcast settings (requires Administrator permission)" },
+                        { name: `${prefix}createticket [name]`, value: "Create a support ticket with a custom name" },
                     ];
                     
                     // If leveling is enabled in the server, add the leveling commands to the list
@@ -3195,6 +3203,163 @@ module.exports = {
                         default:
                             message.reply(`Unknown auto-reaction command: ${arSubCommand}. Use \`${prefix}autoreact\` to see available commands.`);
                     }
+                    break;
+
+                // Broadcasting Settings Commands
+                case "broadcastsettings":
+                case "bsettings":
+                    if (!message.member.permissions.has("Administrator")) {
+                        return message.reply("You need Administrator permission to configure broadcast settings!");
+                    }
+                    
+                    const bsEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("📣 Broadcast Settings")
+                        .setDescription("Configure how the bot handles broadcasts:")
+                        .addFields(
+                            { name: "Usage", value: `${prefix}broadcastsettings [enable/disable/status]` },
+                            { name: "Examples", value: `${prefix}broadcastsettings enable - Enable broadcasts\n${prefix}broadcastsettings disable - Disable broadcasts\n${prefix}broadcastsettings status - Check current status` }
+                        )
+                        .setFooter({ text: `Version: ${config.version}` });
+                    
+                    message.reply({ embeds: [bsEmbed] });
+                    break;
+
+                // Ticket System Commands
+                case "createticket":
+                case "ticket":
+                    if (args.length < 1) {
+                        return message.reply(`**Correct Usage:** \`${prefix}${commandName} [ticket name]\``);
+                    }
+                    
+                    const ticketName = args.join(' ');
+                    
+                    try {
+                        await client.ticketManager.handleTicketCreation({
+                            reply: async (options) => await message.reply(options),
+                            options: {
+                                getString: () => ticketName
+                            },
+                            user: message.author,
+                            guild: message.guild,
+                            channel: message.channel
+                        }, ticketName);
+                    } catch (error) {
+                        console.error('Error creating ticket:', error);
+                        message.reply('There was an error creating your ticket! Please try again later.');
+                    }
+                    break;
+
+                // About Command
+                case "about":
+                case "ab":
+                    const prefixAboutEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("About PrimeBot")
+                        .setDescription("A sophisticated Discord bot for community engagement")
+                        .addFields(
+                            { name: "Version", value: config.version, inline: true },
+                            { name: "Servers", value: client.guilds.cache.size.toString(), inline: true },
+                            { name: "Uptime", value: formatUptime(process.uptime()), inline: true }
+                        )
+                        .setFooter({ text: `Version: ${config.version}` })
+                        .setTimestamp();
+                    
+                    message.reply({ embeds: [aboutEmbed] });
+                    break;
+
+                // Updates Command
+                case "updates":
+                case "ulog":
+                    const updatesEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("🆕 Bot Updates & Features")
+                        .setDescription("Here are the latest updates and features:")
+                        .addFields(
+                            { name: "Version 2.5.0", value: "• Auto role assignment on level up\n• Enhanced giveaway system\n• Improved command structure\n• Bug fixes and optimizations" },
+                            { name: "Coming Soon", value: "• Music system\n• Advanced moderation tools\n• Custom server dashboard" }
+                        )
+                        .setFooter({ text: `Version: ${config.version}` })
+                        .setTimestamp();
+                    
+                    message.reply({ embeds: [updatesEmbed] });
+                    break;
+
+                // Session Command (SES)
+                case "ses":
+                case "session":
+                    const sesEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("🔧 Bot Session Info")
+                        .setDescription("Current bot session information:")
+                        .addFields(
+                            { name: "Uptime", value: formatUptime(process.uptime()), inline: true },
+                            { name: "Memory Usage", value: `${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`, inline: true },
+                            { name: "Ping", value: `${client.ws.ping}ms`, inline: true }
+                        )
+                        .setFooter({ text: `Version: ${config.version}` })
+                        .setTimestamp();
+                    
+                    message.reply({ embeds: [sesEmbed] });
+                    break;
+
+                // Leveling System Commands
+                case "leveling":
+                case "lvl":
+                    if (!message.guild) {
+                        return message.reply("Leveling commands can only be used in servers.");
+                    }
+                    
+                    const levelingEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("📊 Leveling System")
+                        .setDescription("Available leveling commands:")
+                        .addFields(
+                            { name: "User Commands", value: `${prefix}rank [@user] - Check level/XP\n${prefix}leaderboard - View leaderboard\n${prefix}badges - View available badges` },
+                            { name: "Admin Commands", value: `${prefix}level-enable - Enable leveling\n${prefix}level-disable - Disable leveling\n${prefix}level-channel #channel - Set notification channel` }
+                        )
+                        .setFooter({ text: `Version: ${config.version}` });
+                    
+                    message.reply({ embeds: [levelingEmbed] });
+                    break;
+
+                // Move Command (for moderation)
+                case "move":
+                    if (!message.member.permissions.has("MoveMembers")) {
+                        return message.reply("You need the Move Members permission to use this command!");
+                    }
+                    
+                    const moveEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("🔄 Move Command")
+                        .setDescription("Move members between voice channels")
+                        .addFields(
+                            { name: "Usage", value: `${prefix}move [@user] [#channel]` },
+                            { name: "Note", value: "Requires Move Members permission" }
+                        )
+                        .setFooter({ text: `Version: ${config.version}` });
+                    
+                    message.reply({ embeds: [moveEmbed] });
+                    break;
+
+                // Welcome Configuration
+                case "welcomeconfig":
+                case "welcome":
+                    if (!message.member.permissions.has("ManageGuild")) {
+                        return message.reply("You need the Manage Server permission to configure welcome settings!");
+                    }
+                    
+                    const welcomeEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("👋 Welcome Configuration")
+                        .setDescription("Configure how the bot welcomes new members:")
+                        .addFields(
+                            { name: "Commands", value: `${prefix}welcome-enable - Enable welcome system\n${prefix}welcome-disable - Disable welcome system\n${prefix}welcome-channel #channel - Set welcome channel` },
+                            { name: "Note", value: "Requires Manage Server permission" }
+                        )
+                        .setFooter({ text: `Version: ${config.version}` });
+                    
+                    message.reply({ embeds: [welcomeEmbed] });
                     break;
 
                 default:
