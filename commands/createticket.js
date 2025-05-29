@@ -1,4 +1,5 @@
 const { SlashCommandBuilder , PermissionFlagsBits} = require('discord.js');
+const config = require('../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -12,6 +13,7 @@ module.exports = {
                 .setRequired(true)),
     
     async execute(interaction) {
+        // Command version: 2.5.0
         try {
             const ticketName = interaction.options.getString('name');
             

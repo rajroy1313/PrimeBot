@@ -53,7 +53,7 @@ module.exports = {
                 .setColor(config.colors.primary)
                 .setTitle('Ticket History')
                 .setDescription(tickets.map((ticket, index) => {
-                    const createdDate = new Date(ticket.createdAt).toLocaleString();
+                    const createdDate = new Date(ticket.createdAt).toLocaleString().setFooter({ text: 'Version 2.5.0' });
                     const closedDate = new Date(ticket.closedAt).toLocaleString();
                     return `**${startIndex + index + 1}. Ticket #${ticket.number} - ${ticket.username}**
                     • ID: \`${ticket.id}\`

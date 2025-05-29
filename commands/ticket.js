@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const config = require('../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -36,6 +37,7 @@ module.exports = {
         ,
     
     async execute(interaction) {
+        // Command version: 2.5.0
         try {
             // Check permissions
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {

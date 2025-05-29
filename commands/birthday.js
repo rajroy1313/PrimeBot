@@ -111,7 +111,7 @@ module.exports = {
                         const embed = new EmbedBuilder()
                             .setColor(config.colors.success)
                             .setTitle('🎂 Birthday Set')
-                            .setDescription(`Successfully set ${userText} birthday to **${formattedDate}**${year ? ` (${year})` : ''}!`);
+                            .setDescription(`Successfully set ${userText} birthday to **${formattedDate}**${year ? ` (${year})` : ''}!`).setFooter({ text: 'Version 2.5.0' });
                         
                         return interaction.reply({ embeds: [embed] });
                     } else {
@@ -142,7 +142,7 @@ module.exports = {
                         
                         const embed = new EmbedBuilder()
                             .setColor(config.colors.success)
-                            .setDescription(`✅ ${userText} birthday has been removed.`);
+                            .setDescription(`✅ ${userText} birthday has been removed.`).setFooter({ text: 'Version 2.5.0' });
                         
                         return interaction.reply({ embeds: [embed] });
                     } else {
@@ -168,7 +168,7 @@ module.exports = {
                         .setColor(config.colors.primary)
                         .setTitle('🎂 Upcoming Birthdays')
                         .setDescription(birthdays.map((b, index) => {
-                            const user = interaction.client.users.cache.get(b.userId);
+                            const user = interaction.client.users.cache.get(b.userId).setFooter({ text: 'Version 2.5.0' });
                             const username = user ? user.username : 'Unknown User';
                             return `${index + 1}. **${username}** - ${b.formattedDate}${b.daysUntil === 0 ? ' (Today! 🎉)' : ` (in ${b.daysUntil} days)`}`;
                         }).join('\n'));
@@ -192,7 +192,7 @@ module.exports = {
                     const embed = new EmbedBuilder()
                         .setColor(config.colors.primary)
                         .setTitle('🎂 Birthday Information')
-                        .setDescription(`${userText} birthday is set to **${formattedDate}**${birthday.year ? ` (${birthday.year})` : ''}`);
+                        .setDescription(`${userText} birthday is set to **${formattedDate}**${birthday.year ? ` (${birthday.year})` : ''}`).setFooter({ text: 'Version 2.5.0' });
                     
                     return interaction.reply({ embeds: [embed] });
                 }
@@ -214,7 +214,7 @@ module.exports = {
                     if (success) {
                         const embed = new EmbedBuilder()
                             .setColor(config.colors.success)
-                            .setDescription(`✅ Birthday announcements will now be sent to ${channel}.`);
+                            .setDescription(`✅ Birthday announcements will now be sent to ${channel}.`).setFooter({ text: 'Version 2.5.0' });
                         
                         return interaction.reply({ embeds: [embed] });
                     } else {
@@ -242,7 +242,7 @@ module.exports = {
                     if (success) {
                         const embed = new EmbedBuilder()
                             .setColor(config.colors.success)
-                            .setDescription(`✅ The ${role} role will now be assigned to members on their birthday.`);
+                            .setDescription(`✅ The ${role} role will now be assigned to members on their birthday.`).setFooter({ text: 'Version 2.5.0' });
                         
                         return interaction.reply({ embeds: [embed] });
                     } else {

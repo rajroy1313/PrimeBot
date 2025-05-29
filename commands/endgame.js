@@ -1,4 +1,5 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const config = require('../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -8,6 +9,7 @@ module.exports = {
         ,
     
     async execute(interaction) {
+        // Command version: 2.5.0
         try {
             // Check if there is an active game
             const game = interaction.client.ticTacToeManager.getGame(interaction.channel.id);

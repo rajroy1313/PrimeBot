@@ -1,4 +1,5 @@
 const { SlashCommandBuilder , PermissionFlagsBits} = require('discord.js');
+const config = require('../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -14,6 +15,7 @@ module.exports = {
                 .setMaxValue(9)),
     
     async execute(interaction) {
+        // Command version: 2.5.0
         try {
             const position = interaction.options.getInteger('position');
             
