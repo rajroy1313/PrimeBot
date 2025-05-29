@@ -2,7 +2,6 @@ const { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } = require('disc
 const config = require('../config');
 const fs = require('fs');
 const path = require('path');
-const config = require('../config.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
