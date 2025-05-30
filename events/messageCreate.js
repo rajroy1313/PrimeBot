@@ -499,96 +499,10 @@ module.exports = {
                         .setFooter({ text: `Total Commands: 25+ • Version: ${config.version}` })
                         .setTimestamp();
 
-                    // Create interactive buttons for categories
-                    const row1 = new ActionRowBuilder()
-                        .addComponents(
-                            new ButtonBuilder()
-                                .setCustomId('help_prefix_general')
-                                .setLabel('General')
-                                .setStyle(ButtonStyle.Primary)
-                                .setEmoji('⚡'),
-                            new ButtonBuilder()
-                                .setCustomId('help_prefix_leveling')
-                                .setLabel('Leveling')
-                                .setStyle(ButtonStyle.Primary)
-                                .setEmoji('📊'),
-                            new ButtonBuilder()
-                                .setCustomId('help_prefix_games')
-                                .setLabel('Games')
-                                .setStyle(ButtonStyle.Primary)
-                                .setEmoji('🎮')
-                        );
-
-                    const row2 = new ActionRowBuilder()
-                        .addComponents(
-                            new ButtonBuilder()
-                                .setCustomId('help_prefix_moderation')
-                                .setLabel('Moderation')
-                                .setStyle(ButtonStyle.Secondary)
-                                .setEmoji('🛡️'),
-                            new ButtonBuilder()
-                                .setCustomId('help_prefix_community')
-                                .setLabel('Community')
-                                .setStyle(ButtonStyle.Success)
-                                .setEmoji('👥'),
-                            new ButtonBuilder()
-                                .setCustomId('help_prefix_admin')
-                                .setLabel('Administration')
-                                .setStyle(ButtonStyle.Danger)
-                                .setEmoji('⚙️')
-                        );
-
-                    const reply = await message.reply({ 
-                        embeds: [categoryEmbed], 
-                        components: [row1, row2] 
-                    });
-
-                    // Set up button interaction collector
-                    const filter = i => i.user.id === message.author.id && i.customId.startsWith('help_prefix_');
-                    const collector = reply.createMessageComponentCollector({ 
-                        filter, 
-                        time: 300000 // 5 minutes
-                    });
-
-                    collector.on('collect', async interaction => {
-                        try {
-                            const category = interaction.customId.replace('help_prefix_', '');
-                            const categoryEmbed = await createPrefixCategoryEmbed(category, prefix);
-                            
-                            const backButton = new ActionRowBuilder()
-                                .addComponents(
-                                    new ButtonBuilder()
-                                        .setCustomId('help_prefix_back')
-                                        .setLabel('Back to Categories')
-                                        .setStyle(ButtonStyle.Secondary)
-                                        .setEmoji('◀️')
-                                );
-
-                            await interaction.update({
-                                embeds: [categoryEmbed],
-                                components: [backButton]
-                            });
-                        } catch (error) {
-                            console.error('Error in category button interaction:', error);
-                        }
-                    });
-
-                    collector.on('end', () => {
-                        reply.edit({ components: [] }).catch(console.error);
-                    });
-
-                    break;
-
-                // Remove all the old pagination code that was previously here
-                default:
-                    // Unknown command - do nothing
-                    break;
-            }
-        } catch (error) {
-            console.error("Error in messageCreate event:", error);
-        }
-    },
-};
+                    return message.reply({ embeds: [categoryEmbed] });
+                    
+                    // Add admin commands if user has proper permissions
+                    if (message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
                         const adminCommands = [
                             { name: "🔧 Admin - Welcome System", value: "Configure how the bot welcomes new members:" },
                             { name: `${prefix}welcome-enable`, value: "Enable the welcome system" },
