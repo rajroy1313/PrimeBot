@@ -3357,3 +3357,128 @@ module.exports = {
         }
     },
 };
+
+/**
+ * Show category-specific help for prefix commands
+ */
+async function showPrefixCategoryHelp(message, category, prefix) {
+    const config = require('../config');
+    const { EmbedBuilder } = require('discord.js');
+    
+    let categoryEmbed;
+    
+    switch (category) {
+        case 'general':
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.primary)
+                .setTitle('⚡ General Commands')
+                .setDescription('Basic bot commands and information:')
+                .addFields(
+                    { name: `${prefix}help [category]`, value: 'Show this categorized command menu', inline: true },
+                    { name: `${prefix}about`, value: 'Information about the bot', inline: true },
+                    { name: `${prefix}updates`, value: 'Latest bot updates and features', inline: true },
+                    { name: `${prefix}ses`, value: 'Bot session and status information', inline: true },
+                    { name: `${prefix}ping`, value: 'Check bot latency and response time', inline: true },
+                    { name: `${prefix}np [duration]`, value: 'Enable no-prefix mode for easier commands', inline: true }
+                );
+            break;
+            
+        case 'leveling':
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.success)
+                .setTitle('📊 Leveling System')
+                .setDescription('XP, ranks, and progression commands:')
+                .addFields(
+                    { name: `${prefix}rank [@user]`, value: 'View your or another user\'s level and XP', inline: true },
+                    { name: `${prefix}leaderboard [page]`, value: 'Server XP leaderboard with pagination', inline: true },
+                    { name: `${prefix}badges [@user]`, value: 'View available and earned badges', inline: true },
+                    { name: `${prefix}profile [@user]`, value: 'Detailed user stats and progression', inline: true },
+                    { name: `${prefix}level [@user]`, value: 'Alias for rank command', inline: true },
+                    { name: `${prefix}exp [@user]`, value: 'Another alias for rank command', inline: true },
+                    { name: `${prefix}sync`, value: 'Sync roles and badges with levels (Admin)', inline: true },
+                    { name: `${prefix}level-enable`, value: 'Enable leveling system (Admin)', inline: true },
+                    { name: `${prefix}level-disable`, value: 'Disable leveling system (Admin)', inline: true }
+                );
+            break;
+            
+        case 'games':
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.warning)
+                .setTitle('🎮 Games & Activities')
+                .setDescription('Fun interactive games and entertainment:')
+                .addFields(
+                    { name: `${prefix}tictactoe`, value: 'Start a TicTacToe game in the channel', inline: true },
+                    { name: `${prefix}move [1-9]`, value: 'Make a move in active TicTacToe game', inline: true },
+                    { name: `${prefix}tend`, value: 'End current TicTacToe game', inline: true },
+                    { name: `${prefix}truthdare`, value: 'Interactive Truth or Dare game', inline: true },
+                    { name: `${prefix}qadd [type] [question]`, value: 'Add custom truth/dare questions', inline: true },
+                    { name: `${prefix}cstart [start] [goal]`, value: 'Start a number counting game', inline: true },
+                    { name: `${prefix}cstatus`, value: 'Check counting game status', inline: true },
+                    { name: `${prefix}cend`, value: 'End counting game (Admin)', inline: true },
+                    { name: `${prefix}poll [time] [question]`, value: 'Create interactive polls with timer', inline: true }
+                );
+            break;
+            
+        case 'moderation':
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.secondary)
+                .setTitle('🛡️ Moderation Tools')
+                .setDescription('Server management and moderation:')
+                .addFields(
+                    { name: `${prefix}ticket`, value: 'Create ticket support panel', inline: true },
+                    { name: `${prefix}createticket [name]`, value: 'Create ticket with custom name', inline: true },
+                    { name: `${prefix}thistory [page]`, value: 'View ticket history and logs', inline: true },
+                    { name: `${prefix}move`, value: 'Move members between voice channels', inline: true },
+                    { name: `${prefix}end [id]`, value: 'End giveaways and other activities', inline: true },
+                    { name: `${prefix}endpoll [id]`, value: 'End a poll early', inline: true },
+                    { name: `${prefix}autoreact`, value: 'Manage auto-reactions to trigger words', inline: true }
+                );
+            break;
+            
+        case 'community':
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.success)
+                .setTitle('👥 Community Features')
+                .setDescription('Engagement and social features:')
+                .addFields(
+                    { name: `${prefix}giveaway`, value: 'View giveaway commands', inline: true },
+                    { name: `${prefix}gstart [time] [winners] [prize]`, value: 'Create exciting giveaways', inline: true },
+                    { name: `${prefix}reroll [id]`, value: 'Reroll giveaway winners', inline: true },
+                    { name: `${prefix}birthday`, value: 'Birthday celebration system', inline: true },
+                    { name: `${prefix}birthday set [date]`, value: 'Set your birthday', inline: true },
+                    { name: `${prefix}birthday list`, value: 'View upcoming birthdays', inline: true },
+                    { name: `${prefix}welcomeconfig`, value: 'Configure welcome messages', inline: true },
+                    { name: `${prefix}broadcast`, value: 'Send announcements (Owner)', inline: true }
+                );
+            break;
+            
+        case 'admin':
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.error)
+                .setTitle('⚙️ Administration')
+                .setDescription('Advanced server configuration (Admin only):')
+                .addFields(
+                    { name: `${prefix}welcome-enable`, value: 'Enable welcome system', inline: true },
+                    { name: `${prefix}welcome-disable`, value: 'Disable welcome system', inline: true },
+                    { name: `${prefix}welcome-channel #channel`, value: 'Set welcome message channel', inline: true },
+                    { name: `${prefix}level-enable`, value: 'Enable leveling system', inline: true },
+                    { name: `${prefix}level-disable`, value: 'Disable leveling system', inline: true },
+                    { name: `${prefix}level-multiplier [number]`, value: 'Set XP multiplier', inline: true },
+                    { name: `${prefix}autoreact enable/disable`, value: 'Configure auto-reactions', inline: true },
+                    { name: `${prefix}broadcastsettings`, value: 'Configure broadcast settings', inline: true }
+                );
+            break;
+            
+        default:
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.error)
+                .setTitle('❌ Unknown Category')
+                .setDescription(`The category "${category}" was not found. Available categories: general, leveling, games, moderation, community, admin`);
+    }
+    
+    categoryEmbed
+        .setFooter({ text: `Use ${prefix}help to see all categories • Version: ${config.version}` })
+        .setTimestamp();
+    
+    return message.reply({ embeds: [categoryEmbed] });
+}
