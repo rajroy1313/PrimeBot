@@ -470,8 +470,7 @@ async function handleLeaderboardCommand(interaction, client) {
             .setColor(config.colors.primary)
             .setTitle(`🏆 ${guild.name} XP Leaderboard`)
             .setDescription(`Top members ranked by experience points`)
-            .setFooter({ text: 'Page ${validPage}/${totalPages} • ${leaderboard.length} members ranked • Version 2.5.0', iconURL: client.user.displayAvatarURL()
-             })
+            .setFooter({ text: `Page ${validPage}/${totalPages} • ${leaderboard.length} members ranked • Version ${config.version}`, iconURL: client.user.displayAvatarURL() })
             .setTimestamp();
         
         // Add leaderboard entries
@@ -505,8 +504,7 @@ async function handleLeaderboardCommand(interaction, client) {
         
         // Add navigation instructions if there are multiple pages
         if (totalPages > 1) {
-            embed.setFooter({ text: 'Page ${validPage}/${totalPages} • Use /leveling leaderboard page:[number] to see more • Version 2.5.0', iconURL: client.user.displayAvatarURL()
-             });
+            embed.setFooter({ text: `Page ${validPage}/${totalPages} • Use /leveling leaderboard page:[number] to see more • Version ${config.version}`, iconURL: client.user.displayAvatarURL() });
         }
         
         interaction.editReply({ embeds: [embed] });
