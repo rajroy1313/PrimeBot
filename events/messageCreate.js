@@ -475,81 +475,31 @@ module.exports = {
                     
                 case "help":
                 case "commands":
-                    // Get page number if provided
-                    let commandPage = 1;
-                    if (args.length > 0) {
-                        const requestedPage = parseInt(args[0]);
-                        if (!isNaN(requestedPage) && requestedPage > 0) {
-                            commandPage = requestedPage;
-                        }
+                    // Check if user wants a specific category
+                    const category = args[0]?.toLowerCase();
+                    
+                    // If category is provided, show category-specific help
+                    if (category && ['general', 'leveling', 'games', 'moderation', 'community', 'admin'].includes(category)) {
+                        return showPrefixCategoryHelp(message, category, prefix);
                     }
                     
-                    // Define basic commands available in all servers
-                    let allCommands = [
-                        { name: `${prefix}help [page]`, value: "Shows this list of commands" },
-                        { name: `${prefix}commands [page]`, value: "Alias for help command" },
-                        { name: `${prefix}giveaway`, value: "Shows all giveaway commands" },
-                        { name: `${prefix}gstart [duration] [winners] [prize]`, value: "Creates a new giveaway" },
-                        { name: `${prefix}gend [message_id]`, value: "Ends a giveaway early" },
-                        { name: `${prefix}reroll [message_id]`, value: "Rerolls winners for a giveaway" },
-                        { name: `${prefix}echo [message]`, value: "Makes the bot repeat a message" },
-                        { name: `${prefix}ping`, value: "Shows the bot's latency with an attractive visual display" },
-                        { name: `${prefix}np`, value: "Configure no-prefix mode for using commands without a prefix" },
-                        { name: `${prefix}thelp`, value: "Shows all ticket system commands" },
-                        { name: `${prefix}ticket [channel] (roles)`, value: "Creates a ticket panel" },
-                        
-                        { name: `${prefix}thistory (page)`, value: "Shows ticket history" },
-                        { name: `${prefix}ab`, value: "Shows information about the bot" },
-                        { name: `${prefix}ulog`, value: "Shows updates and upcoming features" },
-                        { name: `${prefix}tictactoe`, value: "Starts a new TicTacToe game in the channel" },
-                        { name: `${prefix}move [1-9]`, value: "Makes a move in an active TicTacToe game" },
-                        { name: `${prefix}tend`, value: "Ends the current TicTacToe game in the channel" },
-                        { name: `${prefix}poll [duration] [question] | [options]`, value: "Creates a poll with a timer" },
-                        { name: `${prefix}endpoll [message_id]`, value: "Ends a poll early" },
-                        { name: `${prefix}birthday`, value: "Shows all birthday commands" },
-                        { name: `${prefix}birthday set [MM/DD/YYYY]`, value: "Sets your birthday (year is optional)" },
-                        { name: `${prefix}birthday remove`, value: "Removes your birthday" },
-                        { name: `${prefix}birthday list`, value: "Shows upcoming birthdays" },
-                        { name: `${prefix}birthday check [@user]`, value: "Check your or someone else's birthday" },
-                        { name: `${prefix}birthday channel [#channel]`, value: "Sets the birthday announcement channel (requires Manage Server permission)" },
-                        { name: `${prefix}birthday role [@role]`, value: "Sets the birthday role (requires Manage Server permission)" },
-                        { name: `Emoji Commands ${emojiPrefix} prefix`, value: `Use ${emojiPrefix}help to see all emoji commands`, },
-                        { name: `${prefix}cstart [start] [goal]`, value: "Start a number counting game (requires Manage Server permission)" },
-                        { name: `${prefix}cstatus`, value: "Check the status of the current counting game" },
-                        { name: `${prefix}autoreact`, value: "Manage auto-reactions to trigger words" },
-                        { name: `${prefix}cend`, value: "End the current counting game (requires Manage Server permission)" },
-                        { name: `${prefix}chelp`, value: "Show help for the counting game" },
-                        { name: `${prefix}truthdare`, value: "Start a Truth or Dare game with interactive buttons" },
-                        { name: `${prefix}qadd [truth/dare] [question]`, value: "Add a custom truth or dare question to the collection" },
-                        { name: `${prefix}about`, value: "Shows information about the bot" },
-                        { name: `${prefix}updates`, value: "Shows bot updates and new features" },
-                        { name: `${prefix}ses`, value: "Shows bot session information" },
-                        { name: `${prefix}leveling`, value: "Shows leveling system commands" },
-                        { name: `${prefix}move`, value: "Move members between voice channels (requires Move Members permission)" },
-                        { name: `${prefix}welcomeconfig`, value: "Configure welcome settings (requires Manage Server permission)" },
-                        { name: `${prefix}broadcastsettings`, value: "Configure broadcast settings (requires Administrator permission)" },
-                        { name: `${prefix}createticket [name]`, value: "Create a support ticket with a custom name" },
-                        { name: `${prefix}sync`, value: "Sync roles and badges with current levels (requires Manage Server permission)" },
-                    ];
-                    
-                    // If leveling is enabled in the server, add the leveling commands to the list
-                    if (message.guild) {
-                        const helpServerSettings = client.serverSettingsManager.getGuildSettings(message.guild.id);
-                        if (helpServerSettings.leveling?.enabled) {
-                            // Leveling System Commands (only shown in servers with leveling enabled)
-                            const levelingCommands = [
-                                { name: `${prefix}leaderboard [page]`, value: "Shows the server XP leaderboard" },
-                                { name: `${prefix}rank [@user]`, value: "Shows your or another user's level and XP" },
-                                { name: `${prefix}profile [@user]`, value: "Shows detailed stats and badges" },
-                                { name: `${prefix}badges [@user]`, value: "Shows available and earned badges" },
-                                { name: `${prefix}level [@user]`, value: "Alias for rank command" },
-                                { name: `${prefix}exp [@user]`, value: "Alias for rank command" },
-                            ];
-                            
-                            // Add leveling commands to the main commands list
-                            allCommands = [...allCommands, ...levelingCommands];
-                        }
-                    }
+                    // Show main category menu
+                    const categoryEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle('📚 Command Categories')
+                        .setDescription(`Choose a category to explore available commands:\n\n**Usage:** \`${prefix}help [category]\``)
+                        .addFields(
+                            { name: '⚡ General', value: `\`${prefix}help general\`\nBasic bot commands and information`, inline: true },
+                            { name: '📊 Leveling', value: `\`${prefix}help leveling\`\nXP, ranks, and progression system`, inline: true },
+                            { name: '🎮 Games', value: `\`${prefix}help games\`\nFun interactive games and activities`, inline: true },
+                            { name: '🛡️ Moderation', value: `\`${prefix}help moderation\`\nServer management and moderation tools`, inline: true },
+                            { name: '👥 Community', value: `\`${prefix}help community\`\nEngagement and social features`, inline: true },
+                            { name: '⚙️ Administration', value: `\`${prefix}help admin\`\nAdvanced server configuration`, inline: true }
+                        )
+                        .setFooter({ text: `Total Commands: 25+ • Version: ${config.version}` })
+                        .setTimestamp();
+
+                    return message.reply({ embeds: [categoryEmbed] });
                     
                     // Add admin commands if user has proper permissions
                     if (message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
