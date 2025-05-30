@@ -41,8 +41,8 @@ module.exports = {
         // Create main stats embed
         const statsEmbed = new EmbedBuilder()
             .setColor(config.colors.primary)
-            .setTitle('📊 Bot Statistics')
-            .setDescription('Comprehensive statistics and performance metrics for the bot.')
+            .setTitle('📊 Bot Statistics & Information')
+            .setDescription(`I'm **${client.user.username}**, your personal digital assistant (PDA)\nComprehensive statistics and performance metrics for the bot.`)
             .setThumbnail(client.user.displayAvatarURL({ dynamic: true }))
             .addFields(
                 {
@@ -52,17 +52,17 @@ module.exports = {
                 },
                 {
                     name: '⏱️ Runtime Statistics',
-                    value: `**Uptime:** ${uptimeString}\n**Memory Usage:** ${memoryUsed}MB / ${memoryTotal}MB\n**Node.js:** ${process.version}\n**Shard:** ${shardInfo}`,
+                    value: `**Uptime:** ${uptimeString}\n**Memory Usage:** ${memoryUsed}MB / ${memoryTotal}MB\n**Node.js:** ${process.version}\n**Prefix:** \`${config.prefix}\``,
                     inline: true
                 },
                 {
                     name: '🌐 Network Statistics',
-                    value: `**Servers:** ${client.guilds.cache.size.toLocaleString()}\n**Users:** ${totalUsers.toLocaleString()}\n**Channels:** ${totalChannels.toLocaleString()}\n**Commands:** 25`,
+                    value: `**Servers:** ${client.guilds.cache.size.toLocaleString()}\n**Users:** ${totalUsers.toLocaleString()}\n**Channels:** ${totalChannels.toLocaleString()}\n**Commands:** 26`,
                     inline: true
                 },
                 {
                     name: '📈 Performance Metrics',
-                    value: `**CPU Usage:** ${process.cpuUsage().user / 1000000}%\n**Event Loop Lag:** <1ms\n**Cache Hit Rate:** 99.2%\n**Error Rate:** <0.1%`,
+                    value: `**CPU Usage:** ${(process.cpuUsage().user / 1000000).toFixed(2)}%\n**Event Loop Lag:** <1ms\n**Cache Hit Rate:** 99.2%\n**Error Rate:** <0.1%`,
                     inline: true
                 },
                 {
@@ -72,8 +72,13 @@ module.exports = {
                 },
                 {
                     name: '📊 Category Breakdown',
-                    value: `**General:** 5 commands\n**Leveling:** 9 commands\n**Games:** 4 commands\n**Moderation:** 5 commands\n**Community:** 5 commands\n**Admin:** 6 commands`,
+                    value: `**General:** 6 commands\n**Leveling:** 9 commands\n**Games:** 4 commands\n**Moderation:** 5 commands\n**Community:** 5 commands\n**Admin:** 6 commands`,
                     inline: true
+                },
+                {
+                    name: '🔗 Useful Links',
+                    value: `Use \`${config.prefix}help\` to see all available commands!\nType \`/help\` for interactive command categories.`,
+                    inline: false
                 }
             )
             .setFooter({ 
