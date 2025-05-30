@@ -3198,8 +3198,38 @@ module.exports = {
                         )
                         .setFooter({ text: `Version: ${config.version}` })
                         .setTimestamp();
+
+                    // Create buttons for about command
+                    const aboutInviteButton = new ButtonBuilder()
+                        .setLabel("Invite Me")
+                        .setStyle(ButtonStyle.Link)
+                        .setURL(
+                            `https://discord.com/api/oauth2/authorize?client_id=${client.user.id}&permissions=563242011339808&scope=bot%20applications.commands`
+                        )
+                        .setEmoji('➕');
+
+                    const aboutSupportButton = new ButtonBuilder()
+                        .setLabel("Support Server")
+                        .setStyle(ButtonStyle.Link)
+                        .setURL(config.supportServer || 'https://discord.gg/primebot')
+                        .setEmoji('ℹ️');
+
+                    const aboutVoteButton = new ButtonBuilder()
+                        .setLabel("Vote Me")
+                        .setStyle(ButtonStyle.Link)
+                        .setURL('https://top.gg/bot/1356575287151951943/vote')
+                        .setEmoji('✔️');
+
+                    const aboutButtonRow = new ActionRowBuilder().addComponents(
+                        aboutInviteButton, 
+                        aboutSupportButton, 
+                        aboutVoteButton
+                    );
                     
-                    message.reply({ embeds: [prefixAboutEmbed] });
+                    message.reply({ 
+                        embeds: [prefixAboutEmbed],
+                        components: [aboutButtonRow]
+                    });
                     break;
 
                 // Stats Command
