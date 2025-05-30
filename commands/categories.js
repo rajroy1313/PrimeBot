@@ -1,26 +1,5 @@
-const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const config = require('../config');
-
-module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('categories')
-        .setDescription('Interactive category browser with select menus')
-        .setDefaultMemberPermissions('0'),
-    
-    async execute(interaction) {
-        try {
-            await showCategorySelector(interaction);
-        } catch (error) {
-            console.error('[CATEGORIES] Error executing categories command:', error);
-            if (!interaction.replied && !interaction.deferred) {
-                await interaction.reply({
-                    content: 'There was an error loading the category browser. Please try again later.',
-                    ephemeral: true
-                });
-            }
-        }
-    }
-};
 
 /**
  * Show the main category selector with select menu

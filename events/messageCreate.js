@@ -503,27 +503,91 @@ module.exports = {
 
                 case "categories":
                 case "cat":
-                    // Interactive category browser with detailed information
+                    // Interactive category browser with select menu
+                    const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+                    
                     const interactiveCategoryEmbed = new EmbedBuilder()
                         .setColor(config.colors.primary)
                         .setTitle('🗂️ Interactive Category Browser')
-                        .setDescription('Detailed category information with command listings and usage statistics.')
+                        .setDescription('Use the dropdown menu below to explore different command categories. Each category contains specialized commands for different server needs.')
                         .addFields(
                             { name: '📊 Quick Stats', value: `**Total Commands:** 25\n**Categories:** 6\n**Active Servers:** ${message.client.guilds.cache.size}`, inline: true },
-                            { name: '🚀 Usage Guide', value: `Use \`${prefix}cat [category]\` to view detailed information about a specific category.`, inline: true },
-                            { name: '💡 Available Categories', value: 'general, leveling, games, moderation, community, admin', inline: true }
+                            { name: '🚀 Getting Started', value: 'Select a category from the menu to see available commands and their descriptions.', inline: true },
+                            { name: '💡 Pro Tip', value: `Use \`${prefix}help\` for traditional browsing or \`${prefix}cat\` for this interactive experience.`, inline: true }
                         )
                         .setFooter({ text: `Version: ${config.version}` })
                         .setTimestamp();
 
-                    // Check if user wants a specific category
+                    const categorySelect = new ActionRowBuilder()
+                        .addComponents(
+                            new StringSelectMenuBuilder()
+                                .setCustomId('category_select_prefix')
+                                .setPlaceholder('Choose a category to explore...')
+                                .addOptions([
+                                    {
+                                        label: 'General Commands',
+                                        description: 'Basic bot commands and information',
+                                        value: 'general',
+                                        emoji: '⚡'
+                                    },
+                                    {
+                                        label: 'Leveling System',
+                                        description: 'XP, ranks, and progression features',
+                                        value: 'leveling',
+                                        emoji: '📊'
+                                    },
+                                    {
+                                        label: 'Games & Activities',
+                                        description: 'Fun interactive games and entertainment',
+                                        value: 'games',
+                                        emoji: '🎮'
+                                    },
+                                    {
+                                        label: 'Moderation Tools',
+                                        description: 'Server management and moderation',
+                                        value: 'moderation',
+                                        emoji: '🛡️'
+                                    },
+                                    {
+                                        label: 'Community Features',
+                                        description: 'Engagement and social activities',
+                                        value: 'community',
+                                        emoji: '👥'
+                                    },
+                                    {
+                                        label: 'Administration',
+                                        description: 'Advanced server configuration',
+                                        value: 'admin',
+                                        emoji: '⚙️'
+                                    }
+                                ])
+                        );
+
+                    const actionButtons = new ActionRowBuilder()
+                        .addComponents(
+                            new ButtonBuilder()
+                                .setCustomId('categories_refresh')
+                                .setLabel('Refresh')
+                                .setStyle(ButtonStyle.Secondary)
+                                .setEmoji('🔄'),
+                            new ButtonBuilder()
+                                .setCustomId('categories_help')
+                                .setLabel('Need Help?')
+                                .setStyle(ButtonStyle.Primary)
+                                .setEmoji('❓')
+                        );
+
+                    // Check if user wants a specific category directly
                     const requestedCategory = args[0]?.toLowerCase();
                     
                     if (requestedCategory && ['general', 'leveling', 'games', 'moderation', 'community', 'admin'].includes(requestedCategory)) {
                         return showDetailedCategoryHelp(message, requestedCategory, prefix);
                     }
 
-                    return message.reply({ embeds: [interactiveCategoryEmbed] });
+                    return message.reply({ 
+                        embeds: [interactiveCategoryEmbed], 
+                        components: [categorySelect, actionButtons] 
+                    });
                     
                     // Add admin commands if user has proper permissions
                     if (message.member.permissions.has(PermissionFlagsBits.ManageGuild)) {

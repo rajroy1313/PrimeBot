@@ -359,8 +359,44 @@ module.exports = {
                 return;
             }
             
-            // Handle select menus and other interaction types
-            // Add more handlers as needed
+            // Handle select menus
+            if (interaction.isStringSelectMenu()) {
+                console.log(`[DEBUG] Select menu interaction with customId: "${interaction.customId}"`);
+                interactionDebugger.logInteraction(interaction, `Select Menu (${interaction.customId})`);
+                
+                try {
+                    if (interaction.customId === 'category_select_prefix') {
+                        const selectedCategory = interaction.values[0];
+                        console.log(`[CATEGORIES] User selected category: ${selectedCategory}`);
+                        
+                        // Import the functions from the categories module
+                        const { showDetailedCategoryMenuHelp } = require('../utils/categoryHelpers');
+                        await showDetailedCategoryMenuHelp(interaction, selectedCategory);
+                    } else if (interaction.customId === 'categories_refresh') {
+                        // Handle refresh button
+                        await interaction.deferUpdate();
+                        // Could refresh the menu here if needed
+                    } else if (interaction.customId === 'categories_help') {
+                        // Handle help button
+                        await interaction.reply({
+                            content: 'This is an interactive category browser. Use the dropdown menu to explore different command categories. Each category shows detailed information about available commands, their usage, and permission requirements.',
+                            ephemeral: true
+                        });
+                    }
+                } catch (selectError) {
+                    console.error('Error handling select menu interaction:', selectError);
+                    if (!interaction.replied && !interaction.deferred) {
+                        await interaction.reply({
+                            content: 'There was an error processing your selection. Please try again.',
+                            ephemeral: true
+                        }).catch(console.error);
+                    }
+                }
+                
+                return;
+            }
+            
+            // Handle other interaction types as needed
             
         } catch (error) {
             console.error('Error in interactionCreate event:', error);
