@@ -1,5 +1,16 @@
-const { EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const config = require('../config');
+
+module.exports = {
+    data: new SlashCommandBuilder()
+        .setName('categories')
+        .setDescription('Browse commands by category with interactive menus')
+        .setDefaultMemberPermissions('0'),
+    
+    async execute(interaction) {
+        await showCategorySelector(interaction);
+    }
+};
 
 /**
  * Show the main category selector with select menu
