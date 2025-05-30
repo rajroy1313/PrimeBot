@@ -474,7 +474,7 @@ module.exports = {
                     }
                     
                 case "help":
-                case "commands":
+                
                     // Check if user wants a specific category
                     const category = args[0]?.toLowerCase();
                     
@@ -501,8 +501,7 @@ module.exports = {
 
                     return message.reply({ embeds: [categoryEmbed] });
 
-                case "categories":
-                case "cat":
+                case "commands":
                     // Interactive category browser with select menu
                     const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
                     
