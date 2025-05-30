@@ -529,6 +529,7 @@ module.exports = {
                         { name: `${prefix}welcomeconfig`, value: "Configure welcome settings (requires Manage Server permission)" },
                         { name: `${prefix}broadcastsettings`, value: "Configure broadcast settings (requires Administrator permission)" },
                         { name: `${prefix}createticket [name]`, value: "Create a support ticket with a custom name" },
+                        { name: `${prefix}sync`, value: "Sync roles and badges with current levels (requires Manage Server permission)" },
                     ];
                     
                     // If leveling is enabled in the server, add the leveling commands to the list
@@ -3360,6 +3361,26 @@ module.exports = {
                         .setFooter({ text: `Version: ${config.version}` });
                     
                     message.reply({ embeds: [welcomeEmbed] });
+                    break;
+
+                // Sync Command
+                case "sync":
+                    if (!message.member.permissions.has("ManageGuild")) {
+                        return message.reply("You need the Manage Server permission to use sync commands!");
+                    }
+                    
+                    const syncEmbed = new EmbedBuilder()
+                        .setColor(config.colors.primary)
+                        .setTitle("🔄 Sync System")
+                        .setDescription("Automated role-level-badge synchronization commands:")
+                        .addFields(
+                            { name: "Available Commands", value: `${prefix}sync roles - Sync all user roles based on levels\n${prefix}sync badges - Sync badges based on achievements\n${prefix}sync all - Complete sync of roles and badges\n${prefix}sync status - Check sync configuration` },
+                            { name: "Usage", value: "Use `/sync` slash command for full functionality" },
+                            { name: "Note", value: "Requires Manage Server permission" }
+                        )
+                        .setFooter({ text: `Version: ${config.version}` });
+                    
+                    message.reply({ embeds: [syncEmbed] });
                     break;
 
                 default:
