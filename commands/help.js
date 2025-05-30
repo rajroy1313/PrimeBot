@@ -235,3 +235,7 @@ async function showCategoryHelp(interaction, category) {
         components: [backButton]
     });
 }
+
+// Export the functions for use in interaction handling
+module.exports.showMainHelp = showMainHelp;
+module.exports.showCategoryHelp = showCategoryHelp;
