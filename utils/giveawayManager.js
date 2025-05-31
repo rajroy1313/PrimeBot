@@ -287,22 +287,12 @@ class GiveawayManager {
             giveawayEmbed.setFooter({ text: 'Good luck! • Powered by ProjectHub' })
                          .setTimestamp();
             
-            // Create enter button
-            const enterButton = new ButtonBuilder()
-                .setCustomId('giveaway_enter')
-                .setLabel('Enter Giveaway')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('🎉');
-            
-            const actionRow = new ActionRowBuilder().addComponents(enterButton);
-            
             // Send giveaway message
             const giveawayMessage = await channel.send({
-                embeds: [giveawayEmbed],
-                components: [actionRow]
+                embeds: [giveawayEmbed]
             });
             
-            // Add the reaction emoji for entering (as backup)
+            // Add the reaction emoji for entering
             await giveawayMessage.react('🎉');
             
             // Store giveaway data
@@ -329,102 +319,7 @@ class GiveawayManager {
         }
     }
     
-    /**
-     * Handle a user entering a giveaway
-     * @param {Interaction} interaction - The button interaction
-     */
-    async handleGiveawayEntry(interaction) {
-        try {
-            console.log(`[GIVEAWAY] Processing entry for ${interaction.user.tag}`);
-            
-            // Debug information
-            console.log(`[GIVEAWAY] Button customId: ${interaction.customId}`);
-            console.log(`[GIVEAWAY] Message ID: ${interaction.message.id}`);
-            console.log(`[GIVEAWAY] Current giveaways in memory:`, 
-                Array.from(this.giveaways.keys()).join(', ') || 'None');
-            
-            const messageId = interaction.message.id;
-            const giveaway = this.giveaways.get(messageId);
-            
-            if (!giveaway) {
-                console.log(`[GIVEAWAY] No active giveaway found with message ID: ${messageId}`);
-                return interaction.reply({ 
-                    content: 'This giveaway no longer exists or has ended.', 
-                    ephemeral: true 
-                });
-            }
-            
-            if (giveaway.ended) {
-                console.log(`[GIVEAWAY] Giveaway ${messageId} has already ended`);
-                return interaction.reply({ 
-                    content: 'This giveaway has already ended.', 
-                    ephemeral: true 
-                });
-            }
-            
-            const userId = interaction.user.id;
-            console.log(`[GIVEAWAY] User ${interaction.user.tag} (${userId}) interacting with giveaway`);
-            
-            // Add or remove participant
-            if (giveaway.participants.has(userId)) {
-                console.log(`[GIVEAWAY] User ${interaction.user.tag} is leaving giveaway ${messageId}`);
-                giveaway.participants.delete(userId);
-                await interaction.reply({ 
-                    content: 'You have left the giveaway.', 
-                    ephemeral: true 
-                });
-                
-                // Save updated participants
-                console.log(`[GIVEAWAY] Saving updated participants (user removed)`);
-                this.saveGiveaways();
-                console.log(`[GIVEAWAY] Save complete`);
-                
-            } else {
-                console.log(`[GIVEAWAY] User ${interaction.user.tag} is entering giveaway ${messageId}`);
-                
-                // Check if user has required role (if specified)
-                if (giveaway.requiredRoleId) {
-                    const member = await interaction.guild.members.fetch(userId).catch(() => null);
-                    if (!member || !member.roles.cache.has(giveaway.requiredRoleId)) {
-                        const role = interaction.guild.roles.cache.get(giveaway.requiredRoleId);
-                        const roleName = role ? role.name : 'required role';
-                        
-                        return interaction.reply({
-                            content: `You need the **${roleName}** role to enter this giveaway.`,
-                            ephemeral: true
-                        });
-                    }
-                }
-                
-                giveaway.participants.add(userId);
-                await interaction.reply({ 
-                    content: 'You have entered the giveaway! Good luck!', 
-                    ephemeral: true 
-                });
-                
-                // Save updated participants
-                console.log(`[GIVEAWAY] Saving updated participants (user added)`);
-                this.saveGiveaways();
-                console.log(`[GIVEAWAY] Save complete. Current participants: ${giveaway.participants.size}`);
-            }
-            
-        } catch (error) {
-            console.error('Error handling giveaway entry:', error);
-            console.error('Error stack:', error.stack);
-            
-            // Ensure we respond to the user even if there's an error
-            if (!interaction.replied && !interaction.deferred) {
-                try {
-                    await interaction.reply({ 
-                        content: 'There was an error processing your entry. Please try again.', 
-                        ephemeral: true 
-                    });
-                } catch (replyError) {
-                    console.error('Could not send error reply:', replyError);
-                }
-            }
-        }
-    }
+
     
     /**
      * End a giveaway and select winners
@@ -511,20 +406,9 @@ class GiveawayManager {
            endedEmbed.setFooter({ text: 'Thanks for participating! • Powered by ProjectHub' })
                       .setTimestamp();
             
-            // Disable the button
-            const disabledButton = new ButtonBuilder()
-                .setCustomId('giveaway_enter_disabled')
-                .setLabel('Giveaway Ended')
-                .setStyle(ButtonStyle.Secondary)
-                .setEmoji('🎉')
-                .setDisabled(true);
-            
-            const disabledRow = new ActionRowBuilder().addComponents(disabledButton);
-            
             // Update giveaway message
             await message.edit({
-                embeds: [endedEmbed],
-                components: [disabledRow]
+                embeds: [endedEmbed]
             });
             
             // Announce winners

@@ -332,9 +332,6 @@ module.exports = {
                             console.error('Error acknowledging command pagination interaction:', error);
                             // Don't throw here to prevent the entire interaction from failing
                         }
-                    } else if (interaction.customId === 'giveaway_enter') {
-                        // Handle giveaway entry
-                        await client.giveawayManager.handleGiveawayEntry(interaction);
                     } else if (interaction.customId === 'giveaway_enter_disabled') {
                         // Handle disabled button - just inform user
                         await interaction.reply({
