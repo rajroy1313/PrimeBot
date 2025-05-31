@@ -265,7 +265,7 @@ class GiveawayManager {
             }
             
             // Add entry instructions
-            let entryInstructions = 'React with 🎊 to enter the giveaway!';
+            let entryInstructions = 'React with 🎉 to enter the giveaway!';
             if (requiredRoleId) {
                 entryInstructions += '\n**Note:** You must have the required role to participate.';
             }
@@ -292,10 +292,8 @@ class GiveawayManager {
                 embeds: [giveawayEmbed]
             });
             
-            // Add multiple reaction emojis for entering
-            await giveawayMessage.react('🎊');
+            // Add the reaction emoji for entering
             await giveawayMessage.react('🎉');
-            await giveawayMessage.react('🎁');
             
             // Store giveaway data
             const giveaway = {

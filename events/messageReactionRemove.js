@@ -23,8 +23,8 @@ module.exports = {
             
             if (!giveaway) return;
 
-            // Check if the reaction is one of the giveaway emojis
-            if (reaction.emoji.name === '🎉' || reaction.emoji.name === '🎊' || reaction.emoji.name === '🎁' || reaction.emoji.name === 'tada') {
+            // Check if the reaction is the giveaway emoji
+            if (reaction.emoji.name === '🎉') {
                 console.log(`[GIVEAWAY] User ${user.tag} removed reaction from giveaway ${messageId}`);
                 
                 // Check if giveaway has ended
