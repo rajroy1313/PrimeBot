@@ -26,6 +26,59 @@ const client = new Client({
 // Initialize collections for commands
 client.commands = new Collection();
 
+// Initialize managers first (before events)
+const GiveawayManager = require('./utils/giveawayManager');
+client.giveawayManager = new GiveawayManager(client);
+
+const TicketManager = require('./utils/ticketManager');
+client.ticketManager = new TicketManager(client);
+
+const TicTacToeManager = require('./utils/ticTacToeManager');
+client.ticTacToeManager = new TicTacToeManager(client);
+
+const PollManager = require('./utils/pollManager');
+client.pollManager = new PollManager(client);
+
+// Initialize birthday manager
+try {
+    const BirthdayManager = require('./utils/birthdayManager');
+    client.birthdayManager = new BirthdayManager(client);
+    console.log('Successfully loaded BirthdayManager');
+} catch (error) {
+    console.error('Failed to load BirthdayManager:', error.message);
+    // Create a temporary birthday manager to prevent crashes
+    client.birthdayManager = {
+        getBirthday: () => null,
+        setBirthday: () => false,
+        removeBirthday: () => false,
+        getAllBirthdays: () => new Map(),
+        getUpcomingBirthdays: () => [],
+        setAnnouncementChannel: () => false,
+        setBirthdayRole: () => false,
+        getGuildConfig: () => ({ announcementChannel: null, birthdayRole: null })
+    };
+}
+
+// Initialize emoji manager
+const EmojiManager = require('./utils/emojiManager');
+client.emojiManager = new EmojiManager();
+
+// Initialize counting game manager
+const CountingManager = require('./utils/countingManager');
+client.countingManager = new CountingManager(client);
+
+// Initialize truth or dare game manager
+const TruthDareManager = require('./utils/truthDareManager');
+client.truthDareManager = new TruthDareManager(client);
+
+// Initialize leveling and badges manager
+const LevelingManager = require('./utils/levelingManager');
+client.levelingManager = new LevelingManager(client);
+
+// Initialize server settings manager for broadcast opt-outs
+const ServerSettingsManager = require('./utils/serverSettingsManager');
+client.serverSettingsManager = new ServerSettingsManager(client);
+
 // Load command files
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
@@ -91,62 +144,6 @@ for (const file of eventFiles) {
     }
 }
 console.log('===== EVENTS LOADED =====\n');
-
-// Initialize giveaway manager
-const GiveawayManager = require('./utils/giveawayManager');
-client.giveawayManager = new GiveawayManager(client);
-
-// Initialize ticket manager
-const TicketManager = require('./utils/ticketManager');
-client.ticketManager = new TicketManager(client);
-
-// Initialize tic-tac-toe manager
-const TicTacToeManager = require('./utils/ticTacToeManager');
-client.ticTacToeManager = new TicTacToeManager(client);
-
-// Initialize poll manager
-const PollManager = require('./utils/pollManager');
-client.pollManager = new PollManager(client);
-
-// Initialize birthday manager
-try {
-    const BirthdayManager = require('./utils/birthdayManager');
-    client.birthdayManager = new BirthdayManager(client);
-    console.log('Successfully loaded BirthdayManager');
-} catch (error) {
-    console.error('Failed to load BirthdayManager:', error.message);
-    // Create a temporary birthday manager to prevent crashes
-    client.birthdayManager = {
-        getBirthday: () => null,
-        setBirthday: () => false,
-        removeBirthday: () => false,
-        getAllBirthdays: () => new Map(),
-        getUpcomingBirthdays: () => [],
-        setAnnouncementChannel: () => false,
-        setBirthdayRole: () => false,
-        getGuildConfig: () => ({ announcementChannel: null, birthdayRole: null })
-    };
-}
-
-// Initialize emoji manager
-const EmojiManager = require('./utils/emojiManager');
-client.emojiManager = new EmojiManager();
-
-// Initialize counting game manager
-const CountingManager = require('./utils/countingManager');
-client.countingManager = new CountingManager(client);
-
-// Initialize truth or dare game manager
-const TruthDareManager = require('./utils/truthDareManager');
-client.truthDareManager = new TruthDareManager(client);
-
-// Initialize leveling and badges manager
-const LevelingManager = require('./utils/levelingManager');
-client.levelingManager = new LevelingManager(client);
-
-// Initialize server settings manager for broadcast opt-outs
-const ServerSettingsManager = require('./utils/serverSettingsManager');
-client.serverSettingsManager = new ServerSettingsManager(client);
 
 // Make client globally available for the website
 global.client = client;
