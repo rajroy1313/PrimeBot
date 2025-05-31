@@ -19,6 +19,13 @@ module.exports = {
 
             // Check if this is a giveaway reaction
             const messageId = reaction.message.id;
+            
+            // Check if giveawayManager exists
+            if (!client.giveawayManager) {
+                console.error('[GIVEAWAY] GiveawayManager not found on client');
+                return;
+            }
+            
             const giveaway = client.giveawayManager.giveaways.get(messageId);
             
             if (!giveaway) return;

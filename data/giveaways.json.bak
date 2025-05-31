@@ -74,5 +74,29 @@
     "thumbnail": null,
     "requiredRoleId": null,
     "participants": []
+  },
+  "1378325616541040691": {
+    "messageId": "1378325616541040691",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748688852795,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": []
+  },
+  "1378325869189271553": {
+    "messageId": "1378325869189271553",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748688913020,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": []
   }
 }
