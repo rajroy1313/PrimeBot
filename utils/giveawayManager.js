@@ -265,7 +265,7 @@ class GiveawayManager {
             }
             
             // Add entry instructions
-            let entryInstructions = 'Click the button below to enter the giveaway!';
+            let entryInstructions = 'React with 🎉 to enter the giveaway!';
             if (requiredRoleId) {
                 entryInstructions += '\n**Note:** You must have the required role to participate.';
             }
@@ -287,20 +287,13 @@ class GiveawayManager {
             giveawayEmbed.setFooter({ text: 'Good luck! • Powered by ProjectHub' })
                          .setTimestamp();
             
-            // Create entry button
-            const entryButton = new ButtonBuilder()
-                .setCustomId('giveaway_enter')
-                .setLabel('Enter Giveaway!')
-                .setStyle(ButtonStyle.Primary)
-                .setEmoji('🎉');
-            
-            const row = new ActionRowBuilder().addComponents(entryButton);
-            
             // Send giveaway message
             const giveawayMessage = await channel.send({
-                embeds: [giveawayEmbed],
-                components: [row]
+                embeds: [giveawayEmbed]
             });
+            
+            // Add the reaction emoji for entering
+            await giveawayMessage.react('🎉');
             
             // Store giveaway data
             const giveaway = {
