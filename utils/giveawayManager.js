@@ -197,10 +197,17 @@ class GiveawayManager {
      */
     async checkGiveaways() {
         const now = Date.now();
-        console.log(`[GIVEAWAY] Checking for ended giveaways. Active giveaways: ${this.giveaways.size}`);
+        const activeCount = Array.from(this.giveaways.values()).filter(g => !g.ended).length;
+        console.log(`[GIVEAWAY] Checking for ended giveaways. Total: ${this.giveaways.size}, Active: ${activeCount}`);
         
+        // Clean up old ended giveaways that are older than 24 hours
+        const oneDayAgo = now - (24 * 60 * 60 * 1000);
         for (const [messageId, giveaway] of this.giveaways.entries()) {
-            console.log(`[GIVEAWAY] Checking giveaway ${messageId}, end time: ${new Date(giveaway.endTime).toISOString()}, current time: ${new Date(now).toISOString()}, ended: ${giveaway.ended}`);
+            if (giveaway.ended && giveaway.endTime < oneDayAgo) {
+                console.log(`[GIVEAWAY] Removing old ended giveaway ${messageId} from memory`);
+                this.giveaways.delete(messageId);
+                continue;
+            }
             
             if (giveaway.endTime <= now && !giveaway.ended) {
                 console.log(`[GIVEAWAY] Found ended giveaway: ${messageId} for prize "${giveaway.prize}". Ending now...`);
@@ -212,6 +219,9 @@ class GiveawayManager {
                 }
             }
         }
+        
+        // Save changes if we cleaned up any old giveaways
+        this.saveGiveaways();
     }
 
     /**
