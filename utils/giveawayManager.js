@@ -287,12 +287,22 @@ class GiveawayManager {
             giveawayEmbed.setFooter({ text: 'Good luck! • Powered by ProjectHub' })
                          .setTimestamp();
             
+            // Create enter button
+            const enterButton = new ButtonBuilder()
+                .setCustomId('giveaway_enter')
+                .setLabel('Enter Giveaway')
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('🎉');
+            
+            const actionRow = new ActionRowBuilder().addComponents(enterButton);
+            
             // Send giveaway message
             const giveawayMessage = await channel.send({
-                embeds: [giveawayEmbed]
+                embeds: [giveawayEmbed],
+                components: [actionRow]
             });
             
-            // Add the reaction emoji for entering
+            // Add the reaction emoji for entering (as backup)
             await giveawayMessage.react('🎉');
             
             // Store giveaway data
