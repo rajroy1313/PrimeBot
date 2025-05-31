@@ -428,11 +428,37 @@ class GiveawayManager {
             console.log(`[GIVEAWAY] Marked giveaway ${messageId} as ended. Updating in storage.`);
             
             // Get channel and message
-            const channel = await this.client.channels.fetch(giveaway.channelId);
-            if (!channel) throw new Error(`Channel with ID ${giveaway.channelId} not found`);
-            
-            const message = await channel.messages.fetch(messageId);
-            if (!message) throw new Error(`Message with ID ${messageId} not found`);
+            let channel, message;
+            try {
+                channel = await this.client.channels.fetch(giveaway.channelId);
+                if (!channel) throw new Error(`Channel with ID ${giveaway.channelId} not found`);
+                
+                message = await channel.messages.fetch(messageId);
+                if (!message) throw new Error(`Message with ID ${messageId} not found`);
+            } catch (fetchError) {
+                console.log(`[GIVEAWAY] Could not fetch message/channel for giveaway ${messageId}: ${fetchError.message}`);
+                
+                // If we can't fetch the message, still announce winners in a fallback way
+                if (channel) {
+                    const participants = Array.from(giveaway.participants);
+                    const winners = this.selectWinners(participants, giveaway.winnerCount);
+                    
+                    if (winners.length > 0) {
+                        const winnersText = winners.map(id => `<@${id}>`).join(', ');
+                        await channel.send({
+                            content: `🎉 **GIVEAWAY ENDED** 🎉\nCongratulations ${winnersText}! You won the **${giveaway.prize}**!\n*(Original giveaway message was deleted)*`,
+                            allowedMentions: { users: winners }
+                        });
+                    } else {
+                        await channel.send(`🎉 **GIVEAWAY ENDED** 🎉\nThe giveaway for **${giveaway.prize}** has ended, but no one entered!\n*(Original giveaway message was deleted)*`);
+                    }
+                }
+                
+                // Save and return
+                this.saveGiveaways();
+                console.log(`[GIVEAWAY] Giveaway ${messageId} ended with deleted message.`);
+                return true;
+            }
             
             // Select winners
             const participants = Array.from(giveaway.participants);

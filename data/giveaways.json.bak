@@ -5,7 +5,7 @@
     "prize": "test",
     "winnerCount": 1,
     "endTime": 1748686224918,
-    "ended": true,
+    "ended": false,
     "description": null,
     "thumbnail": null,
     "requiredRoleId": null,
