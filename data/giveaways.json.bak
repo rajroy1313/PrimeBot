@@ -110,5 +110,17 @@
     "thumbnail": null,
     "requiredRoleId": null,
     "participants": []
+  },
+  "1378327266534359081": {
+    "messageId": "1378327266534359081",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748689252151,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": []
   }
 }
