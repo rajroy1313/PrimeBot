@@ -12,5 +12,19 @@
     "participants": [
       "1310654136290639894"
     ]
+  },
+  "1378317148849569853": {
+    "messageId": "1378317148849569853",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748686827987,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": [
+      "1310654136290639894"
+    ]
   }
 }
