@@ -4,87 +4,112 @@ const config = require('../config');
 // Import database and schema - we'll handle this dynamically
 let db, livePolls, livePollOptions, livePollVotes, eq, and, desc, sql;
 
-try {
-    // Try to import database components
-    const dbModule = require('../server/db.js');
-    db = dbModule.db;
+// Try to import database components - delayed initialization
+let dbInitialized = false;
+
+async function initializeDatabase() {
+    if (dbInitialized) return true;
     
-    const schemaModule = require('../shared/schema.js');
-    livePolls = schemaModule.livePolls;
-    livePollOptions = schemaModule.livePollOptions;
-    livePollVotes = schemaModule.livePollVotes;
-    
-    const drizzleORM = require('drizzle-orm');
-    eq = drizzleORM.eq;
-    and = drizzleORM.and;
-    desc = drizzleORM.desc;
-    sql = drizzleORM.sql;
-    
-    console.log('✅ Database components loaded successfully for LivePollManager');
-} catch (error) {
-    console.error('❌ Error importing database components:', error);
-    // Create fallback functions for testing
+    try {
+        // Try to import database components
+        require('dotenv').config();
+        
+        if (!process.env.DATABASE_URL) {
+            console.log('⚠️ DATABASE_URL not found, using fallback mode');
+            return false;
+        }
+        
+        const dbModule = require('../server/db.js');
+        db = dbModule.db;
+        
+        const schemaModule = require('../shared/schema.js');
+        livePolls = schemaModule.livePolls;
+        livePollOptions = schemaModule.livePollOptions;
+        livePollVotes = schemaModule.livePollVotes;
+        
+        const drizzleORM = require('drizzle-orm');
+        eq = drizzleORM.eq;
+        and = drizzleORM.and;
+        desc = drizzleORM.desc;
+        sql = drizzleORM.sql;
+        
+        dbInitialized = true;
+        console.log('✅ Database components loaded successfully for LivePollManager');
+        return true;
+    } catch (error) {
+        console.error('❌ Error importing database components:', error.message);
+        return false;
+    }
+}
+
+// Initialize fallback functions
+if (!dbInitialized) {
     db = { 
         insert: () => Promise.resolve([{ pollId: 'test-poll', passCode: 'TEST123' }]),
         select: () => Promise.resolve([]),
-        update: () => Promise.resolve()
+        update: () => Promise.resolve(),
+        execute: () => Promise.resolve({ rows: [] })
     };
 }
 
 class LivePollManager {
     constructor() {
         this.pollCaches = new Map(); // Cache for active polls
-        this.initializeDatabase();
+        this.dbReady = false;
+        this.initializeDatabaseConnection();
     }
 
-    // Initialize database tables
-    async initializeDatabase() {
+    // Initialize database connection and tables
+    async initializeDatabaseConnection() {
         try {
-            if (!db || !livePolls) {
-                console.log('⚠️ Database components not available, skipping database initialization');
-                return;
+            const dbAvailable = await initializeDatabase();
+            this.dbReady = dbAvailable;
+            
+            if (dbAvailable) {
+                console.log('🔄 Initializing live poll database tables...');
+                
+                // Create tables using raw SQL to ensure they exist
+                await db.execute(sql`
+                    CREATE TABLE IF NOT EXISTS live_polls (
+                        id SERIAL PRIMARY KEY,
+                        poll_id VARCHAR(100) NOT NULL UNIQUE,
+                        pass_code VARCHAR(20) NOT NULL,
+                        question TEXT NOT NULL,
+                        creator_id VARCHAR(50) NOT NULL,
+                        is_active BOOLEAN DEFAULT true,
+                        allow_multiple_votes BOOLEAN DEFAULT false,
+                        created_at TIMESTAMP DEFAULT NOW(),
+                        expires_at TIMESTAMP
+                    );
+                `);
+                
+                await db.execute(sql`
+                    CREATE TABLE IF NOT EXISTS live_poll_options (
+                        id SERIAL PRIMARY KEY,
+                        poll_id VARCHAR(100) NOT NULL,
+                        option_text TEXT NOT NULL,
+                        option_index INTEGER NOT NULL,
+                        vote_count INTEGER DEFAULT 0
+                    );
+                `);
+                
+                await db.execute(sql`
+                    CREATE TABLE IF NOT EXISTS live_poll_votes (
+                        id SERIAL PRIMARY KEY,
+                        poll_id VARCHAR(100) NOT NULL,
+                        user_id VARCHAR(50) NOT NULL,
+                        option_index INTEGER NOT NULL,
+                        voted_at TIMESTAMP DEFAULT NOW()
+                    );
+                `);
+                
+                console.log('✅ Live poll database tables initialized successfully');
+            } else {
+                console.log('⚠️ Live poll system running in fallback mode (no database)');
             }
-
-            console.log('🔄 Initializing live poll database tables...');
-            
-            // Create tables using raw SQL to ensure they exist
-            await db.execute(sql`
-                CREATE TABLE IF NOT EXISTS live_polls (
-                    id SERIAL PRIMARY KEY,
-                    poll_id VARCHAR(100) NOT NULL UNIQUE,
-                    pass_code VARCHAR(20) NOT NULL,
-                    question TEXT NOT NULL,
-                    creator_id VARCHAR(50) NOT NULL,
-                    is_active BOOLEAN DEFAULT true,
-                    allow_multiple_votes BOOLEAN DEFAULT false,
-                    created_at TIMESTAMP DEFAULT NOW(),
-                    expires_at TIMESTAMP
-                );
-            `);
-            
-            await db.execute(sql`
-                CREATE TABLE IF NOT EXISTS live_poll_options (
-                    id SERIAL PRIMARY KEY,
-                    poll_id VARCHAR(100) NOT NULL,
-                    option_text TEXT NOT NULL,
-                    option_index INTEGER NOT NULL,
-                    vote_count INTEGER DEFAULT 0
-                );
-            `);
-            
-            await db.execute(sql`
-                CREATE TABLE IF NOT EXISTS live_poll_votes (
-                    id SERIAL PRIMARY KEY,
-                    poll_id VARCHAR(100) NOT NULL,
-                    user_id VARCHAR(50) NOT NULL,
-                    option_index INTEGER NOT NULL,
-                    voted_at TIMESTAMP DEFAULT NOW()
-                );
-            `);
-            
-            console.log('✅ Live poll database tables initialized successfully');
         } catch (error) {
             console.error('❌ Error initializing live poll database:', error);
+            this.dbReady = false;
         }
     }
 
@@ -105,18 +130,18 @@ class LivePollManager {
             const passCode = this.generatePassCode();
             const expiresAt = duration ? new Date(Date.now() + duration) : null;
 
-            // Insert poll into database
-            const [poll] = await db.insert(livePolls).values({
+            const poll = {
                 pollId,
                 passCode,
                 question,
                 creatorId,
                 isActive: true,
                 allowMultipleVotes,
-                expiresAt
-            }).returning();
+                expiresAt,
+                createdAt: new Date()
+            };
 
-            // Insert poll options
+            // Create poll options
             const optionInserts = options.map((option, index) => ({
                 pollId,
                 optionText: option,
@@ -124,13 +149,24 @@ class LivePollManager {
                 voteCount: 0
             }));
 
-            await db.insert(livePollOptions).values(optionInserts);
-
-            // Cache the poll
-            this.pollCaches.set(pollId, {
-                ...poll,
-                options: optionInserts
-            });
+            if (this.dbReady) {
+                // Insert poll into database
+                const [dbPoll] = await db.insert(livePolls).values(poll).returning();
+                await db.insert(livePollOptions).values(optionInserts);
+                
+                // Cache the poll
+                this.pollCaches.set(pollId, {
+                    ...dbPoll,
+                    options: optionInserts
+                });
+            } else {
+                // Use in-memory storage
+                this.pollCaches.set(pollId, {
+                    ...poll,
+                    options: optionInserts,
+                    votes: [] // Store votes in memory
+                });
+            }
 
             return { pollId, passCode, poll };
         } catch (error) {
@@ -147,43 +183,54 @@ class LivePollManager {
                 return this.pollCaches.get(identifier);
             }
 
-            // Query database by poll ID or pass code  
-            let poll = null;
-            
-            // First try by poll ID
-            const pollById = await db.select()
-                .from(livePolls)
-                .where(eq(livePolls.pollId, identifier))
-                .limit(1);
-            
-            if (pollById.length > 0) {
-                poll = pollById[0];
-            } else {
-                // If not found by poll ID, try by pass code
-                const pollByCode = await db.select()
-                    .from(livePolls)
-                    .where(eq(livePolls.passCode, identifier))
-                    .limit(1);
-                
-                if (pollByCode.length > 0) {
-                    poll = pollByCode[0];
+            // Check if any cached poll has this pass code
+            for (const [pollId, pollData] of this.pollCaches.entries()) {
+                if (pollData.passCode === identifier) {
+                    return pollData;
                 }
             }
 
-            if (!poll) return null;
+            if (this.dbReady) {
+                // Query database by poll ID or pass code  
+                let poll = null;
+                
+                // First try by poll ID
+                const pollById = await db.select()
+                    .from(livePolls)
+                    .where(eq(livePolls.pollId, identifier))
+                    .limit(1);
+                
+                if (pollById.length > 0) {
+                    poll = pollById[0];
+                } else {
+                    // If not found by poll ID, try by pass code
+                    const pollByCode = await db.select()
+                        .from(livePolls)
+                        .where(eq(livePolls.passCode, identifier))
+                        .limit(1);
+                    
+                    if (pollByCode.length > 0) {
+                        poll = pollByCode[0];
+                    }
+                }
 
-            // Get poll options
-            const options = await db.select()
-                .from(livePollOptions)
-                .where(eq(livePollOptions.pollId, poll.pollId))
-                .orderBy(livePollOptions.optionIndex);
+                if (!poll) return null;
 
-            const pollData = { ...poll, options };
-            
-            // Cache the poll
-            this.pollCaches.set(poll.pollId, pollData);
-            
-            return pollData;
+                // Get poll options
+                const options = await db.select()
+                    .from(livePollOptions)
+                    .where(eq(livePollOptions.pollId, poll.pollId))
+                    .orderBy(livePollOptions.optionIndex);
+
+                const pollData = { ...poll, options };
+                
+                // Cache the poll
+                this.pollCaches.set(poll.pollId, pollData);
+                
+                return pollData;
+            }
+
+            return null;
         } catch (error) {
             console.error('Error getting poll:', error);
             return null;
@@ -215,32 +262,56 @@ class LivePollManager {
 
             // Check if user has already voted (if multiple votes not allowed)
             if (!poll.allowMultipleVotes) {
-                const existingVote = await db.select()
-                    .from(livePollVotes)
-                    .where(and(
-                        eq(livePollVotes.pollId, pollId),
-                        eq(livePollVotes.userId, userId)
-                    ));
+                if (this.dbReady) {
+                    const existingVote = await db.select()
+                        .from(livePollVotes)
+                        .where(and(
+                            eq(livePollVotes.pollId, pollId),
+                            eq(livePollVotes.userId, userId)
+                        ));
 
-                if (existingVote.length > 0) {
-                    return { success: false, message: 'You have already voted on this poll' };
+                    if (existingVote.length > 0) {
+                        return { success: false, message: 'You have already voted on this poll' };
+                    }
+                } else {
+                    // Check in-memory votes
+                    const cachedPoll = this.pollCaches.get(pollId);
+                    if (cachedPoll && cachedPoll.votes) {
+                        const existingVote = cachedPoll.votes.find(vote => vote.userId === userId);
+                        if (existingVote) {
+                            return { success: false, message: 'You have already voted on this poll' };
+                        }
+                    }
                 }
             }
 
-            // Record the vote
-            await db.insert(livePollVotes).values({
-                pollId,
-                userId,
-                optionIndex
-            });
+            if (this.dbReady) {
+                // Record the vote in database
+                await db.insert(livePollVotes).values({
+                    pollId,
+                    userId,
+                    optionIndex
+                });
 
-            // Update vote count
-            await db.update(livePollOptions)
-                .set({ voteCount: sql`${livePollOptions.voteCount} + 1` })
-                .where(and(
-                    eq(livePollOptions.pollId, pollId),
-                    eq(livePollOptions.optionIndex, optionIndex)
-                ));
+                // Update vote count
+                await db.update(livePollOptions)
+                    .set({ voteCount: sql`${livePollOptions.voteCount} + 1` })
+                    .where(and(
+                        eq(livePollOptions.pollId, pollId),
+                        eq(livePollOptions.optionIndex, optionIndex)
+                    ));
+            } else {
+                // Record vote in memory
+                const cachedPoll = this.pollCaches.get(pollId);
+                if (cachedPoll) {
+                    if (!cachedPoll.votes) cachedPoll.votes = [];
+                    cachedPoll.votes.push({
+                        userId,
+                        optionIndex,
+                        votedAt: new Date()
+                    });
+                }
+            }
 
             // Update cache
             if (this.pollCaches.has(pollId)) {
