@@ -271,11 +271,17 @@ module.exports = {
                         const optionIndex = parseInt(parts[2]);
 
                         try {
+                            // Acknowledge the interaction first
+                            await interaction.deferUpdate();
+                            
                             const result = await client.livePollManager.vote(pollId, interaction.user.id, optionIndex);
+                            console.log(`[DEBUG] Vote result:`, result);
                             
                             if (result.success) {
                                 // Get updated poll data
                                 const pollResults = await client.livePollManager.getPollResults(pollId);
+                                console.log(`[DEBUG] Poll results:`, pollResults ? 'Found' : 'Not found');
+                                
                                 if (pollResults) {
                                     const updatedEmbed = client.livePollManager.createPollEmbed(
                                         pollResults.poll, 
@@ -286,22 +292,18 @@ module.exports = {
                                     
                                     const buttons = client.livePollManager.createVoteButtons(pollId, pollResults.options);
                                     
-                                    await interaction.update({
+                                    await interaction.editReply({
                                         embeds: [updatedEmbed],
                                         components: buttons
                                     });
-                                    console.log(`[DEBUG] Vote processed successfully for poll ${pollId}`);
+                                    console.log(`[DEBUG] Vote processed and display updated for poll ${pollId}`);
                                 } else {
-                                    // Use followUp for ephemeral messages
-                                    await interaction.deferUpdate();
                                     await interaction.followUp({
-                                        content: 'Vote recorded successfully!',
+                                        content: 'Vote recorded but unable to update display.',
                                         ephemeral: true
                                     });
                                 }
                             } else {
-                                // Use followUp for error messages
-                                await interaction.deferUpdate();
                                 await interaction.followUp({
                                     content: result.message,
                                     ephemeral: true
@@ -310,13 +312,12 @@ module.exports = {
                         } catch (voteError) {
                             console.error('Error processing vote:', voteError);
                             try {
-                                await interaction.deferUpdate();
                                 await interaction.followUp({
                                     content: 'There was an error processing your vote. Please try again.',
                                     ephemeral: true
                                 });
-                            } catch (updateError) {
-                                console.error('Failed to update interaction:', updateError);
+                            } catch (followUpError) {
+                                console.error('Failed to send follow-up message:', followUpError);
                             }
                         }
                         return; // Exit early for vote buttons
