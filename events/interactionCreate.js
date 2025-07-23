@@ -312,6 +312,69 @@ module.exports = {
                             null,
                             'Add question button'
                         );
+                    } else if (action === 'vote') {
+                        // Handle live poll voting
+                        const [, pollId, optionIndex] = customId.split('_');
+                        console.log(`[LIVE POLL] Vote button pressed for poll: ${pollId}, option: ${optionIndex}`);
+                        
+                        await safeExecute(
+                            async () => {
+                                // Defer the interaction to prevent timeout
+                                await interaction.deferReply({ ephemeral: true });
+                                
+                                // Vote on the poll
+                                const voteResult = await client.livePollManager.voteOnPoll({
+                                    pollId: pollId,
+                                    userId: interaction.user.id,
+                                    optionIndex: parseInt(optionIndex)
+                                });
+                                
+                                if (voteResult.success) {
+                                    // Get updated poll results
+                                    const pollResults = await client.livePollManager.getPollResults(pollId);
+                                    
+                                    if (pollResults) {
+                                        // Update the original message with new results
+                                        const updatedEmbed = client.livePollManager.createPollEmbed(
+                                            pollResults.poll, 
+                                            pollResults.options, 
+                                            pollResults.totalVotes, 
+                                            false
+                                        );
+                                        
+                                        const buttons = client.livePollManager.createVoteButtons(pollId, pollResults.options);
+                                        
+                                        try {
+                                            await interaction.message.edit({
+                                                embeds: [updatedEmbed],
+                                                components: buttons
+                                            });
+                                        } catch (editError) {
+                                            console.error('Error updating poll message:', editError);
+                                        }
+                                        
+                                        // Confirm vote to user
+                                        await interaction.followUp({
+                                            content: `✅ ${voteResult.message}`,
+                                            ephemeral: true
+                                        });
+                                    } else {
+                                        await interaction.followUp({
+                                            content: '❌ Error retrieving poll results.',
+                                            ephemeral: true
+                                        });
+                                    }
+                                } else {
+                                    await interaction.followUp({
+                                        content: `❌ ${voteResult.message}`,
+                                        ephemeral: true
+                                    });
+                                }
+                            },
+                            [],
+                            null,
+                            'Live poll vote button'
+                        );
                     } else if (action === 'emoji_prev_page' || action === 'emoji_next_page') {
                         // These are handled elsewhere, just acknowledge the interaction
                         try {

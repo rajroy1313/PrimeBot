@@ -79,6 +79,10 @@ client.levelingManager = new LevelingManager(client);
 const ServerSettingsManager = require('./utils/serverSettingsManager');
 client.serverSettingsManager = new ServerSettingsManager(client);
 
+// Initialize live poll manager
+const LivePollManager = require('./utils/livePollManager');
+client.livePollManager = new LivePollManager();
+
 // Load command files
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
