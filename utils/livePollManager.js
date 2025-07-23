@@ -34,6 +34,58 @@ try {
 class LivePollManager {
     constructor() {
         this.pollCaches = new Map(); // Cache for active polls
+        this.initializeDatabase();
+    }
+
+    // Initialize database tables
+    async initializeDatabase() {
+        try {
+            if (!db || !livePolls) {
+                console.log('⚠️ Database components not available, skipping database initialization');
+                return;
+            }
+
+            console.log('🔄 Initializing live poll database tables...');
+            
+            // Create tables using raw SQL to ensure they exist
+            await db.execute(sql`
+                CREATE TABLE IF NOT EXISTS live_polls (
+                    id SERIAL PRIMARY KEY,
+                    poll_id VARCHAR(100) NOT NULL UNIQUE,
+                    pass_code VARCHAR(20) NOT NULL,
+                    question TEXT NOT NULL,
+                    creator_id VARCHAR(50) NOT NULL,
+                    is_active BOOLEAN DEFAULT true,
+                    allow_multiple_votes BOOLEAN DEFAULT false,
+                    created_at TIMESTAMP DEFAULT NOW(),
+                    expires_at TIMESTAMP
+                );
+            `);
+            
+            await db.execute(sql`
+                CREATE TABLE IF NOT EXISTS live_poll_options (
+                    id SERIAL PRIMARY KEY,
+                    poll_id VARCHAR(100) NOT NULL,
+                    option_text TEXT NOT NULL,
+                    option_index INTEGER NOT NULL,
+                    vote_count INTEGER DEFAULT 0
+                );
+            `);
+            
+            await db.execute(sql`
+                CREATE TABLE IF NOT EXISTS live_poll_votes (
+                    id SERIAL PRIMARY KEY,
+                    poll_id VARCHAR(100) NOT NULL,
+                    user_id VARCHAR(50) NOT NULL,
+                    option_index INTEGER NOT NULL,
+                    voted_at TIMESTAMP DEFAULT NOW()
+                );
+            `);
+            
+            console.log('✅ Live poll database tables initialized successfully');
+        } catch (error) {
+            console.error('❌ Error initializing live poll database:', error);
+        }
     }
 
     // Generate a unique poll ID
@@ -95,11 +147,28 @@ class LivePollManager {
                 return this.pollCaches.get(identifier);
             }
 
-            // Query database by poll ID or pass code
-            const [poll] = await db.select()
+            // Query database by poll ID or pass code  
+            let poll = null;
+            
+            // First try by poll ID
+            const pollById = await db.select()
                 .from(livePolls)
                 .where(eq(livePolls.pollId, identifier))
-                .or(eq(livePolls.passCode, identifier));
+                .limit(1);
+            
+            if (pollById.length > 0) {
+                poll = pollById[0];
+            } else {
+                // If not found by poll ID, try by pass code
+                const pollByCode = await db.select()
+                    .from(livePolls)
+                    .where(eq(livePolls.passCode, identifier))
+                    .limit(1);
+                
+                if (pollByCode.length > 0) {
+                    poll = pollByCode[0];
+                }
+            }
 
             if (!poll) return null;
 
@@ -119,6 +188,11 @@ class LivePollManager {
             console.error('Error getting poll:', error);
             return null;
         }
+    }
+
+    // Vote on a poll (wrapper method for button interactions)
+    async vote(pollId, userId, optionIndex) {
+        return await this.voteOnPoll({ pollId, userId, optionIndex });
     }
 
     // Vote on a poll

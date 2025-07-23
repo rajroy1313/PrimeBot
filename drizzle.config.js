@@ -1,6 +1,6 @@
 /** @type { import("drizzle-kit").Config } */
 export default {
-  schema: "./shared/schema.ts",
+  schema: "./shared/schema.js",
   out: "./migrations",
   dialect: "postgresql",
   dbCredentials: {
