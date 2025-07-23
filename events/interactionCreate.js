@@ -256,6 +256,9 @@ module.exports = {
                 // Get the full customId
                 const customId = interaction.customId;
                 
+                // Log ALL button interactions for debugging
+                console.log(`[DEBUG] ALL BUTTON INTERACTIONS - CustomId: "${customId}", User: ${interaction.user.username}, Channel: ${interaction.channel?.name}, Guild: ${interaction.guild?.name}`);
+                
                 // Handle voting buttons IMMEDIATELY before any other processing
                 if (customId.startsWith('vote_')) {
                     console.log(`[DEBUG] VOTE BUTTON DETECTED: ${customId}`);
