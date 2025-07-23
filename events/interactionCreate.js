@@ -271,9 +271,6 @@ module.exports = {
                         const optionIndex = parseInt(parts[2]);
 
                         try {
-                            // Acknowledge the interaction first
-                            await interaction.deferUpdate();
-                            
                             const result = await client.livePollManager.vote(pollId, interaction.user.id, optionIndex);
                             console.log(`[DEBUG] Vote result:`, result);
                             
@@ -292,19 +289,19 @@ module.exports = {
                                     
                                     const buttons = client.livePollManager.createVoteButtons(pollId, pollResults.options);
                                     
-                                    await interaction.editReply({
+                                    // Update the original message directly
+                                    await interaction.update({
                                         embeds: [updatedEmbed],
                                         components: buttons
                                     });
                                     console.log(`[DEBUG] Vote processed and display updated for poll ${pollId}`);
                                 } else {
-                                    await interaction.followUp({
-                                        content: 'Vote recorded but unable to update display.',
-                                        ephemeral: true
-                                    });
+                                    // Simple acknowledgment 
+                                    await interaction.deferUpdate();
                                 }
                             } else {
-                                await interaction.followUp({
+                                // Reply with error
+                                await interaction.reply({
                                     content: result.message,
                                     ephemeral: true
                                 });
@@ -312,12 +309,14 @@ module.exports = {
                         } catch (voteError) {
                             console.error('Error processing vote:', voteError);
                             try {
-                                await interaction.followUp({
-                                    content: 'There was an error processing your vote. Please try again.',
-                                    ephemeral: true
-                                });
-                            } catch (followUpError) {
-                                console.error('Failed to send follow-up message:', followUpError);
+                                if (!interaction.replied && !interaction.deferred) {
+                                    await interaction.reply({
+                                        content: 'There was an error processing your vote. Please try again.',
+                                        ephemeral: true
+                                    });
+                                }
+                            } catch (replyError) {
+                                console.error('Failed to reply to interaction:', replyError);
                             }
                         }
                         return; // Exit early for vote buttons
@@ -371,69 +370,7 @@ module.exports = {
                             null,
                             'Add question button'
                         );
-                    } else if (action === 'vote') {
-                        // Handle live poll voting
-                        const [, pollId, optionIndex] = customId.split('_');
-                        console.log(`[LIVE POLL] Vote button pressed for poll: ${pollId}, option: ${optionIndex}`);
-                        
-                        await safeExecute(
-                            async () => {
-                                // Defer the interaction to prevent timeout
-                                await interaction.deferReply({ ephemeral: true });
-                                
-                                // Vote on the poll
-                                const voteResult = await client.livePollManager.voteOnPoll({
-                                    pollId: pollId,
-                                    userId: interaction.user.id,
-                                    optionIndex: parseInt(optionIndex)
-                                });
-                                
-                                if (voteResult.success) {
-                                    // Get updated poll results
-                                    const pollResults = await client.livePollManager.getPollResults(pollId);
-                                    
-                                    if (pollResults) {
-                                        // Update the original message with new results
-                                        const updatedEmbed = client.livePollManager.createPollEmbed(
-                                            pollResults.poll, 
-                                            pollResults.options, 
-                                            pollResults.totalVotes, 
-                                            false
-                                        );
-                                        
-                                        const buttons = client.livePollManager.createVoteButtons(pollId, pollResults.options);
-                                        
-                                        try {
-                                            await interaction.message.edit({
-                                                embeds: [updatedEmbed],
-                                                components: buttons
-                                            });
-                                        } catch (editError) {
-                                            console.error('Error updating poll message:', editError);
-                                        }
-                                        
-                                        // Confirm vote to user
-                                        await interaction.followUp({
-                                            content: `✅ ${voteResult.message}`,
-                                            ephemeral: true
-                                        });
-                                    } else {
-                                        await interaction.followUp({
-                                            content: '❌ Error retrieving poll results.',
-                                            ephemeral: true
-                                        });
-                                    }
-                                } else {
-                                    await interaction.followUp({
-                                        content: `❌ ${voteResult.message}`,
-                                        ephemeral: true
-                                    });
-                                }
-                            },
-                            [],
-                            null,
-                            'Live poll vote button'
-                        );
+
                     } else if (action === 'emoji_prev_page' || action === 'emoji_next_page') {
                         // These are handled elsewhere, just acknowledge the interaction
                         try {
