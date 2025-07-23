@@ -1,1 +1,126 @@
-{}
+{
+  "1378314417921462284": {
+    "messageId": "1378314417921462284",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748686224918,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": [
+      "1310654136290639894"
+    ]
+  },
+  "1378317148849569853": {
+    "messageId": "1378317148849569853",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748686827987,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": [
+      "1310654136290639894"
+    ]
+  },
+  "1378322565407178772": {
+    "messageId": "1378322565407178772",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748688125337,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": []
+  },
+  "1378322746278416465": {
+    "messageId": "1378322746278416465",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748688180467,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": []
+  },
+  "1378323267324084328": {
+    "messageId": "1378323267324084328",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748688298792,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": []
+  },
+  "1378323858666291311": {
+    "messageId": "1378323858666291311",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748688439694,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": []
+  },
+  "1378325616541040691": {
+    "messageId": "1378325616541040691",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748688852795,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": []
+  },
+  "1378325869189271553": {
+    "messageId": "1378325869189271553",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748688913020,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": []
+  },
+  "1378326722449248347": {
+    "messageId": "1378326722449248347",
+    "channelId": "1377328055013474374",
+    "prize": "tesr",
+    "winnerCount": 1,
+    "endTime": 1748689116460,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": []
+  },
+  "1378327266534359081": {
+    "messageId": "1378327266534359081",
+    "channelId": "1377328055013474374",
+    "prize": "test",
+    "winnerCount": 1,
+    "endTime": 1748689252151,
+    "ended": true,
+    "description": null,
+    "thumbnail": null,
+    "requiredRoleId": null,
+    "participants": []
+  }
+}

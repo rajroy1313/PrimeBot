@@ -21,13 +21,11 @@ module.exports = {
             const messageId = reaction.message.id;
             
             // Check if giveawayManager exists
-            if (!client || !client.giveawayManager) {
+            if (!client.giveawayManager) {
                 console.error('[GIVEAWAY] GiveawayManager not found on client');
-                if (client) {
-                    console.error('[GIVEAWAY] Available client properties:', Object.keys(client));
-                } else {
-                    console.error('[GIVEAWAY] Client is null/undefined');
-                }
+                console.error('[GIVEAWAY] Available client properties:', Object.keys(client));
+                console.error('[GIVEAWAY] Client type:', typeof client);
+                console.error('[GIVEAWAY] Client constructor:', client.constructor.name);
                 return;
             }
             
