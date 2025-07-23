@@ -15,12 +15,14 @@ A sophisticated Discord bot engineered for advanced community engagement, featur
 ## Recent Changes
 
 ### July 23, 2025 - Live Poll System Implementation
-✓ Added live poll system with `$lpoll` command
+✓ Added live poll system with `/lpoll` slash commands
 ✓ Created PostgreSQL database schema for polls, options, and votes
 ✓ Implemented cross-server poll sharing with pass codes
 ✓ Added comprehensive poll management (create, join, results, end, list)
 ✓ Database integration with Drizzle ORM
 ✓ Interactive voting system with Discord buttons
+✓ Added prefix command versions (`$lpoll`) with full functionality
+✓ Integrated vote button handling in interaction events
 
 ## Project Architecture
 
@@ -34,12 +36,16 @@ A sophisticated Discord bot engineered for advanced community engagement, featur
 
 ### Command System
 - **Slash Commands**: Located in `commands/` directory
-- **Live Poll Command**: `commands/lpoll.js` with subcommands:
-  - `create`: Create new cross-server polls
-  - `join`: Join polls via ID or pass code
-  - `results`: View poll results
-  - `end`: End polls (creator only)
-  - `list`: View user's created polls
+- **Prefix Commands**: Handled in `events/messageCreate.js`
+- **Live Poll Commands**: Available as both slash and prefix commands
+  - **Slash**: `/lpoll create|join|results|end|list`
+  - **Prefix**: `$lpoll create|join|results|end|list`
+  - Subcommands:
+    - `create`: Create new cross-server polls
+    - `join`: Join polls via ID or pass code
+    - `results`: View poll results
+    - `end`: End polls (creator only)
+    - `list`: View user's created polls
 
 ### Utilities
 - **LivePollManager**: `utils/livePollManager.js`
@@ -61,7 +67,8 @@ A sophisticated Discord bot engineered for advanced community engagement, featur
 - Comprehensive error handling and user feedback
 
 ## Next Steps
-→ Integrate live poll manager with main bot instance
-→ Add button interaction handlers for voting
-→ Test cross-server functionality
-→ Deploy and validate poll system
+✓ Integrate live poll manager with main bot instance
+✓ Add button interaction handlers for voting
+✓ Add prefix command support
+→ Test cross-server functionality thoroughly
+→ Validate poll expiration and cleanup systems

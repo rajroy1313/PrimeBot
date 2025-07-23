@@ -1121,6 +1121,55 @@ module.exports = {
                     }
                     break;
 
+                case "lpoll":
+                case "livepoll":
+                    try {
+                        // Handle live poll prefix commands
+                        if (args.length < 1) {
+                            const usageEmbed = new EmbedBuilder()
+                                .setColor(config.colors.primary)
+                                .setTitle("Live Poll Commands")
+                                .setDescription("Cross-server polls with pass code sharing")
+                                .addFields(
+                                    { name: `${prefix}lpoll create <question> | <option1> | <option2> | ...`, value: "Create a new live poll" },
+                                    { name: `${prefix}lpoll create <question> | <options> | [duration]`, value: "Create poll with duration (e.g., 2h, 1d)" },
+                                    { name: `${prefix}lpoll join <poll_id_or_passcode>`, value: "Join an existing poll" },
+                                    { name: `${prefix}lpoll results <poll_id_or_passcode>`, value: "View poll results" },
+                                    { name: `${prefix}lpoll end <poll_id>`, value: "End your poll (creator only)" },
+                                    { name: `${prefix}lpoll list`, value: "List your created polls" }
+                                )
+                                .setFooter({ text: `Version: ${config.version}` });
+                            return message.reply({ embeds: [usageEmbed] });
+                        }
+
+                        const subcommand = args[0].toLowerCase();
+                        const subArgs = args.slice(1);
+
+                        switch (subcommand) {
+                            case "create":
+                                await handleLivePollCreate(message, subArgs, prefix, client);
+                                break;
+                            case "join":
+                                await handleLivePollJoin(message, subArgs, prefix, client);
+                                break;
+                            case "results":
+                                await handleLivePollResults(message, subArgs, prefix, client);
+                                break;
+                            case "end":
+                                await handleLivePollEnd(message, subArgs, prefix, client);
+                                break;
+                            case "list":
+                                await handleLivePollList(message, subArgs, prefix, client);
+                                break;
+                            default:
+                                return message.reply(`Unknown subcommand. Use \`${prefix}lpoll\` to see available commands.`);
+                        }
+                    } catch (error) {
+                        console.error("Error in live poll command:", error);
+                        return message.reply("There was an error processing your live poll command. Please try again later.");
+                    }
+                    break;
+
                 case "birthday":
                 case "bday":
                     try {
@@ -3719,4 +3768,233 @@ function getCategoryPermissionLevel(category) {
         'admin': 'Administrators'
     };
     return permissions[category] || 'Unknown';
+}
+
+// Live Poll Handler Functions
+
+/**
+ * Handle live poll create command
+ */
+async function handleLivePollCreate(message, args, prefix, client) {
+    const ms = require('ms');
+    
+    if (args.length < 1) {
+        return message.reply(`**Correct Usage:** \`${prefix}lpoll create <question> | <option1> | <option2> | ...\``);
+    }
+
+    // Join all arguments and split by pipe
+    const fullContent = args.join(' ');
+    const parts = fullContent.split('|').map(part => part.trim());
+
+    if (parts.length < 3) {
+        return message.reply('Please provide a question and at least 2 options separated by | characters.');
+    }
+
+    const question = parts[0];
+    let options = parts.slice(1);
+    let duration = null;
+
+    // Check if last part is a duration
+    const lastPart = options[options.length - 1];
+    const parsedDuration = ms(lastPart);
+    if (parsedDuration && parsedDuration > 60000) { // At least 1 minute
+        duration = parsedDuration;
+        options = options.slice(0, -1); // Remove duration from options
+    }
+
+    if (options.length < 2) {
+        return message.reply('Please provide at least 2 options after specifying duration.');
+    }
+
+    if (options.length > 10) {
+        return message.reply('You can have a maximum of 10 options.');
+    }
+
+    try {
+        const result = await client.livePollManager.createLivePoll({
+            question,
+            options,
+            creatorId: message.author.id,
+            duration,
+            allowMultipleVotes: false
+        });
+
+        const embed = new EmbedBuilder()
+            .setColor(config.colors.success)
+            .setTitle('📊 Live Poll Created!')
+            .setDescription(`**${question}**`)
+            .addFields(
+                { name: '🆔 Poll ID', value: `\`${result.pollId}\``, inline: true },
+                { name: '🔑 Pass Code', value: `\`${result.passCode}\``, inline: true },
+                { name: '🔗 Share Info', value: 'Share the **Poll ID** or **Pass Code** to let others vote!', inline: false },
+                { name: '📝 Options', value: options.map((opt, i) => `**${i + 1}.** ${opt}`).join('\n'), inline: false }
+            )
+            .setFooter({ 
+                text: `Created by ${message.author.tag} • Version ${config.version}`, 
+                iconURL: message.author.displayAvatarURL({ dynamic: true }) 
+            })
+            .setTimestamp();
+
+        if (duration) {
+            embed.addFields({
+                name: '⏰ Expires',
+                value: `<t:${Math.floor((Date.now() + duration) / 1000)}:R>`,
+                inline: true
+            });
+        } else {
+            embed.addFields({
+                name: '⏰ Duration',
+                value: 'Permanent (until manually ended)',
+                inline: true
+            });
+        }
+
+        await message.reply({ embeds: [embed] });
+    } catch (error) {
+        console.error('Error creating live poll:', error);
+        return message.reply('There was an error creating the live poll. Please try again later.');
+    }
+}
+
+/**
+ * Handle live poll join command
+ */
+async function handleLivePollJoin(message, args, prefix, client) {
+    if (args.length < 1) {
+        return message.reply(`**Correct Usage:** \`${prefix}lpoll join <poll_id_or_passcode>\``);
+    }
+
+    const identifier = args[0];
+
+    try {
+        const pollData = await client.livePollManager.getPoll(identifier);
+
+        if (!pollData) {
+            return message.reply('Poll not found. Please check the Poll ID or Pass Code.');
+        }
+
+        if (!pollData.isActive) {
+            return message.reply('This poll has ended.');
+        }
+
+        if (pollData.expiresAt && new Date() > new Date(pollData.expiresAt)) {
+            return message.reply('This poll has expired.');
+        }
+
+        const embed = client.livePollManager.createPollEmbed(pollData, pollData.options);
+        const buttons = client.livePollManager.createVoteButtons(pollData.pollId, pollData.options);
+
+        await message.reply({
+            embeds: [embed],
+            components: buttons
+        });
+    } catch (error) {
+        console.error('Error joining live poll:', error);
+        return message.reply('There was an error accessing the poll. Please try again later.');
+    }
+}
+
+/**
+ * Handle live poll results command
+ */
+async function handleLivePollResults(message, args, prefix, client) {
+    if (args.length < 1) {
+        return message.reply(`**Correct Usage:** \`${prefix}lpoll results <poll_id_or_passcode>\``);
+    }
+
+    const identifier = args[0];
+
+    try {
+        const results = await client.livePollManager.getPollResults(identifier);
+
+        if (!results) {
+            return message.reply('Poll not found. Please check the Poll ID or Pass Code.');
+        }
+
+        const embed = client.livePollManager.createPollEmbed(
+            results.poll, 
+            results.options, 
+            results.totalVotes, 
+            true
+        );
+
+        await message.reply({ embeds: [embed] });
+    } catch (error) {
+        console.error('Error getting live poll results:', error);
+        return message.reply('There was an error retrieving poll results. Please try again later.');
+    }
+}
+
+/**
+ * Handle live poll end command
+ */
+async function handleLivePollEnd(message, args, prefix, client) {
+    if (args.length < 1) {
+        return message.reply(`**Correct Usage:** \`${prefix}lpoll end <poll_id>\``);
+    }
+
+    const pollId = args[0];
+
+    try {
+        const result = await client.livePollManager.endPoll(pollId, message.author.id);
+
+        if (!result.success) {
+            return message.reply(result.message);
+        }
+
+        const embed = new EmbedBuilder()
+            .setColor(config.colors.success)
+            .setTitle('📊 Poll Ended')
+            .setDescription(`Poll \`${pollId}\` has been successfully ended.`)
+            .setFooter({ 
+                text: `Ended by ${message.author.tag} • Version ${config.version}`, 
+                iconURL: message.author.displayAvatarURL({ dynamic: true }) 
+            })
+            .setTimestamp();
+
+        await message.reply({ embeds: [embed] });
+    } catch (error) {
+        console.error('Error ending live poll:', error);
+        return message.reply('There was an error ending the poll. Please try again later.');
+    }
+}
+
+/**
+ * Handle live poll list command
+ */
+async function handleLivePollList(message, args, prefix, client) {
+    try {
+        const polls = await client.livePollManager.getUserPolls(message.author.id);
+
+        if (polls.length === 0) {
+            return message.reply('You haven\'t created any live polls yet.');
+        }
+
+        const embed = new EmbedBuilder()
+            .setColor(config.colors.primary)
+            .setTitle('📊 Your Live Polls')
+            .setDescription('Here are your created polls:')
+            .setFooter({ 
+                text: `Requested by ${message.author.tag} • Version ${config.version}`, 
+                iconURL: message.author.displayAvatarURL({ dynamic: true }) 
+            })
+            .setTimestamp();
+
+        const pollsList = polls.map(poll => {
+            const status = poll.isActive ? '🟢 Active' : '🔴 Ended';
+            const expires = poll.expiresAt ? `<t:${Math.floor(new Date(poll.expiresAt).getTime() / 1000)}:R>` : 'Permanent';
+            return `**ID:** \`${poll.pollId}\` | **Code:** \`${poll.passCode}\`\n${status} • Expires: ${expires}\n**Q:** ${poll.question.substring(0, 100)}${poll.question.length > 100 ? '...' : ''}`;
+        }).join('\n\n');
+
+        embed.addFields({
+            name: 'Polls',
+            value: pollsList,
+            inline: false
+        });
+
+        await message.reply({ embeds: [embed] });
+    } catch (error) {
+        console.error('Error listing live polls:', error);
+        return message.reply('There was an error retrieving your polls. Please try again later.');
+    }
 }
