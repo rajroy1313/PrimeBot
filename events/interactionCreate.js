@@ -266,20 +266,36 @@ module.exports = {
                     // Handle voting buttons first (they use underscores)
                     if (customId.startsWith('vote_')) {
                         console.log(`[DEBUG] Processing vote button: ${customId}`);
+                        console.log(`[DEBUG] LivePollManager available:`, !!client.livePollManager);
+                        
                         const parts = customId.split('_');
                         const pollId = parts[1];
                         const optionIndex = parseInt(parts[2]);
+                        
+                        console.log(`[DEBUG] Poll ID: ${pollId}, Option: ${optionIndex}`);
+
+                        if (!client.livePollManager) {
+                            console.error('[ERROR] LivePollManager not available!');
+                            await interaction.reply({
+                                content: 'Poll system is not available. Please try again later.',
+                                ephemeral: true
+                            });
+                            return;
+                        }
 
                         try {
+                            console.log(`[DEBUG] Calling vote method...`);
                             const result = await client.livePollManager.vote(pollId, interaction.user.id, optionIndex);
                             console.log(`[DEBUG] Vote result:`, result);
                             
-                            if (result.success) {
+                            if (result && result.success) {
+                                console.log(`[DEBUG] Vote successful, getting poll results...`);
                                 // Get updated poll data
                                 const pollResults = await client.livePollManager.getPollResults(pollId);
                                 console.log(`[DEBUG] Poll results:`, pollResults ? 'Found' : 'Not found');
                                 
                                 if (pollResults) {
+                                    console.log(`[DEBUG] Creating updated embed...`);
                                     const updatedEmbed = client.livePollManager.createPollEmbed(
                                         pollResults.poll, 
                                         pollResults.options, 
@@ -289,6 +305,7 @@ module.exports = {
                                     
                                     const buttons = client.livePollManager.createVoteButtons(pollId, pollResults.options);
                                     
+                                    console.log(`[DEBUG] Updating interaction...`);
                                     // Update the original message directly
                                     await interaction.update({
                                         embeds: [updatedEmbed],
@@ -296,13 +313,15 @@ module.exports = {
                                     });
                                     console.log(`[DEBUG] Vote processed and display updated for poll ${pollId}`);
                                 } else {
+                                    console.log(`[DEBUG] No poll results, deferring update...`);
                                     // Simple acknowledgment 
                                     await interaction.deferUpdate();
                                 }
                             } else {
+                                console.log(`[DEBUG] Vote failed:`, result ? result.message : 'Unknown error');
                                 // Reply with error
                                 await interaction.reply({
-                                    content: result.message,
+                                    content: result ? result.message : 'Failed to record vote',
                                     ephemeral: true
                                 });
                             }
