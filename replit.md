@@ -23,6 +23,8 @@ A sophisticated Discord bot engineered for advanced community engagement, featur
 ✓ Interactive voting system with Discord buttons
 ✓ Added prefix command versions (`$lpoll`) with full functionality
 ✓ Integrated vote button handling in interaction events
+✓ Fixed voting button functionality by removing duplicate handlers
+✓ Hidden Poll ID and Pass Code from voting interface for cleaner UX
 
 ## Project Architecture
 
