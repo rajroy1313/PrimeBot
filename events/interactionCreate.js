@@ -602,6 +602,51 @@ module.exports = {
                             embeds: [cancelEmbed],
                             components: []
                         });
+                    } else if (interaction.customId.startsWith('vote_')) {
+                        // Handle live poll voting
+                        const parts = interaction.customId.split('_');
+                        const pollId = parts[1];
+                        const optionIndex = parseInt(parts[2]);
+
+                        try {
+                            const result = await client.livePollManager.vote(pollId, interaction.user.id, optionIndex);
+                            
+                            if (result.success) {
+                                // Get updated poll data
+                                const pollResults = await client.livePollManager.getPollResults(pollId);
+                                if (pollResults) {
+                                    const updatedEmbed = client.livePollManager.createPollEmbed(
+                                        pollResults.poll, 
+                                        pollResults.options, 
+                                        pollResults.totalVotes, 
+                                        true
+                                    );
+                                    
+                                    const buttons = client.livePollManager.createVoteButtons(pollId, pollResults.options);
+                                    
+                                    await interaction.update({
+                                        embeds: [updatedEmbed],
+                                        components: buttons
+                                    });
+                                } else {
+                                    await interaction.reply({
+                                        content: 'Vote recorded, but unable to update display.',
+                                        ephemeral: true
+                                    });
+                                }
+                            } else {
+                                await interaction.reply({
+                                    content: result.message,
+                                    ephemeral: true
+                                });
+                            }
+                        } catch (voteError) {
+                            console.error('Error processing vote:', voteError);
+                            await interaction.reply({
+                                content: 'There was an error processing your vote. Please try again.',
+                                ephemeral: true
+                            });
+                        }
                     } else {
                         // Unknown button action
                         console.warn(`Unknown button action: ${action}`);

@@ -263,8 +263,7 @@ class LivePollManager {
 
             embed.addFields(
                 { name: 'Options', value: optionsText, inline: false },
-                { name: 'Poll ID', value: `\`${poll.pollId}\``, inline: true },
-                { name: 'Pass Code', value: `\`${poll.passCode}\``, inline: true }
+                { name: 'Status', value: poll.isActive ? '🟢 Active' : '🔴 Ended', inline: true }
             );
         }
 

@@ -1131,12 +1131,12 @@ module.exports = {
                                 .setTitle("Live Poll Commands")
                                 .setDescription("Cross-server polls with pass code sharing")
                                 .addFields(
-                                    { name: `${prefix}lpoll create <question> | <option1> | <option2> | ...`, value: "Create a new live poll" },
+                                    { name: `${prefix}lpoll create <question> | <option1> | <option2> | ...`, value: "Create a new cross-server poll" },
                                     { name: `${prefix}lpoll create <question> | <options> | [duration]`, value: "Create poll with duration (e.g., 2h, 1d)" },
-                                    { name: `${prefix}lpoll join <poll_id_or_passcode>`, value: "Join an existing poll" },
-                                    { name: `${prefix}lpoll results <poll_id_or_passcode>`, value: "View poll results" },
+                                    { name: `${prefix}lpoll join <poll_id_or_passcode>`, value: "Join an existing poll to vote" },
+                                    { name: `${prefix}lpoll results <poll_id_or_passcode>`, value: "View live poll results" },
                                     { name: `${prefix}lpoll end <poll_id>`, value: "End your poll (creator only)" },
-                                    { name: `${prefix}lpoll list`, value: "List your created polls" }
+                                    { name: `${prefix}lpoll list`, value: "List your created polls with IDs/codes" }
                                 )
                                 .setFooter({ text: `Version: ${config.version}` });
                             return message.reply({ embeds: [usageEmbed] });
