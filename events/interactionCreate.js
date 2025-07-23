@@ -256,15 +256,10 @@ module.exports = {
                 // Get the full customId
                 const customId = interaction.customId;
                 
-                // Log detailed button information for debugging
-                console.log(`[DEBUG] Button pressed with customId: "${customId}"`);
-                
-                // Log button interaction
-                interactionDebugger.logInteraction(interaction, `Button (${customId})`);
-                
-                try {
-                    // Handle voting buttons first (they use underscores)
-                    if (customId.startsWith('vote_')) {
+                // Handle voting buttons IMMEDIATELY before any other processing
+                if (customId.startsWith('vote_')) {
+                    console.log(`[DEBUG] VOTE BUTTON DETECTED: ${customId}`);
+                    try {
                         console.log(`[DEBUG] Processing vote button: ${customId}`);
                         console.log(`[DEBUG] LivePollManager available:`, !!client.livePollManager);
                         
@@ -339,8 +334,29 @@ module.exports = {
                             }
                         }
                         return; // Exit early for vote buttons
+                    } catch (voteError) {
+                        console.error('Error processing vote button:', voteError);
+                        try {
+                            if (!interaction.replied && !interaction.deferred) {
+                                await interaction.reply({
+                                    content: 'There was an error processing your vote. Please try again.',
+                                    ephemeral: true
+                                });
+                            }
+                        } catch (replyError) {
+                            console.error('Failed to reply to vote interaction:', replyError);
+                        }
+                        return;
                     }
+                }
                 
+                // Log detailed button information for debugging (for non-vote buttons)
+                console.log(`[DEBUG] Button pressed with customId: "${customId}"`);
+                
+                // Log button interaction
+                interactionDebugger.logInteraction(interaction, `Button (${customId})`);
+                
+                try {
                     // For other buttons that use colons as separators, extract the parts
                     const [action, ...params] = customId.split(':');
                     // Route to the appropriate handler based on customId or action
