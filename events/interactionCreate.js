@@ -292,23 +292,32 @@ module.exports = {
                                     });
                                     console.log(`[DEBUG] Vote processed successfully for poll ${pollId}`);
                                 } else {
-                                    await interaction.reply({
-                                        content: 'Vote recorded, but unable to update display.',
+                                    // Use followUp for ephemeral messages
+                                    await interaction.deferUpdate();
+                                    await interaction.followUp({
+                                        content: 'Vote recorded successfully!',
                                         ephemeral: true
                                     });
                                 }
                             } else {
-                                await interaction.reply({
+                                // Use followUp for error messages
+                                await interaction.deferUpdate();
+                                await interaction.followUp({
                                     content: result.message,
                                     ephemeral: true
                                 });
                             }
                         } catch (voteError) {
                             console.error('Error processing vote:', voteError);
-                            await interaction.reply({
-                                content: 'There was an error processing your vote. Please try again.',
-                                ephemeral: true
-                            });
+                            try {
+                                await interaction.deferUpdate();
+                                await interaction.followUp({
+                                    content: 'There was an error processing your vote. Please try again.',
+                                    ephemeral: true
+                                });
+                            } catch (updateError) {
+                                console.error('Failed to update interaction:', updateError);
+                            }
                         }
                         return; // Exit early for vote buttons
                     }

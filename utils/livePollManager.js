@@ -361,13 +361,20 @@ class LivePollManager {
             const poll = await this.getPoll(pollId);
             if (!poll) return null;
 
-            // Get updated vote counts
-            const options = await db.select()
-                .from(livePollOptions)
-                .where(eq(livePollOptions.pollId, pollId))
-                .orderBy(livePollOptions.optionIndex);
+            let options;
+            
+            if (this.dbReady) {
+                // Get updated vote counts from database
+                options = await db.select()
+                    .from(livePollOptions)
+                    .where(eq(livePollOptions.pollId, pollId))
+                    .orderBy(livePollOptions.optionIndex);
+            } else {
+                // Use cached data
+                options = poll.options || [];
+            }
 
-            const totalVotes = options.reduce((sum, option) => sum + option.voteCount, 0);
+            const totalVotes = options.reduce((sum, option) => sum + (option.voteCount || 0), 0);
 
             return {
                 poll,
