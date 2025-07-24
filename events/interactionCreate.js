@@ -651,7 +651,7 @@ module.exports = {
                     }
                 } catch (buttonError) {
                     console.error(`[ERROR] Button interaction error for customId "${interaction.customId}":`, buttonError);
-                    interactionDebugger.debugInteractionError(interaction, buttonError, `Button (${action})`);
+                    interactionDebugger.debugInteractionError(interaction, buttonError, `Button (${interaction.customId})`);
                     
                     // Try to provide feedback to the user if we haven't already replied
                     if (!interaction.replied && !interaction.deferred) {

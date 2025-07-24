@@ -66,7 +66,10 @@ class LivePollManager {
     // Initialize database connection and tables
     async initializeDatabaseConnection() {
         try {
-            if (dbInitialized) {
+            // First try to initialize database components
+            const initialized = await initializeDatabase();
+            
+            if (initialized) {
                 const { initializeGracefully } = require('../server/db.js');
                 this.dbReady = await initializeGracefully();
                 
