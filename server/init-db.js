@@ -2,22 +2,59 @@
 const mysql = require('mysql2/promise');
 const { db, testConnection } = require('./db.js');
 
+// Parse MySQL connection string if DB_HOST contains full URL
+function parseConnectionConfig() {
+  const dbHost = process.env.DB_HOST || '';
+  
+  // Check if DB_HOST is a full connection string
+  if (dbHost.includes('mysql://') || dbHost.includes('@')) {
+    try {
+      // Extract connection details from connection string
+      const cleanUrl = dbHost.replace('jdbc:mysql://', '').replace('mysql://', '');
+      const [credentials, hostAndDb] = cleanUrl.split('@');
+      const [user, password] = credentials.split(':');
+      const [hostPort, database] = hostAndDb.split('/');
+      const [host, port] = hostPort.split(':');
+      
+      return {
+        host: host || 'localhost',
+        port: parseInt(port) || 3306,
+        user: decodeURIComponent(user) || 'root',
+        password: decodeURIComponent(password) || '',
+        database: database || 'discord_bot',
+      };
+    } catch (error) {
+      console.warn('Failed to parse connection string, using individual env vars:', error.message);
+    }
+  }
+  
+  // Fallback to individual environment variables
+  return {
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT) || 3306,
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'discord_bot',
+  };
+}
+
 async function createDatabase() {
   try {
     console.log('🔄 Creating MySQL database if it doesn\'t exist...');
     
+    const config = parseConnectionConfig();
+    
     // Connect to MySQL server without specifying database
     const connection = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 3306,
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
+      host: config.host,
+      port: config.port,
+      user: config.user,
+      password: config.password,
     });
 
     // Create database if it doesn't exist
-    const dbName = process.env.DB_NAME || 'discord_bot';
-    await connection.execute(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
-    console.log(`✅ Database '${dbName}' created or already exists`);
+    await connection.execute(`CREATE DATABASE IF NOT EXISTS \`${config.database}\``);
+    console.log(`✅ Database '${config.database}' created or already exists`);
     
     await connection.end();
   } catch (error) {
@@ -37,12 +74,13 @@ async function initializeTables() {
     }
 
     // Create tables using raw SQL for better control
+    const config = parseConnectionConfig();
     const connection = await mysql.createConnection({
-      host: process.env.DB_HOST || 'localhost',
-      port: process.env.DB_PORT || 3306,
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'discord_bot',
+      host: config.host,
+      port: config.port,
+      user: config.user,
+      password: config.password,
+      database: config.database,
     });
 
     // Create live_polls table

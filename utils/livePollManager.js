@@ -14,8 +14,12 @@ async function initializeDatabase() {
         // Try to import database components
         require('dotenv').config();
         
-        if (!process.env.DATABASE_URL) {
-            console.log('⚠️ DATABASE_URL not found, using fallback mode');
+        // Check for MySQL database configuration
+        const hasMySQL = process.env.DB_HOST || process.env.DB_USER || process.env.DB_NAME;
+        const hasPostgreSQL = process.env.DATABASE_URL;
+        
+        if (!hasMySQL && !hasPostgreSQL) {
+            console.log('⚠️ No database configuration found, using fallback mode');
             return false;
         }
         
