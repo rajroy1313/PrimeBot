@@ -1,17 +1,57 @@
-const { Pool, neonConfig } = require('@neondatabase/serverless');
-const { drizzle } = require('drizzle-orm/neon-serverless');
-const ws = require("ws");
+const mysql = require('mysql2/promise');
+const { drizzle } = require('drizzle-orm/mysql2');
 const schema = require("../shared/schema.js");
 
-neonConfig.webSocketConstructor = ws;
+// MySQL connection configuration
+const dbConfig = {
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 3306,
+  user: process.env.DB_USER || 'root',
+  password: process.env.DB_PASSWORD || '',
+  database: process.env.DB_NAME || 'discord_bot',
+  connectionLimit: 10,
+  acquireTimeout: 60000,
+  timeout: 60000,
+};
 
-if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
-  );
+// Create connection pool
+const pool = mysql.createPool(dbConfig);
+
+// Initialize Drizzle with MySQL
+const db = drizzle(pool, { schema, mode: 'default' });
+
+// Test connection function
+async function testConnection() {
+  try {
+    const connection = await pool.getConnection();
+    console.log('✅ MySQL database connected successfully');
+    connection.release();
+    return true;
+  } catch (error) {
+    console.error('❌ MySQL connection failed:', error.message);
+    console.log('💡 Please ensure MySQL is running and properly configured');
+    console.log('💡 You can start MySQL using: npm run mysql:start');
+    return false;
+  }
 }
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-const db = drizzle({ client: pool, schema });
+// Graceful database initialization
+async function initializeGracefully() {
+  try {
+    const isConnected = await testConnection();
+    if (isConnected) {
+      const { initializeDatabase } = require('./init-db.js');
+      await initializeDatabase();
+      return true;
+    } else {
+      console.log('⚠️  Bot will continue without MySQL database');
+      console.log('⚠️  Live poll features may not work until database is configured');
+      return false;
+    }
+  } catch (error) {
+    console.error('Database initialization error:', error.message);
+    return false;
+  }
+}
 
-module.exports = { pool, db };
+module.exports = { pool, db, testConnection, initializeGracefully };

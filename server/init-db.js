@@ -1,96 +1,136 @@
-const { db } = require('./db.js');
-const { livePolls, livePollOptions, livePollVotes } = require('../shared/schema.js');
-const { sql } = require('drizzle-orm');
+// MySQL Database initialization script
+const mysql = require('mysql2/promise');
+const { db, testConnection } = require('./db.js');
+
+async function createDatabase() {
+  try {
+    console.log('🔄 Creating MySQL database if it doesn\'t exist...');
+    
+    // Connect to MySQL server without specifying database
+    const connection = await mysql.createConnection({
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 3306,
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || '',
+    });
+
+    // Create database if it doesn't exist
+    const dbName = process.env.DB_NAME || 'discord_bot';
+    await connection.execute(`CREATE DATABASE IF NOT EXISTS \`${dbName}\``);
+    console.log(`✅ Database '${dbName}' created or already exists`);
+    
+    await connection.end();
+  } catch (error) {
+    console.error('❌ Database creation failed:', error);
+    throw error;
+  }
+}
+
+async function initializeTables() {
+  try {
+    console.log('🔄 Initializing live poll database tables...');
+    
+    // Test connection first
+    const isConnected = await testConnection();
+    if (!isConnected) {
+      throw new Error('Cannot connect to MySQL database');
+    }
+
+    // Create tables using raw SQL for better control
+    const connection = await mysql.createConnection({
+      host: process.env.DB_HOST || 'localhost',
+      port: process.env.DB_PORT || 3306,
+      user: process.env.DB_USER || 'root',
+      password: process.env.DB_PASSWORD || '',
+      database: process.env.DB_NAME || 'discord_bot',
+    });
+
+    // Create live_polls table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS live_polls (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        poll_id VARCHAR(100) NOT NULL UNIQUE,
+        pass_code VARCHAR(20) NOT NULL,
+        question TEXT NOT NULL,
+        creator_id VARCHAR(50) NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        allow_multiple_votes BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP NULL
+      )
+    `);
+
+    // Create live_poll_options table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS live_poll_options (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        poll_id VARCHAR(100) NOT NULL,
+        option_text TEXT NOT NULL,
+        option_index INT NOT NULL,
+        vote_count INT DEFAULT 0,
+        FOREIGN KEY (poll_id) REFERENCES live_polls(poll_id) ON DELETE CASCADE
+      )
+    `);
+
+    // Create live_poll_votes table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS live_poll_votes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        poll_id VARCHAR(100) NOT NULL,
+        user_id VARCHAR(50) NOT NULL,
+        option_index INT NOT NULL,
+        voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (poll_id) REFERENCES live_polls(poll_id) ON DELETE CASCADE
+      )
+    `);
+
+    // Create indexes for better performance
+    await connection.execute(`
+      CREATE INDEX IF NOT EXISTS idx_live_polls_poll_id ON live_polls(poll_id)
+    `);
+    await connection.execute(`
+      CREATE INDEX IF NOT EXISTS idx_live_polls_pass_code ON live_polls(pass_code)
+    `);
+    await connection.execute(`
+      CREATE INDEX IF NOT EXISTS idx_live_poll_options_poll_id ON live_poll_options(poll_id)
+    `);
+    await connection.execute(`
+      CREATE INDEX IF NOT EXISTS idx_live_poll_votes_poll_id ON live_poll_votes(poll_id)
+    `);
+    await connection.execute(`
+      CREATE INDEX IF NOT EXISTS idx_live_poll_votes_user_id ON live_poll_votes(user_id)
+    `);
+
+    await connection.end();
+    console.log('✅ Live poll database tables initialized successfully');
+  } catch (error) {
+    console.error('❌ Database table initialization failed:', error);
+    throw error;
+  }
+}
 
 async function initializeDatabase() {
-    try {
-        console.log('🚀 Initializing database tables for live polls...');
-        
-        // Create live_polls table
-        await db.execute(sql`
-            CREATE TABLE IF NOT EXISTS live_polls (
-                id SERIAL PRIMARY KEY,
-                poll_id VARCHAR(100) NOT NULL UNIQUE,
-                pass_code VARCHAR(20) NOT NULL,
-                question TEXT NOT NULL,
-                creator_id VARCHAR(50) NOT NULL,
-                is_active BOOLEAN DEFAULT true,
-                allow_multiple_votes BOOLEAN DEFAULT false,
-                created_at TIMESTAMP DEFAULT NOW(),
-                expires_at TIMESTAMP
-            );
-        `);
-        
-        // Create live_poll_options table
-        await db.execute(sql`
-            CREATE TABLE IF NOT EXISTS live_poll_options (
-                id SERIAL PRIMARY KEY,
-                poll_id VARCHAR(100) NOT NULL,
-                option_text TEXT NOT NULL,
-                option_index INTEGER NOT NULL,
-                vote_count INTEGER DEFAULT 0,
-                FOREIGN KEY (poll_id) REFERENCES live_polls(poll_id) ON DELETE CASCADE
-            );
-        `);
-        
-        // Create live_poll_votes table
-        await db.execute(sql`
-            CREATE TABLE IF NOT EXISTS live_poll_votes (
-                id SERIAL PRIMARY KEY,
-                poll_id VARCHAR(100) NOT NULL,
-                user_id VARCHAR(50) NOT NULL,
-                option_index INTEGER NOT NULL,
-                voted_at TIMESTAMP DEFAULT NOW(),
-                FOREIGN KEY (poll_id) REFERENCES live_polls(poll_id) ON DELETE CASCADE
-            );
-        `);
-        
-        // Create indexes for better performance
-        await db.execute(sql`
-            CREATE INDEX IF NOT EXISTS idx_live_polls_poll_id ON live_polls(poll_id);
-        `);
-        await db.execute(sql`
-            CREATE INDEX IF NOT EXISTS idx_live_polls_pass_code ON live_polls(pass_code);
-        `);
-        await db.execute(sql`
-            CREATE INDEX IF NOT EXISTS idx_live_poll_options_poll_id ON live_poll_options(poll_id);
-        `);
-        await db.execute(sql`
-            CREATE INDEX IF NOT EXISTS idx_live_poll_votes_poll_id ON live_poll_votes(poll_id);
-        `);
-        await db.execute(sql`
-            CREATE INDEX IF NOT EXISTS idx_live_poll_votes_user_id ON live_poll_votes(user_id);
-        `);
-        
-        console.log('✅ Database tables initialized successfully!');
-        
-        // Test query to verify tables exist
-        const result = await db.execute(sql`
-            SELECT table_name 
-            FROM information_schema.tables 
-            WHERE table_schema = 'public' 
-            AND table_name LIKE '%poll%';
-        `);
-        
-        console.log('📊 Live poll tables found:', result.rows.map(r => r.table_name));
-        
-    } catch (error) {
-        console.error('❌ Error initializing database:', error);
-        throw error;
-    }
+  try {
+    await createDatabase();
+    await initializeTables();
+    console.log('🎉 MySQL database setup completed successfully!');
+  } catch (error) {
+    console.error('❌ Database initialization failed:', error);
+    throw error;
+  }
 }
 
-// Export the function and auto-run if called directly
-module.exports = { initializeDatabase };
-
+// Run initialization if this file is executed directly
 if (require.main === module) {
-    initializeDatabase()
-        .then(() => {
-            console.log('Database initialization complete!');
-            process.exit(0);
-        })
-        .catch((error) => {
-            console.error('Database initialization failed:', error);
-            process.exit(1);
-        });
+  initializeDatabase()
+    .then(() => {
+      console.log('Database initialization complete');
+      process.exit(0);
+    })
+    .catch((error) => {
+      console.error('Database initialization failed:', error);
+      process.exit(1);
+    });
 }
+
+module.exports = { initializeDatabase, createDatabase, initializeTables };

@@ -6,7 +6,8 @@ A sophisticated Discord bot engineered for advanced community engagement, featur
 ## Stack
 - Node.js backend
 - Discord.js library
-- PostgreSQL database with Drizzle ORM
+- MySQL database with Drizzle ORM
+- mysql2 driver for database connectivity
 - 28+ fully deployed slash and prefix commands
 - Advanced real-time server interaction mechanisms
 - Modular command architecture with extensive plugin support
@@ -14,9 +15,19 @@ A sophisticated Discord bot engineered for advanced community engagement, featur
 
 ## Recent Changes
 
+### July 24, 2025 - MySQL Database Migration
+✓ Migrated from PostgreSQL to MySQL database
+✓ Updated Drizzle ORM configuration for MySQL compatibility
+✓ Installed mysql2 driver for database connectivity
+✓ Updated database schema with MySQL-specific syntax
+✓ Added graceful database connection handling
+✓ Created MySQL initialization script
+✓ Added fallback mode for live poll system when database is unavailable
+✓ Updated environment configuration for MySQL credentials
+
 ### July 23, 2025 - Live Poll System Implementation
 ✓ Added live poll system with `/lpoll` slash commands
-✓ Created PostgreSQL database schema for polls, options, and votes
+✓ Created database schema for polls, options, and votes
 ✓ Implemented cross-server poll sharing with pass codes
 ✓ Added comprehensive poll management (create, join, results, end, list)
 ✓ Database integration with Drizzle ORM
@@ -29,12 +40,16 @@ A sophisticated Discord bot engineered for advanced community engagement, featur
 ## Project Architecture
 
 ### Database Layer
-- **PostgreSQL**: Main database for persistent data
+- **MySQL**: Main database for persistent data
+- **mysql2**: Database driver with Promise support
 - **Drizzle ORM**: Type-safe database operations
-- **Schema**: Located in `shared/schema.ts`
+- **Schema**: Located in `shared/schema.js`
   - `live_polls`: Poll metadata and settings
   - `live_poll_options`: Poll choices and vote counts
   - `live_poll_votes`: Individual vote records
+- **Configuration**: Environment variables for MySQL connection
+  - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
+- **Initialization**: Automated table creation via `server/init-db.js`
 
 ### Command System
 - **Slash Commands**: Located in `commands/` directory
@@ -68,9 +83,38 @@ A sophisticated Discord bot engineered for advanced community engagement, featur
 - Focus on functionality over technical details
 - Comprehensive error handling and user feedback
 
+## Database Setup Instructions
+
+### MySQL Configuration
+1. **Environment Setup**: Copy `.env.example` to `.env` and configure:
+   ```
+   DB_HOST=localhost
+   DB_PORT=3306
+   DB_USER=root
+   DB_PASSWORD=your_mysql_password
+   DB_NAME=discord_bot
+   ```
+
+2. **Database Initialization**: Run setup script:
+   ```bash
+   ./mysql-setup.sh
+   ```
+
+3. **Manual Setup**: Initialize database directly:
+   ```bash
+   node server/init-db.js
+   ```
+
+### Fallback Mode
+- Bot operates with memory-only storage when MySQL is unavailable
+- Live poll features gracefully degrade to temporary functionality
+- Database connection attempts are retried automatically
+
 ## Next Steps
 ✓ Integrate live poll manager with main bot instance
 ✓ Add button interaction handlers for voting
 ✓ Add prefix command support
-→ Test cross-server functionality thoroughly
+✓ Migrate database from PostgreSQL to MySQL
+→ Set up MySQL server in production environment
+→ Test cross-server functionality with MySQL backend
 → Validate poll expiration and cleanup systems

@@ -62,54 +62,23 @@ class LivePollManager {
     // Initialize database connection and tables
     async initializeDatabaseConnection() {
         try {
-            const dbAvailable = await initializeDatabase();
-            this.dbReady = dbAvailable;
-            
-            if (dbAvailable) {
-                console.log('🔄 Initializing live poll database tables...');
+            if (dbInitialized) {
+                const { initializeGracefully } = require('../server/db.js');
+                this.dbReady = await initializeGracefully();
                 
-                // Create tables using raw SQL to ensure they exist
-                await db.execute(sql`
-                    CREATE TABLE IF NOT EXISTS live_polls (
-                        id SERIAL PRIMARY KEY,
-                        poll_id VARCHAR(100) NOT NULL UNIQUE,
-                        pass_code VARCHAR(20) NOT NULL,
-                        question TEXT NOT NULL,
-                        creator_id VARCHAR(50) NOT NULL,
-                        is_active BOOLEAN DEFAULT true,
-                        allow_multiple_votes BOOLEAN DEFAULT false,
-                        created_at TIMESTAMP DEFAULT NOW(),
-                        expires_at TIMESTAMP
-                    );
-                `);
-                
-                await db.execute(sql`
-                    CREATE TABLE IF NOT EXISTS live_poll_options (
-                        id SERIAL PRIMARY KEY,
-                        poll_id VARCHAR(100) NOT NULL,
-                        option_text TEXT NOT NULL,
-                        option_index INTEGER NOT NULL,
-                        vote_count INTEGER DEFAULT 0
-                    );
-                `);
-                
-                await db.execute(sql`
-                    CREATE TABLE IF NOT EXISTS live_poll_votes (
-                        id SERIAL PRIMARY KEY,
-                        poll_id VARCHAR(100) NOT NULL,
-                        user_id VARCHAR(50) NOT NULL,
-                        option_index INTEGER NOT NULL,
-                        voted_at TIMESTAMP DEFAULT NOW()
-                    );
-                `);
-                
-                console.log('✅ Live poll database tables initialized successfully');
+                if (this.dbReady) {
+                    console.log('✅ Live poll database connection established');
+                } else {
+                    console.log('⚠️ Live polls will use fallback mode (memory only)');
+                }
             } else {
-                console.log('⚠️ Live poll system running in fallback mode (no database)');
+                this.dbReady = false;
+                console.log('⚠️ Database components not available - using fallback mode');
             }
         } catch (error) {
-            console.error('❌ Error initializing live poll database:', error);
+            console.error('❌ Database initialization error:', error);
             this.dbReady = false;
+            console.log('⚠️ Live polls will use fallback mode (memory only)');
         }
     }
 

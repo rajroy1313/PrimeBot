@@ -1,9 +1,9 @@
-const { pgTable, text, integer, timestamp, boolean, serial, varchar } = require('drizzle-orm/pg-core');
+const { mysqlTable, text, int, timestamp, boolean, varchar } = require('drizzle-orm/mysql-core');
 const { relations } = require('drizzle-orm');
 
 // Live polls table
-const livePolls = pgTable('live_polls', {
-  id: serial('id').primaryKey(),
+const livePolls = mysqlTable('live_polls', {
+  id: int('id').primaryKey().autoincrement(),
   pollId: varchar('poll_id', { length: 100 }).notNull().unique(),
   passCode: varchar('pass_code', { length: 20 }).notNull(),
   question: text('question').notNull(),
@@ -15,20 +15,20 @@ const livePolls = pgTable('live_polls', {
 });
 
 // Live poll options table
-const livePollOptions = pgTable('live_poll_options', {
-  id: serial('id').primaryKey(),
+const livePollOptions = mysqlTable('live_poll_options', {
+  id: int('id').primaryKey().autoincrement(),
   pollId: varchar('poll_id', { length: 100 }).notNull(),
   optionText: text('option_text').notNull(),
-  optionIndex: integer('option_index').notNull(),
-  voteCount: integer('vote_count').default(0),
+  optionIndex: int('option_index').notNull(),
+  voteCount: int('vote_count').default(0),
 });
 
 // Live poll votes table
-const livePollVotes = pgTable('live_poll_votes', {
-  id: serial('id').primaryKey(),
+const livePollVotes = mysqlTable('live_poll_votes', {
+  id: int('id').primaryKey().autoincrement(),
   pollId: varchar('poll_id', { length: 100 }).notNull(),
   userId: varchar('user_id', { length: 50 }).notNull(),
-  optionIndex: integer('option_index').notNull(),
+  optionIndex: int('option_index').notNull(),
   votedAt: timestamp('voted_at').defaultNow(),
 });
 
