@@ -181,9 +181,10 @@ class LivePollManager {
             if (this.dbReady) {
                 // Query database by poll ID or pass code  
                 let poll = null;
+                const dbInstance = db || global.livePollDb || this.drizzleDb;
                 
                 // First try by poll ID
-                const pollById = await db.select()
+                const pollById = await dbInstance.select()
                     .from(livePolls)
                     .where(eq(livePolls.pollId, identifier))
                     .limit(1);
@@ -192,7 +193,7 @@ class LivePollManager {
                     poll = pollById[0];
                 } else {
                     // If not found by poll ID, try by pass code
-                    const pollByCode = await db.select()
+                    const pollByCode = await dbInstance.select()
                         .from(livePolls)
                         .where(eq(livePolls.passCode, identifier))
                         .limit(1);
@@ -205,7 +206,7 @@ class LivePollManager {
                 if (!poll) return null;
 
                 // Get poll options
-                const options = await db.select()
+                const options = await dbInstance.select()
                     .from(livePollOptions)
                     .where(eq(livePollOptions.pollId, poll.pollId))
                     .orderBy(livePollOptions.optionIndex);
@@ -250,8 +251,8 @@ class LivePollManager {
 
             // Check if user has already voted (if multiple votes not allowed)
             if (!poll.allowMultipleVotes) {
-                if (this.dbReady && (db || global.livePollDb)) {
-                    const dbInstance = db || global.livePollDb;
+                if (this.dbReady && (db || global.livePollDb || this.drizzleDb)) {
+                    const dbInstance = db || global.livePollDb || this.drizzleDb;
                     const existingVote = await dbInstance.select()
                         .from(livePollVotes)
                         .where(and(
@@ -274,9 +275,9 @@ class LivePollManager {
                 }
             }
 
-            if (this.dbReady && (db || global.livePollDb)) {
+            if (this.dbReady && (db || global.livePollDb || this.drizzleDb)) {
                 // Record the vote in database
-                const dbInstance = db || global.livePollDb;
+                const dbInstance = db || global.livePollDb || this.drizzleDb;
                 await dbInstance.insert(livePollVotes).values({
                     pollId,
                     userId,
@@ -329,8 +330,8 @@ class LivePollManager {
             }
 
             // Update poll as inactive
-            if (this.dbReady && (db || global.livePollDb)) {
-                const dbInstance = db || global.livePollDb;
+            if (this.dbReady && (db || global.livePollDb || this.drizzleDb)) {
+                const dbInstance = db || global.livePollDb || this.drizzleDb;
                 await dbInstance.update(livePolls)
                     .set({ isActive: false })
                     .where(eq(livePolls.pollId, pollId));
@@ -356,9 +357,9 @@ class LivePollManager {
 
             let options;
             
-            if (this.dbReady && (db || global.livePollDb)) {
+            if (this.dbReady && (db || global.livePollDb || this.drizzleDb)) {
                 // Get updated vote counts from database
-                const dbInstance = db || global.livePollDb;
+                const dbInstance = db || global.livePollDb || this.drizzleDb;
                 options = await dbInstance.select()
                     .from(livePollOptions)
                     .where(eq(livePollOptions.pollId, pollId))
