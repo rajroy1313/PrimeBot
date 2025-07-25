@@ -317,8 +317,11 @@ module.exports = {
                                 }
                             } else {
                                 console.log(`[DEBUG] Vote failed:`, result ? result.message : 'Unknown error');
-                                // Reply with error
-                                await interaction.reply({
+                                // Use deferUpdate instead of reply to avoid acknowledgment conflicts
+                                await interaction.deferUpdate();
+                                
+                                // Send a follow-up message instead
+                                await interaction.followUp({
                                     content: result ? result.message : 'Failed to record vote',
                                     ephemeral: true
                                 });
@@ -327,13 +330,14 @@ module.exports = {
                             console.error('Error processing vote:', voteError);
                             try {
                                 if (!interaction.replied && !interaction.deferred) {
-                                    await interaction.reply({
+                                    await interaction.deferUpdate();
+                                    await interaction.followUp({
                                         content: 'There was an error processing your vote. Please try again.',
                                         ephemeral: true
                                     });
                                 }
                             } catch (replyError) {
-                                console.error('Failed to reply to interaction:', replyError);
+                                console.error('Failed to handle vote error:', replyError);
                             }
                         }
                         return; // Exit early for vote buttons
