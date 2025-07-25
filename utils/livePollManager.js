@@ -60,6 +60,8 @@ class LivePollManager {
     constructor() {
         this.pollCaches = new Map(); // Cache for active polls
         this.dbReady = false;
+        this.db = null;
+        this.drizzleDb = null;
         this.initializeDatabaseConnection();
     }
 
@@ -73,8 +75,17 @@ class LivePollManager {
                 const { initializeGracefully } = require('../server/db.js');
                 this.dbReady = await initializeGracefully();
                 
+                // Get the actual database instance
                 if (this.dbReady) {
+                    const dbModule = require('../server/db.js');
+                    this.db = dbModule.pool;
+                    this.drizzleDb = dbModule.db;
                     console.log('✅ Live poll database connection established');
+                    
+                    // Store database reference in global db variable for poll operations
+                    if (!global.livePollDb) {
+                        global.livePollDb = dbModule.db;
+                    }
                 } else {
                     console.log('⚠️ Live polls will use fallback mode (memory only)');
                 }
@@ -125,10 +136,11 @@ class LivePollManager {
                 voteCount: 0
             }));
 
-            if (this.dbReady) {
+            if (this.dbReady && (db || global.livePollDb)) {
                 // Insert poll into database
-                const [dbPoll] = await db.insert(livePolls).values(poll).returning();
-                await db.insert(livePollOptions).values(optionInserts);
+                const dbInstance = db || global.livePollDb;
+                const [dbPoll] = await dbInstance.insert(livePolls).values(poll).returning();
+                await dbInstance.insert(livePollOptions).values(optionInserts);
                 
                 // Cache the poll
                 this.pollCaches.set(pollId, {
@@ -238,8 +250,9 @@ class LivePollManager {
 
             // Check if user has already voted (if multiple votes not allowed)
             if (!poll.allowMultipleVotes) {
-                if (this.dbReady) {
-                    const existingVote = await db.select()
+                if (this.dbReady && (db || global.livePollDb)) {
+                    const dbInstance = db || global.livePollDb;
+                    const existingVote = await dbInstance.select()
                         .from(livePollVotes)
                         .where(and(
                             eq(livePollVotes.pollId, pollId),
@@ -261,16 +274,17 @@ class LivePollManager {
                 }
             }
 
-            if (this.dbReady) {
+            if (this.dbReady && (db || global.livePollDb)) {
                 // Record the vote in database
-                await db.insert(livePollVotes).values({
+                const dbInstance = db || global.livePollDb;
+                await dbInstance.insert(livePollVotes).values({
                     pollId,
                     userId,
                     optionIndex
                 });
 
                 // Update vote count
-                await db.update(livePollOptions)
+                await dbInstance.update(livePollOptions)
                     .set({ voteCount: sql`${livePollOptions.voteCount} + 1` })
                     .where(and(
                         eq(livePollOptions.pollId, pollId),
@@ -315,9 +329,12 @@ class LivePollManager {
             }
 
             // Update poll as inactive
-            await db.update(livePolls)
-                .set({ isActive: false })
-                .where(eq(livePolls.pollId, pollId));
+            if (this.dbReady && (db || global.livePollDb)) {
+                const dbInstance = db || global.livePollDb;
+                await dbInstance.update(livePolls)
+                    .set({ isActive: false })
+                    .where(eq(livePolls.pollId, pollId));
+            }
 
             // Update cache
             if (this.pollCaches.has(pollId)) {
@@ -339,9 +356,10 @@ class LivePollManager {
 
             let options;
             
-            if (this.dbReady) {
+            if (this.dbReady && (db || global.livePollDb)) {
                 // Get updated vote counts from database
-                options = await db.select()
+                const dbInstance = db || global.livePollDb;
+                options = await dbInstance.select()
                     .from(livePollOptions)
                     .where(eq(livePollOptions.pollId, pollId))
                     .orderBy(livePollOptions.optionIndex);

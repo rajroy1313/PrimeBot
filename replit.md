@@ -15,6 +15,15 @@ A sophisticated Discord bot engineered for advanced community engagement, featur
 
 ## Recent Changes
 
+### July 25, 2025 - Live Poll System Database Integration Fix
+✓ Fixed live poll database initialization timing issues
+✓ Updated LivePollManager to properly connect to MySQL database
+✓ Fixed all database operations to use correct database instances
+✓ Added global database reference for consistent poll operations
+✓ Poll results now display correctly after voting
+✓ Status emoji updates properly reflect current poll state
+✓ Voting system fully functional with persistent MySQL storage
+
 ### July 24, 2025 - MySQL Database Migration & Button Fixes
 ✓ Migrated from PostgreSQL to MySQL database
 ✓ Updated Drizzle ORM configuration for MySQL compatibility
