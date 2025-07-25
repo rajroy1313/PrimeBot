@@ -174,10 +174,10 @@
       "badges": []
     },
     "844900179006324738": {
-      "xp": 34,
-      "level": 0,
-      "messages": 2,
-      "lastMessage": 1753289760188,
+      "xp": 51,
+      "level": 1,
+      "messages": 3,
+      "lastMessage": 1753459128660,
       "badges": []
     },
     "1323525166935965707": {
@@ -193,21 +193,28 @@
       "messages": 1,
       "lastMessage": 1753352204829,
       "badges": []
+    },
+    "1277914245039783940": {
+      "xp": 25,
+      "level": 0,
+      "messages": 1,
+      "lastMessage": 1753459031734,
+      "badges": []
     }
   },
   "1256300598438138010": {
     "1249559935281533035": {
-      "xp": 57,
+      "xp": 118,
       "level": 1,
-      "messages": 3,
-      "lastMessage": 1753458713683,
+      "messages": 6,
+      "lastMessage": 1753459016228,
       "badges": []
     },
     "1374661548362174588": {
-      "xp": 41,
-      "level": 0,
-      "messages": 2,
-      "lastMessage": 1753458750372,
+      "xp": 76,
+      "level": 1,
+      "messages": 4,
+      "lastMessage": 1753459108570,
       "badges": []
     }
   }

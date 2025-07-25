@@ -139,12 +139,12 @@ class LivePollManager {
             if (this.dbReady && (db || global.livePollDb)) {
                 // Insert poll into database
                 const dbInstance = db || global.livePollDb;
-                const [dbPoll] = await dbInstance.insert(livePolls).values(poll).returning();
+                await dbInstance.insert(livePolls).values(poll);
                 await dbInstance.insert(livePollOptions).values(optionInserts);
                 
                 // Cache the poll
                 this.pollCaches.set(pollId, {
-                    ...dbPoll,
+                    ...poll,
                     options: optionInserts
                 });
             } else {
