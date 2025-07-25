@@ -281,6 +281,9 @@ module.exports = {
                             return;
                         }
 
+                        // Track if we've handled the interaction
+                        let interactionHandled = false;
+                        
                         try {
                             console.log(`[DEBUG] Calling vote method...`);
                             const result = await client.livePollManager.vote(pollId, interaction.user.id, optionIndex);
@@ -292,7 +295,7 @@ module.exports = {
                                 const pollResults = await client.livePollManager.getPollResults(pollId);
                                 console.log(`[DEBUG] Poll results:`, pollResults ? 'Found' : 'Not found');
                                 
-                                if (pollResults) {
+                                if (pollResults && !interactionHandled && !interaction.replied && !interaction.deferred) {
                                     console.log(`[DEBUG] Creating updated embed...`);
                                     const updatedEmbed = client.livePollManager.createPollEmbed(
                                         pollResults.poll, 
@@ -309,35 +312,38 @@ module.exports = {
                                         embeds: [updatedEmbed],
                                         components: buttons
                                     });
+                                    interactionHandled = true;
                                     console.log(`[DEBUG] Vote processed and display updated for poll ${pollId}`);
-                                } else {
+                                } else if (!interactionHandled && !interaction.replied && !interaction.deferred) {
                                     console.log(`[DEBUG] No poll results, deferring update...`);
                                     // Simple acknowledgment 
                                     await interaction.deferUpdate();
+                                    interactionHandled = true;
                                 }
                             } else {
                                 console.log(`[DEBUG] Vote failed:`, result ? result.message : 'Unknown error');
-                                // Use deferUpdate instead of reply to avoid acknowledgment conflicts
-                                await interaction.deferUpdate();
-                                
-                                // Send a follow-up message instead
-                                await interaction.followUp({
-                                    content: result ? result.message : 'Failed to record vote',
-                                    ephemeral: true
-                                });
+                                // Only handle if not already handled
+                                if (!interactionHandled && !interaction.replied && !interaction.deferred) {
+                                    await interaction.reply({
+                                        content: result ? result.message : 'Failed to record vote',
+                                        ephemeral: true
+                                    });
+                                    interactionHandled = true;
+                                }
                             }
                         } catch (voteError) {
                             console.error('Error processing vote:', voteError);
-                            try {
-                                if (!interaction.replied && !interaction.deferred) {
-                                    await interaction.deferUpdate();
-                                    await interaction.followUp({
+                            // Only handle if not already handled
+                            if (!interactionHandled && !interaction.replied && !interaction.deferred) {
+                                try {
+                                    await interaction.reply({
                                         content: 'There was an error processing your vote. Please try again.',
                                         ephemeral: true
                                     });
+                                    interactionHandled = true;
+                                } catch (replyError) {
+                                    console.error('Failed to handle vote error:', replyError);
                                 }
-                            } catch (replyError) {
-                                console.error('Failed to handle vote error:', replyError);
                             }
                         }
                         return; // Exit early for vote buttons
