@@ -263,6 +263,12 @@ module.exports = {
                 if (customId.startsWith('vote_')) {
                     console.log(`[DEBUG] VOTE BUTTON DETECTED: ${customId}`);
                     
+                    // IMMEDIATELY acknowledge the interaction to prevent timeout
+                    if (!interaction.replied && !interaction.deferred) {
+                        await interaction.deferUpdate();
+                        console.log(`[DEBUG] Interaction deferred immediately`);
+                    }
+                    
                     const parts = customId.split('_');
                     const pollId = parts[1];
                     const optionIndex = parseInt(parts[2]);
@@ -271,12 +277,10 @@ module.exports = {
 
                     if (!client.livePollManager) {
                         console.error('[ERROR] LivePollManager not available!');
-                        if (!interaction.replied && !interaction.deferred) {
-                            await interaction.reply({
-                                content: 'Poll system is not available. Please try again later.',
-                                ephemeral: true
-                            });
-                        }
+                        await interaction.followUp({
+                            content: 'Poll system is not available. Please try again later.',
+                            ephemeral: true
+                        });
                         return;
                     }
 
@@ -302,43 +306,31 @@ module.exports = {
                                 
                                 const buttons = client.livePollManager.createVoteButtons(pollId, pollResults.options);
                                 
-                                console.log(`[DEBUG] Updating interaction...`);
-                                // Update the original message directly
-                                if (!interaction.replied && !interaction.deferred) {
-                                    await interaction.update({
-                                        embeds: [updatedEmbed],
-                                        components: buttons
-                                    });
-                                    console.log(`[DEBUG] Vote processed and display updated for poll ${pollId}`);
-                                }
-                            } else {
-                                console.log(`[DEBUG] No poll results, deferring update...`);
-                                // Simple acknowledgment 
-                                if (!interaction.replied && !interaction.deferred) {
-                                    await interaction.deferUpdate();
-                                }
+                                console.log(`[DEBUG] Editing original response...`);
+                                // Edit the original response since we already deferred
+                                await interaction.editReply({
+                                    embeds: [updatedEmbed],
+                                    components: buttons
+                                });
+                                console.log(`[DEBUG] Vote processed and display updated for poll ${pollId}`);
                             }
                         } else {
                             console.log(`[DEBUG] Vote failed:`, result ? result.message : 'Unknown error');
-                            // Reply with error message
-                            if (!interaction.replied && !interaction.deferred) {
-                                await interaction.reply({
-                                    content: result ? result.message : 'Failed to record vote',
-                                    ephemeral: true
-                                });
-                            }
+                            // Send error message as follow-up
+                            await interaction.followUp({
+                                content: result ? result.message : 'Failed to record vote',
+                                ephemeral: true
+                            });
                         }
                     } catch (voteError) {
                         console.error('Error processing vote:', voteError);
-                        if (!interaction.replied && !interaction.deferred) {
-                            try {
-                                await interaction.reply({
-                                    content: 'There was an error processing your vote. Please try again.',
-                                    ephemeral: true
-                                });
-                            } catch (replyError) {
-                                console.error('Failed to handle vote error:', replyError);
-                            }
+                        try {
+                            await interaction.followUp({
+                                content: 'There was an error processing your vote. Please try again.',
+                                ephemeral: true
+                            });
+                        } catch (replyError) {
+                            console.error('Failed to handle vote error:', replyError);
                         }
                     }
                     return; // Exit early for vote buttons to prevent further processing
