@@ -213,6 +213,18 @@ class LivePollManager {
 
                 const pollData = { ...poll, options };
                 
+                // Check if poll has expired and update status
+                if (pollData.expiresAt && new Date() > new Date(pollData.expiresAt) && pollData.isActive) {
+                    console.log(`[DEBUG] Poll ${pollData.pollId} expired during retrieval, updating status...`);
+                    
+                    // Update database
+                    await dbInstance.update(livePolls)
+                        .set({ isActive: false })
+                        .where(eq(livePolls.pollId, pollData.pollId));
+                    
+                    pollData.isActive = false;
+                }
+                
                 // Cache the poll
                 this.pollCaches.set(poll.pollId, pollData);
                 
@@ -354,6 +366,28 @@ class LivePollManager {
         try {
             const poll = await this.getPoll(pollId);
             if (!poll) return null;
+
+            // Check if poll has expired and update status if needed
+            if (poll.expiresAt && new Date() > new Date(poll.expiresAt) && poll.isActive) {
+                console.log(`[DEBUG] Poll ${pollId} has expired, updating status...`);
+                
+                // Update poll status to inactive
+                if (this.dbReady && (db || global.livePollDb || this.drizzleDb)) {
+                    const dbInstance = db || global.livePollDb || this.drizzleDb;
+                    await dbInstance.update(livePolls)
+                        .set({ isActive: false })
+                        .where(eq(livePolls.pollId, pollId));
+                }
+
+                // Update cache
+                if (this.pollCaches.has(pollId)) {
+                    this.pollCaches.get(pollId).isActive = false;
+                }
+                
+                // Update the poll object
+                poll.isActive = false;
+                console.log(`[DEBUG] Poll ${pollId} status updated to inactive`);
+            }
 
             let options;
             
