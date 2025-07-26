@@ -497,6 +497,49 @@ class LivePollManager {
             return [];
         }
     }
+
+    // Check for expired polls and update their status
+    async checkExpiredPolls() {
+        try {
+            if (!this.dbReady || !(db || global.livePollDb || this.drizzleDb)) {
+                console.log('[LIVE POLLS] Database not ready, skipping expiration check');
+                return;
+            }
+
+            const dbInstance = db || global.livePollDb || this.drizzleDb;
+            const now = new Date();
+
+            // Find all active polls that have expired
+            const expiredPolls = await dbInstance.select()
+                .from(livePolls)
+                .where(and(
+                    eq(livePolls.isActive, true),
+                    sql`${livePolls.expiresAt} IS NOT NULL AND ${livePolls.expiresAt} <= ${now}`
+                ));
+
+            console.log(`[LIVE POLLS] Checking for expired polls. Found ${expiredPolls.length} expired polls.`);
+
+            if (expiredPolls.length > 0) {
+                // Update all expired polls to inactive
+                for (const poll of expiredPolls) {
+                    await dbInstance.update(livePolls)
+                        .set({ isActive: false })
+                        .where(eq(livePolls.pollId, poll.pollId));
+
+                    // Update cache if exists
+                    if (this.pollCaches.has(poll.pollId)) {
+                        this.pollCaches.get(poll.pollId).isActive = false;
+                    }
+
+                    console.log(`[LIVE POLLS] Expired poll ${poll.pollId}: "${poll.question}"`);
+                }
+
+                console.log(`[LIVE POLLS] Updated ${expiredPolls.length} expired polls to inactive status.`);
+            }
+        } catch (error) {
+            console.error('[LIVE POLLS] Error checking expired polls:', error);
+        }
+    }
 }
 
 module.exports = LivePollManager;

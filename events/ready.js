@@ -73,6 +73,14 @@ module.exports = {
         client.guilds.cache.forEach(guild => {
             logServerActivity(`- ${guild.name} (ID: ${guild.id}, Members: ${guild.memberCount})`);
         });
+
+        // Start live poll checking system
+        if (client.livePollManager) {
+            console.log('Poll checking system started.');
+            setInterval(() => {
+                client.livePollManager.checkExpiredPolls();
+            }, 60000); // Check every minute
+        }
     },
 };
 //
