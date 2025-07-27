@@ -15,6 +15,15 @@ A sophisticated Discord bot engineered for advanced community engagement, featur
 
 ## Recent Changes
 
+### July 27, 2025 - Live Poll Winning Celebration System
+✓ Added winning celebration messages for completed polls
+✓ Created dynamic winner announcement embeds with random celebration emojis
+✓ Implemented tie-breaker handling for multiple winners
+✓ Updated poll end commands to show winners automatically
+✓ Added celebration messages for expired polls with votes
+✓ Enhanced user experience with festive winner announcements
+✓ Fixed database schema issues with missing message_id and channel_id columns
+
 ### July 25, 2025 - Live Poll System Database Integration Fix
 ✓ Fixed live poll database initialization timing issues
 ✓ Updated LivePollManager to properly connect to MySQL database
