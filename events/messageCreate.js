@@ -3849,7 +3849,32 @@ async function handleLivePollCreate(message, args, prefix, client) {
             });
         }
 
+        // First send the creation confirmation
         await message.reply({ embeds: [embed] });
+
+        // Then send the voting interface in the same channel
+        const pollData = await client.livePollManager.getPoll(result.pollId);
+        if (pollData) {
+            const votingEmbed = client.livePollManager.createPollEmbed(
+                pollData, 
+                pollData.options, 
+                0, 
+                false
+            );
+            const buttons = client.livePollManager.createVoteButtons(result.pollId, pollData.options);
+
+            const votingMessage = await message.channel.send({
+                embeds: [votingEmbed],
+                components: buttons
+            });
+
+            // Store the message information for expiration updates
+            await client.livePollManager.updatePollMessage(
+                result.pollId, 
+                votingMessage.id, 
+                message.channel.id
+            );
+        }
     } catch (error) {
         console.error('Error creating live poll:', error);
         return message.reply('There was an error creating the live poll. Please try again later.');

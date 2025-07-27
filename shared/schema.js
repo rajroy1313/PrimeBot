@@ -12,6 +12,8 @@ const livePolls = mysqlTable('live_polls', {
   allowMultipleVotes: boolean('allow_multiple_votes').default(false),
   createdAt: timestamp('created_at').defaultNow(),
   expiresAt: timestamp('expires_at'),
+  messageId: varchar('message_id', { length: 50 }),
+  channelId: varchar('channel_id', { length: 50 }),
 });
 
 // Live poll options table

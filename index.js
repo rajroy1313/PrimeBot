@@ -81,7 +81,7 @@ client.serverSettingsManager = new ServerSettingsManager(client);
 
 // Initialize live poll manager
 const LivePollManager = require('./utils/livePollManager');
-client.livePollManager = new LivePollManager();
+client.livePollManager = new LivePollManager(client);
 
 // Load command files
 const commandsPath = path.join(__dirname, 'commands');

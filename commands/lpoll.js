@@ -193,10 +193,36 @@ module.exports = {
             });
         }
 
+        // First send the creation confirmation
         await interaction.reply({
             embeds: [embed],
             ephemeral: false
         });
+
+        // Then send the voting interface in the same channel
+        const pollData = await interaction.client.livePollManager.getPoll(result.pollId);
+        if (pollData) {
+            const votingEmbed = interaction.client.livePollManager.createPollEmbed(
+                pollData, 
+                pollData.options, 
+                0, 
+                false
+            );
+            const buttons = interaction.client.livePollManager.createVoteButtons(result.pollId, pollData.options);
+
+            const votingMessage = await interaction.followUp({
+                embeds: [votingEmbed],
+                components: buttons,
+                ephemeral: false
+            });
+
+            // Store the message information for expiration updates
+            await interaction.client.livePollManager.updatePollMessage(
+                result.pollId, 
+                votingMessage.id, 
+                interaction.channel.id
+            );
+        }
     },
 
     async handleJoin(interaction) {

@@ -57,7 +57,8 @@ if (!dbInitialized) {
 }
 
 class LivePollManager {
-    constructor() {
+    constructor(client = null) {
+        this.client = client;
         this.pollCaches = new Map(); // Cache for active polls
         this.dbReady = false;
         this.db = null;
@@ -160,6 +161,28 @@ class LivePollManager {
         } catch (error) {
             console.error('Error creating live poll:', error);
             throw error;
+        }
+    }
+
+    // Update poll with Discord message information
+    async updatePollMessage(pollId, messageId, channelId) {
+        try {
+            if (this.dbReady && (db || global.livePollDb)) {
+                const dbInstance = db || global.livePollDb;
+                await dbInstance.update(livePolls)
+                    .set({ messageId, channelId })
+                    .where(eq(livePolls.pollId, pollId));
+            }
+
+            // Update cache
+            if (this.pollCaches.has(pollId)) {
+                this.pollCaches.get(pollId).messageId = messageId;
+                this.pollCaches.get(pollId).channelId = channelId;
+            }
+
+            console.log(`[LIVE POLLS] Updated message info for poll ${pollId}: message ${messageId}, channel ${channelId}`);
+        } catch (error) {
+            console.error('Error updating poll message info:', error);
         }
     }
 
@@ -532,6 +555,38 @@ class LivePollManager {
                     }
 
                     console.log(`[LIVE POLLS] Expired poll ${poll.pollId}: "${poll.question}"`);
+
+                    // Update Discord message to show poll as ended
+                    try {
+                        if (poll.messageId && poll.channelId && this.client) {
+                            const channel = await this.client.channels.fetch(poll.channelId);
+                            if (channel) {
+                                const message = await channel.messages.fetch(poll.messageId);
+                                if (message) {
+                                    // Get updated poll results with expired status
+                                    const pollResults = await this.getPollResults(poll.pollId);
+                                    if (pollResults) {
+                                        const updatedEmbed = this.createPollEmbed(
+                                            pollResults.poll, 
+                                            pollResults.options, 
+                                            pollResults.totalVotes, 
+                                            true
+                                        );
+                                        
+                                        // Remove buttons for expired polls
+                                        await message.edit({
+                                            embeds: [updatedEmbed],
+                                            components: []
+                                        });
+                                        
+                                        console.log(`[LIVE POLLS] Updated Discord message for expired poll ${poll.pollId}`);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (updateError) {
+                        console.error(`[LIVE POLLS] Failed to update Discord message for poll ${poll.pollId}:`, updateError);
+                    }
                 }
 
                 console.log(`[LIVE POLLS] Updated ${expiredPolls.length} expired polls to inactive status.`);
