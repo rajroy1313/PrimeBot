@@ -1147,20 +1147,15 @@ module.exports = {
 
                         switch (subcommand) {
                             case "create":
-                                await handleLivePollCreate(message, subArgs, prefix, client);
-                                break;
+                                return await handleLivePollCreate(message, subArgs, prefix, client);
                             case "join":
-                                await handleLivePollJoin(message, subArgs, prefix, client);
-                                break;
+                                return await handleLivePollJoin(message, subArgs, prefix, client);
                             case "results":
-                                await handleLivePollResults(message, subArgs, prefix, client);
-                                break;
+                                return await handleLivePollResults(message, subArgs, prefix, client);
                             case "end":
-                                await handleLivePollEnd(message, subArgs, prefix, client);
-                                break;
+                                return await handleLivePollEnd(message, subArgs, prefix, client);
                             case "list":
-                                await handleLivePollList(message, subArgs, prefix, client);
-                                break;
+                                return await handleLivePollList(message, subArgs, prefix, client);
                             default:
                                 return message.reply(`Unknown subcommand. Use \`${prefix}lpoll\` to see available commands.`);
                         }
@@ -3849,10 +3844,10 @@ async function handleLivePollCreate(message, args, prefix, client) {
             });
         }
 
-        // First send the creation confirmation
-        await message.reply({ embeds: [embed] });
+        // Send the creation confirmation
+        const confirmationMessage = await message.reply({ embeds: [embed] });
 
-        // Then send the voting interface in the same channel
+        // Get poll data and create voting interface
         const pollData = await client.livePollManager.getPoll(result.pollId);
         if (pollData) {
             const votingEmbed = client.livePollManager.createPollEmbed(
@@ -3863,15 +3858,16 @@ async function handleLivePollCreate(message, args, prefix, client) {
             );
             const buttons = client.livePollManager.createVoteButtons(result.pollId, pollData.options);
 
-            const votingMessage = await message.channel.send({
-                embeds: [votingEmbed],
+            // Edit the confirmation message to include voting interface
+            await confirmationMessage.edit({
+                embeds: [embed, votingEmbed],
                 components: buttons
             });
 
             // Store the message information for expiration updates
             await client.livePollManager.updatePollMessage(
                 result.pollId, 
-                votingMessage.id, 
+                confirmationMessage.id, 
                 message.channel.id
             );
         }
