@@ -302,37 +302,20 @@ module.exports = {
             });
         }
 
-        // Show winning celebration if there are results
-        if (result.results && result.results.totalVotes > 0) {
-            const winningEmbed = interaction.client.livePollManager.createPollEmbed(
-                result.results.poll, 
-                result.results.options, 
-                result.results.totalVotes, 
-                true,
-                true // Show as winning announcement
-            );
-            
-            await interaction.reply({
-                embeds: [winningEmbed],
-                ephemeral: false
-            });
-        } else {
-            // Regular end message if no votes
-            const embed = new EmbedBuilder()
-                .setColor(config.colors.success)
-                .setTitle('📊 Poll Ended')
-                .setDescription(`Poll \`${pollId}\` has been successfully ended.\n\nNo votes were cast for this poll.`)
-                .setFooter({ 
-                    text: `Ended by ${interaction.user.tag} • Version ${config.version}`, 
-                    iconURL: interaction.user.displayAvatarURL({ dynamic: true }) 
-                })
-                .setTimestamp();
+        const embed = new EmbedBuilder()
+            .setColor(config.colors.success)
+            .setTitle('📊 Poll Ended')
+            .setDescription(`Poll \`${pollId}\` has been successfully ended.`)
+            .setFooter({ 
+                text: `Ended by ${interaction.user.tag} • Version ${config.version}`, 
+                iconURL: interaction.user.displayAvatarURL({ dynamic: true }) 
+            })
+            .setTimestamp();
 
-            await interaction.reply({
-                embeds: [embed],
-                ephemeral: false
-            });
-        }
+        await interaction.reply({
+            embeds: [embed],
+            ephemeral: false
+        });
     },
 
     async handleList(interaction) {
