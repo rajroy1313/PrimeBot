@@ -4,7 +4,7 @@ const config = require('../config');
 
 module.exports = {
     data: new SlashCommandBuilder()
-        .setName('lpoll')
+        .setName('lpoll_slash')
         .setDescription('Live poll system - create polls that can be shared across servers')
         .setDefaultMemberPermissions(PermissionFlagsBits.SendMessages)
         
