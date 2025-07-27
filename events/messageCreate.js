@@ -3844,9 +3844,6 @@ async function handleLivePollCreate(message, args, prefix, client) {
             });
         }
 
-        // Send the creation confirmation
-        const confirmationMessage = await message.reply({ embeds: [embed] });
-
         // Get poll data and create voting interface
         const pollData = await client.livePollManager.getPoll(result.pollId);
         if (pollData) {
@@ -3858,18 +3855,21 @@ async function handleLivePollCreate(message, args, prefix, client) {
             );
             const buttons = client.livePollManager.createVoteButtons(result.pollId, pollData.options);
 
-            // Edit the confirmation message to include voting interface
-            await confirmationMessage.edit({
-                embeds: [embed, votingEmbed],
+            // Send single message with voting interface
+            const votingMessage = await message.reply({
+                embeds: [votingEmbed],
                 components: buttons
             });
 
             // Store the message information for expiration updates
             await client.livePollManager.updatePollMessage(
                 result.pollId, 
-                confirmationMessage.id, 
+                votingMessage.id, 
                 message.channel.id
             );
+        } else {
+            // Fallback if poll data couldn't be retrieved
+            await message.reply({ embeds: [embed] });
         }
     } catch (error) {
         console.error('Error creating live poll:', error);
