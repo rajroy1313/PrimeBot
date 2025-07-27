@@ -395,7 +395,7 @@ module.exports = {
                             { name: '👥 Community', value: `\`${prefix}help community\`\nEngagement and social features`, inline: true },
                             { name: '⚙️ Administration', value: `\`${prefix}help admin\`\nAdvanced server configuration`, inline: true }
                         )
-                        .setFooter({ text: `Total Commands: 25+ • Version: ${config.version}` })
+                        .setFooter({ text: `Total Commands: 30+ • Version: ${config.version}` })
                         .setTimestamp();
 
                     return message.reply({ embeds: [categoryEmbed] });
@@ -409,7 +409,7 @@ module.exports = {
                         .setTitle('🗂️ Interactive Category Browser')
                         .setDescription('Use the dropdown menu below to explore different command categories. Each category contains specialized commands for different server needs.')
                         .addFields(
-                            { name: '📊 Quick Stats', value: `**Total Commands:** 25\n**Categories:** 6\n**Active Servers:** ${message.client.guilds.cache.size}`, inline: true },
+                            { name: '📊 Quick Stats', value: `**Total Commands:** 30+\n**Categories:** 6\n**Active Servers:** ${message.client.guilds.cache.size}`, inline: true },
                             { name: '🚀 Getting Started', value: 'Select a category from the menu to see available commands and their descriptions.', inline: true },
                             { name: '💡 Pro Tip', value: `Use \`${prefix}help\` for traditional browsing or \`${prefix}cat\` for this interactive experience.`, inline: true }
                         )
@@ -3581,6 +3581,9 @@ async function showPrefixCategoryHelp(message, category, prefix) {
                 .setTitle('👥 Community Features')
                 .setDescription('Engagement and social features:')
                 .addFields(
+                    { name: `${prefix}poll "[question]" option1 option2`, value: 'Create server polls with voting', inline: true },
+                    { name: `${prefix}lpoll create "[question]" option1 option2`, value: 'Create cross-server live polls', inline: true },
+                    { name: `${prefix}lpoll join [poll-id]`, value: 'Join existing live poll', inline: true },
                     { name: `${prefix}giveaway`, value: 'View giveaway commands', inline: true },
                     { name: `${prefix}gstart [time] [winners] [prize]`, value: 'Create exciting giveaways', inline: true },
                     { name: `${prefix}reroll [id]`, value: 'Reroll giveaway winners', inline: true },
@@ -3698,12 +3701,15 @@ async function showDetailedCategoryHelp(message, category, prefix) {
             break;
             
         case 'community':
-            commandCount = 5;
+            commandCount = 8;
             categoryEmbed = new EmbedBuilder()
                 .setColor(config.colors.success)
                 .setTitle('👥 Community Features - Detailed View')
                 .setDescription('Tools to build and engage your community with special events and social features.')
                 .addFields(
+                    { name: `${prefix}poll "[question]" option1 option2 [time]`, value: '**Create server polls with voting**\nEngage members with interactive polls and gather opinions', inline: false },
+                    { name: `${prefix}lpoll create "[question]" option1 option2`, value: '**Create cross-server live polls**\nShare polls across multiple servers with unique poll codes', inline: false },
+                    { name: `${prefix}lpoll join [poll-id/code]`, value: '**Join existing live polls**\nParticipate in polls from other servers using poll ID or code', inline: false },
                     { name: `${prefix}giveaway [prize] [duration]`, value: '**Create giveaways with role requirements**\nHost exciting giveaways with customizable entry requirements', inline: false },
                     { name: `${prefix}reroll [giveaway-id]`, value: '**Reroll giveaway winners**\nSelect new winners if original winners are unavailable', inline: false },
                     { name: `${prefix}birthday set [date]`, value: '**Birthday celebration system**\nTrack and celebrate member birthdays automatically', inline: false },

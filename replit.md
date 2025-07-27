@@ -30,7 +30,11 @@ Preferred communication style: Simple, everyday language.
 ✓ Updated poll end commands to show winners automatically
 ✓ Added celebration messages for expired polls with votes
 ✓ Enhanced user experience with festive winner announcements
-✓ Fixed database schema issues with missing message_id and channel_id columns
+✓ Fixed database schema issues with missing message_id and column_id columns
+✓ **UPDATED HELP SYSTEM**: Added lpoll commands to $help, $commands, and /help menus
+✓ **REFRESHED COMMAND COUNTS**: Updated from 25+ to 30+ commands across all help interfaces
+✓ **ENHANCED DOCUMENTATION**: Included live poll features in community command sections
+✓ **UNIFIED HELP EXPERIENCE**: Both prefix and slash command help now show polling capabilities
 
 ## System Architecture
 
