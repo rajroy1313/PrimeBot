@@ -94,9 +94,25 @@ async function initializeTables() {
         is_active BOOLEAN DEFAULT TRUE,
         allow_multiple_votes BOOLEAN DEFAULT FALSE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        expires_at TIMESTAMP NULL
+        expires_at TIMESTAMP NULL,
+        message_id VARCHAR(50),
+        channel_id VARCHAR(50)
       )
     `);
+
+    // Add missing columns if they don't exist (for existing tables)
+    try {
+      await connection.execute(`
+        ALTER TABLE live_polls 
+        ADD COLUMN IF NOT EXISTS message_id VARCHAR(50),
+        ADD COLUMN IF NOT EXISTS channel_id VARCHAR(50)
+      `);
+    } catch (error) {
+      // Ignore errors if columns already exist
+      if (!error.message.includes('Duplicate column name')) {
+        console.warn('Warning adding columns to live_polls:', error.message);
+      }
+    }
 
     // Create live_poll_options table
     await connection.execute(`
