@@ -10,7 +10,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### July 27, 2025 - Live Poll System Enhancement & Bug Fixes
+### July 27, 2025 - Polling System Major Simplification & Bug Fixes
+✓ **SIMPLIFIED POLL COMMANDS**: Completely overhauled polling system for ease of use
+✓ **Regular Polls**: Now use simple format `$poll "question?" option1 option2 option3 24h`
+✓ **Live Polls**: Now use simple format `$lpoll create "question?" option1 option2 2h`  
+✓ **Removed Complex Pipe Syntax**: No more confusing | separators between options
+✓ **Smart Quote Detection**: Automatically handles quoted questions and space-separated options
+✓ **Default Timings**: Regular polls default to 24h, live polls are permanent unless specified
+✓ **Slash Command Update**: /poll now uses separate option fields instead of pipe syntax
 ✓ Fixed live poll confirmation message not being sent
 ✓ Updated handleLivePollCreate to send confirmation embed before voting interface
 ✓ Resolved Discord token connection issues preventing message delivery

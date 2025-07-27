@@ -981,50 +981,63 @@ module.exports = {
 
                 case "poll":
                     try {
-                        // Parse the command format: $poll <duration> <question> | <option1> | <option2> | ...
+                        // Parse the simple command format: $poll <question> <option1> <option2> [option3] [duration]
                         if (args.length < 3) {
                             const usageEmbed = new EmbedBuilder()
                                 .setColor(config.colors.error)
                                 .setTitle("Invalid Usage")
                                 .setDescription(
-                                    `**Correct Usage:** \`${prefix}${commandName} [duration] [question] | [option1] | [option2] | ...\``,
+                                    `**Correct Usage:** \`${prefix}${commandName} [question] [option1] [option2] [option3] [duration]\``,
                                 )
                                 .addFields({
                                     name: "Examples",
                                     value:
-                                        `\`${prefix}${commandName} 1d What's your favorite color? | Red | Blue | Green\` - 1 day poll with 3 options\n` +
-                                        `\`${prefix}${commandName} 12h Best programming language? | JavaScript | Python | Java | C++\` - 12 hour poll with 4 options`,
+                                        `\`${prefix}${commandName} "What's your favorite color?" Red Blue Green\` - Poll with 3 options (24h default)\n` +
+                                        `\`${prefix}${commandName} "Best language?" JavaScript Python Java 2h\` - Poll with 2h duration\n` +
+                                        `\`${prefix}${commandName} "Pizza topping?" Pepperoni Cheese Mushrooms Sausage 1d\` - 4 options, 1 day`,
                                 });
                             return message.reply({ embeds: [usageEmbed] });
                         }
 
-                        // Get the duration
-                        const duration = args[0];
-
-                        // Get the full content after the duration
-                        const fullContent = message.content
-                            .slice(
-                                message.content.indexOf(args[0]) +
-                                    args[0].length,
-                            )
-                            .trim();
-
-                        // Split by pipe character
-                        const parts = fullContent
-                            .split("|")
-                            .map((part) => part.trim());
-
-                        if (parts.length < 3) {
-                            return message.reply(
-                                "Please provide a question and at least 2 options separated by | characters.",
-                            );
+                        // Parse arguments - first is question, rest are options, last might be duration
+                        let question, options, duration = "24h"; // Default 24 hours
+                        
+                        // If first arg has quotes, extract the full quoted question
+                        if (args[0].startsWith('"')) {
+                            const fullMessage = args.join(' ');
+                            const questionMatch = fullMessage.match(/"([^"]+)"/);
+                            if (questionMatch) {
+                                question = questionMatch[1];
+                                // Get remaining args after the quoted question
+                                const remainingArgs = fullMessage.replace(questionMatch[0], '').trim().split(/\s+/).filter(arg => arg);
+                                options = [...remainingArgs];
+                            } else {
+                                question = args[0].replace(/"/g, '');
+                                options = args.slice(1);
+                            }
+                        } else {
+                            // No quotes - first word is question, rest are options
+                            question = args[0];
+                            options = args.slice(1);
                         }
 
-                        // The first part is the question
-                        const question = parts[0];
+                        // Check if last option is actually a duration
+                        const ms = require('ms');
+                        if (options.length > 0) {
+                            const lastOption = options[options.length - 1];
+                            const parsedDuration = ms(lastOption);
+                            if (parsedDuration && parsedDuration > 0) {
+                                duration = lastOption;
+                                options = options.slice(0, -1); // Remove duration from options
+                            }
+                        }
 
-                        // The rest are options
-                        const options = parts.slice(1);
+                        // Validate we have enough options
+                        if (options.length < 2) {
+                            return message.reply(
+                                "Please provide at least 2 options for your poll.",
+                            );
+                        }
 
                         // Limit to 10 options
                         if (options.length > 10) {
@@ -1134,12 +1147,12 @@ module.exports = {
                                 .setTitle("Live Poll Commands")
                                 .setDescription("Cross-server polls with pass code sharing")
                                 .addFields(
-                                    { name: `${prefix}lpoll create <question> | <option1> | <option2> | ...`, value: "Create a new cross-server poll" },
-                                    { name: `${prefix}lpoll create <question> | <options> | [duration]`, value: "Create poll with duration (e.g., 2h, 1d)" },
-                                    { name: `${prefix}lpoll join <poll_id_or_passcode>`, value: "Join an existing poll to vote" },
-                                    { name: `${prefix}lpoll results <poll_id_or_passcode>`, value: "View live poll results" },
-                                    { name: `${prefix}lpoll end <poll_id>`, value: "End your poll (creator only)" },
-                                    { name: `${prefix}lpoll list`, value: "List your created polls with IDs/codes" }
+                                    { name: `${prefix}lpoll create [question] [option1] [option2] [duration]`, value: "Create a new cross-server poll" },
+                                    { name: `${prefix}lpoll join [poll_id_or_passcode]`, value: "Join an existing poll to vote" },
+                                    { name: `${prefix}lpoll results [poll_id_or_passcode]`, value: "View live poll results" },
+                                    { name: `${prefix}lpoll end [poll_id]`, value: "End your poll (creator only)" },
+                                    { name: `${prefix}lpoll list`, value: "List your created polls with IDs/codes" },
+                                    { name: "Examples", value: `\`${prefix}lpoll create "Best pizza?" Pepperoni Cheese Veggie\`\n\`${prefix}lpoll create Gaming? PC Console Mobile 24h\`` }
                                 )
                                 .setFooter({ text: `Version: ${config.version}` });
                             return message.reply({ embeds: [usageEmbed] });
@@ -3776,32 +3789,44 @@ function getCategoryPermissionLevel(category) {
 async function handleLivePollCreate(message, args, prefix, client) {
     const ms = require('ms');
     
-    if (args.length < 1) {
-        return message.reply(`**Correct Usage:** \`${prefix}lpoll create <question> | <option1> | <option2> | ...\``);
+    if (args.length < 3) {
+        return message.reply(`**Correct Usage:** \`${prefix}lpoll create [question] [option1] [option2] [option3] [duration]\`\n**Example:** \`${prefix}lpoll create "Favorite game?" Minecraft Fortnite Valorant 2h\``);
     }
 
-    // Join all arguments and split by pipe
-    const fullContent = args.join(' ');
-    const parts = fullContent.split('|').map(part => part.trim());
-
-    if (parts.length < 3) {
-        return message.reply('Please provide a question and at least 2 options separated by | characters.');
+    // Parse arguments similar to regular poll
+    let question, options, duration = null; // Live polls don't expire by default
+    
+    // If first arg has quotes, extract the full quoted question
+    if (args[0].startsWith('"')) {
+        const fullMessage = args.join(' ');
+        const questionMatch = fullMessage.match(/"([^"]+)"/);
+        if (questionMatch) {
+            question = questionMatch[1];
+            // Get remaining args after the quoted question
+            const remainingArgs = fullMessage.replace(questionMatch[0], '').trim().split(/\s+/).filter(arg => arg);
+            options = [...remainingArgs];
+        } else {
+            question = args[0].replace(/"/g, '');
+            options = args.slice(1);
+        }
+    } else {
+        // No quotes - first word is question, rest are options
+        question = args[0];
+        options = args.slice(1);
     }
 
-    const question = parts[0];
-    let options = parts.slice(1);
-    let duration = null;
-
-    // Check if last part is a duration
-    const lastPart = options[options.length - 1];
-    const parsedDuration = ms(lastPart);
-    if (parsedDuration && parsedDuration > 60000) { // At least 1 minute
-        duration = parsedDuration;
-        options = options.slice(0, -1); // Remove duration from options
+    // Check if last option is actually a duration
+    if (options.length > 0) {
+        const lastOption = options[options.length - 1];
+        const parsedDuration = ms(lastOption);
+        if (parsedDuration && parsedDuration > 60000) { // At least 1 minute
+            duration = parsedDuration;
+            options = options.slice(0, -1); // Remove duration from options
+        }
     }
 
     if (options.length < 2) {
-        return message.reply('Please provide at least 2 options after specifying duration.');
+        return message.reply('Please provide at least 2 options for your live poll.');
     }
 
     if (options.length > 10) {
