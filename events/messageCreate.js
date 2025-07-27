@@ -14,6 +14,9 @@ module.exports = {
         try {
             // Ignore messages from bots
             if (message.author.bot) return;
+            
+            // Prevent infinite recursion from no-prefix command processing
+            if (message._processedAsNoPrefix) return;
 
             const prefix = config.prefix;
 
@@ -1147,20 +1150,15 @@ module.exports = {
 
                         switch (subcommand) {
                             case "create":
-                                await handleLivePollCreate(message, subArgs, prefix, client);
-                                break;
+                                return await handleLivePollCreate(message, subArgs, prefix, client);
                             case "join":
-                                await handleLivePollJoin(message, subArgs, prefix, client);
-                                break;
+                                return await handleLivePollJoin(message, subArgs, prefix, client);
                             case "results":
-                                await handleLivePollResults(message, subArgs, prefix, client);
-                                break;
+                                return await handleLivePollResults(message, subArgs, prefix, client);
                             case "end":
-                                await handleLivePollEnd(message, subArgs, prefix, client);
-                                break;
+                                return await handleLivePollEnd(message, subArgs, prefix, client);
                             case "list":
-                                await handleLivePollList(message, subArgs, prefix, client);
-                                break;
+                                return await handleLivePollList(message, subArgs, prefix, client);
                             default:
                                 return message.reply(`Unknown subcommand. Use \`${prefix}lpoll\` to see available commands.`);
                         }
@@ -3784,12 +3782,9 @@ async function handleLivePollCreate(message, args, prefix, client) {
 
     // Join all arguments and split by pipe
     const fullContent = args.join(' ');
-    console.log(`[LPOLL DEBUG] Full content: "${fullContent}"`);
     const parts = fullContent.split('|').map(part => part.trim());
-    console.log(`[LPOLL DEBUG] Parts after split:`, parts);
 
     if (parts.length < 3) {
-        console.log(`[LPOLL DEBUG] Not enough parts (${parts.length}), sending error message`);
         return message.reply('Please provide a question and at least 2 options separated by | characters.');
     }
 
@@ -3852,10 +3847,7 @@ async function handleLivePollCreate(message, args, prefix, client) {
             });
         }
 
-        // First send the creation confirmation
-        await message.reply({ embeds: [embed] });
-
-        // Then send the voting interface in the same channel
+        // Get poll data and create voting interface
         const pollData = await client.livePollManager.getPoll(result.pollId);
         if (pollData) {
             const votingEmbed = client.livePollManager.createPollEmbed(
@@ -3866,7 +3858,8 @@ async function handleLivePollCreate(message, args, prefix, client) {
             );
             const buttons = client.livePollManager.createVoteButtons(result.pollId, pollData.options);
 
-            const votingMessage = await message.channel.send({
+            // Send single message with voting interface
+            const votingMessage = await message.reply({
                 embeds: [votingEmbed],
                 components: buttons
             });
@@ -3877,6 +3870,9 @@ async function handleLivePollCreate(message, args, prefix, client) {
                 votingMessage.id, 
                 message.channel.id
             );
+        } else {
+            // Fallback if poll data couldn't be retrieved
+            await message.reply({ embeds: [embed] });
         }
     } catch (error) {
         console.error('Error creating live poll:', error);
@@ -3970,17 +3966,31 @@ async function handleLivePollEnd(message, args, prefix, client) {
             return message.reply(result.message);
         }
 
-        const embed = new EmbedBuilder()
-            .setColor(config.colors.success)
-            .setTitle('📊 Poll Ended')
-            .setDescription(`Poll \`${pollId}\` has been successfully ended.`)
-            .setFooter({ 
-                text: `Ended by ${message.author.tag} • Version ${config.version}`, 
-                iconURL: message.author.displayAvatarURL({ dynamic: true }) 
-            })
-            .setTimestamp();
+        // Show winning celebration if there are results
+        if (result.results && result.results.totalVotes > 0) {
+            const winningEmbed = client.livePollManager.createPollEmbed(
+                result.results.poll, 
+                result.results.options, 
+                result.results.totalVotes, 
+                true,
+                true // Show as winning announcement
+            );
+            
+            await message.reply({ embeds: [winningEmbed] });
+        } else {
+            // Regular end message if no votes
+            const embed = new EmbedBuilder()
+                .setColor(config.colors.success)
+                .setTitle('📊 Poll Ended')
+                .setDescription(`Poll \`${pollId}\` has been successfully ended.\n\nNo votes were cast for this poll.`)
+                .setFooter({ 
+                    text: `Ended by ${message.author.tag} • Version ${config.version}`, 
+                    iconURL: message.author.displayAvatarURL({ dynamic: true }) 
+                })
+                .setTimestamp();
 
-        await message.reply({ embeds: [embed] });
+            await message.reply({ embeds: [embed] });
+        }
     } catch (error) {
         console.error('Error ending live poll:', error);
         return message.reply('There was an error ending the poll. Please try again later.');

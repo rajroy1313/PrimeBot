@@ -1,132 +1,152 @@
-# Discord Bot Project
+# Discord Bot Architecture
 
 ## Overview
-A sophisticated Discord bot engineered for advanced community engagement, featuring a comprehensive ecosystem of interactive tools and community-building features.
 
-## Stack
-- Node.js backend
-- Discord.js library
-- MySQL database with Drizzle ORM
-- mysql2 driver for database connectivity
-- 28+ fully deployed slash and prefix commands
-- Advanced real-time server interaction mechanisms
-- Modular command architecture with extensive plugin support
-- Multi-server engagement tracking
+This is a sophisticated Discord bot built with Node.js that provides comprehensive community engagement tools including leveling systems, games, polls, tickets, and various interactive features. The bot is designed with a modular architecture supporting 25+ slash commands and advanced real-time server interactions.
+
+## User Preferences
+
+Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
-### July 25, 2025 - Live Poll System Database Integration Fix
-✓ Fixed live poll database initialization timing issues
-✓ Updated LivePollManager to properly connect to MySQL database
-✓ Fixed all database operations to use correct database instances
-✓ Added global database reference for consistent poll operations
-✓ Poll results now display correctly after voting
-✓ Status emoji updates properly reflect current poll state
-✓ Voting system fully functional with persistent MySQL storage
+### July 27, 2025 - Live Poll System Enhancement & Bug Fixes
+✓ Fixed duplicate message issue in Live Poll commands
+✓ Simplified message handling to send single responses per command
+✓ Added explicit return statements to prevent execution flow issues
+✓ Added winning celebration messages for completed polls
+✓ Created dynamic winner announcement embeds with random celebration emojis
+✓ Implemented tie-breaker handling for multiple winners
+✓ Updated poll end commands to show winners automatically
+✓ Added celebration messages for expired polls with votes
+✓ Enhanced user experience with festive winner announcements
+✓ Fixed database schema issues with missing message_id and channel_id columns
 
-### July 24, 2025 - MySQL Database Migration & Button Fixes
-✓ Migrated from PostgreSQL to MySQL database
-✓ Updated Drizzle ORM configuration for MySQL compatibility
-✓ Installed mysql2 driver for database connectivity
-✓ Updated database schema with MySQL-specific syntax
-✓ Added graceful database connection handling
-✓ Created MySQL initialization script
-✓ Added fallback mode for live poll system when database is unavailable
-✓ Updated environment configuration for MySQL credentials
-✓ Fixed button interaction errors (undefined 'action' variable)
-✓ Restored full button functionality for all bot features
-✓ Live poll system now fully operational with MySQL backend
+## System Architecture
 
-### July 23, 2025 - Live Poll System Implementation
-✓ Added live poll system with `/lpoll` slash commands
-✓ Created database schema for polls, options, and votes
-✓ Implemented cross-server poll sharing with pass codes
-✓ Added comprehensive poll management (create, join, results, end, list)
-✓ Database integration with Drizzle ORM
-✓ Interactive voting system with Discord buttons
-✓ Added prefix command versions (`$lpoll`) with full functionality
-✓ Integrated vote button handling in interaction events
-✓ Fixed voting button functionality by removing duplicate handlers
-✓ Hidden Poll ID and Pass Code from voting interface for cleaner UX
+### Core Technology Stack
+- **Runtime**: Node.js
+- **Discord Library**: Discord.js v14
+- **Database**: MySQL with Drizzle ORM
+- **Database Driver**: mysql2
+- **Environment Management**: dotenv
+- **Process Management**: Custom supervisor script
+- **Web Interface**: Express.js server
 
-## Project Architecture
+### Bot Structure
+The bot follows a modular command-based architecture with separate managers for different feature sets:
 
-### Database Layer
-- **MySQL**: Main database for persistent data
-- **mysql2**: Database driver with Promise support
-- **Drizzle ORM**: Type-safe database operations
-- **Schema**: Located in `shared/schema.js`
-  - `live_polls`: Poll metadata and settings
-  - `live_poll_options`: Poll choices and vote counts
-  - `live_poll_votes`: Individual vote records
-- **Configuration**: Environment variables for MySQL connection
-  - `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`
-- **Initialization**: Automated table creation via `server/init-db.js`
+- **Command System**: Slash commands with individual command files
+- **Manager System**: Specialized managers for complex features
+- **Configuration**: Centralized config system
+- **Database Integration**: Drizzle ORM with MySQL backend
 
-### Command System
-- **Slash Commands**: Located in `commands/` directory
-- **Prefix Commands**: Handled in `events/messageCreate.js`
-- **Live Poll Commands**: Available as both slash and prefix commands
-  - **Slash**: `/lpoll create|join|results|end|list`
-  - **Prefix**: `$lpoll create|join|results|end|list`
-  - Subcommands:
-    - `create`: Create new cross-server polls
-    - `join`: Join polls via ID or pass code
-    - `results`: View poll results
-    - `end`: End polls (creator only)
-    - `list`: View user's created polls
+## Key Components
 
-### Utilities
-- **LivePollManager**: `utils/livePollManager.js`
-  - Poll creation and management
-  - Vote processing and validation
-  - Results calculation and display
-  - Cross-server sharing capabilities
+### 1. Command System
+- **Location**: `/commands/` directory
+- **Format**: Individual JavaScript files implementing SlashCommandBuilder
+- **Features**: 25+ commands covering games, moderation, community engagement
+- **Permission System**: Role-based permissions with default settings
 
-### Key Features
-- **Pass Code System**: Secure poll sharing across servers
-- **Vote Validation**: Prevents duplicate votes (configurable)
-- **Expiration System**: Optional time-based poll expiration
-- **Interactive UI**: Discord button integration for voting
-- **Real-time Results**: Live vote count updates
+### 2. Manager Systems
+The bot uses specialized manager classes for complex features:
 
-## User Preferences
-- Simple, everyday language for user communication
-- Focus on functionality over technical details
-- Comprehensive error handling and user feedback
+- **GiveawayManager**: Handles giveaway creation, tracking, and winner selection
+- **TicketManager**: Support ticket system with channel creation and management
+- **TicTacToeManager**: Interactive game management
+- **PollManager**: Traditional and live poll systems
+- **BirthdayManager**: Birthday tracking and celebration system
+- **LivePollManager**: Cross-server poll sharing system
+- **CountingManager**: Counting game functionality
+- **TruthDareManager**: Truth or Dare game system
 
-## Database Setup Instructions
+### 3. Database Architecture
+- **ORM**: Drizzle ORM for type-safe database operations
+- **Database**: MySQL for persistent data storage
+- **Schema**: Centralized schema definition in `/shared/schema.js`
+- **Migrations**: Automated database migrations through Drizzle Kit
 
-### MySQL Configuration
-1. **Environment Setup**: Copy `.env.example` to `.env` and configure:
-   ```
-   DB_HOST=localhost
-   DB_PORT=3306
-   DB_USER=root
-   DB_PASSWORD=your_mysql_password
-   DB_NAME=discord_bot
-   ```
+### 4. Web Interface
+- **Framework**: Express.js
+- **Port**: 5000
+- **Features**: Bot statistics, command documentation, status monitoring
+- **Static Assets**: Public directory for web resources
 
-2. **Database Initialization**: Run setup script:
-   ```bash
-   ./mysql-setup.sh
-   ```
+## Data Flow
 
-3. **Manual Setup**: Initialize database directly:
-   ```bash
-   node server/init-db.js
-   ```
+### Command Execution Flow
+1. Discord receives slash command
+2. Discord.js routes to appropriate command handler
+3. Command validates permissions and options
+4. Manager classes handle complex business logic
+5. Database operations through Drizzle ORM
+6. Response sent back to Discord channel
 
-### Fallback Mode
-- Bot operates with memory-only storage when MySQL is unavailable
-- Live poll features gracefully degrade to temporary functionality
-- Database connection attempts are retried automatically
+### Event Handling
+- **Guild Events**: Member join/leave, role updates
+- **Message Events**: Command processing, reaction handling
+- **Button Interactions**: Game moves, poll voting, ticket actions
+- **Scheduled Events**: Birthday celebrations, poll endings, giveaway conclusions
 
-## Next Steps
-✓ Integrate live poll manager with main bot instance
-✓ Add button interaction handlers for voting
-✓ Add prefix command support
-✓ Migrate database from PostgreSQL to MySQL
-→ Set up MySQL server in production environment
-→ Test cross-server functionality with MySQL backend
-→ Validate poll expiration and cleanup systems
+### Database Operations
+- **Connection**: MySQL connection through mysql2 driver
+- **Queries**: Type-safe queries through Drizzle ORM
+- **Transactions**: Atomic operations for complex features
+- **Migrations**: Version-controlled schema changes
+
+## External Dependencies
+
+### Required Dependencies
+- `discord.js`: Discord API interaction
+- `drizzle-orm`: Database ORM
+- `drizzle-kit`: Database migrations and tooling
+- `mysql2`: MySQL database driver
+- `dotenv`: Environment variable management
+- `express`: Web server framework
+- `ms`: Time parsing utility
+- `debug`: Debug logging system
+
+### Environment Variables
+- `DISCORD_TOKEN`: Bot authentication token
+- `CLIENT_ID`: Discord application client ID
+- `DB_HOST`: MySQL database host
+- `DB_PORT`: MySQL database port
+- `DB_USER`: Database username
+- `DB_PASSWORD`: Database password
+- `DB_NAME`: Database name
+
+### Discord Permissions
+The bot requires comprehensive permissions including:
+- Send Messages
+- Embed Links
+- Manage Channels (for tickets)
+- Manage Roles (for leveling)
+- Add Reactions (for polls)
+- Manage Messages (for moderation)
+
+## Deployment Strategy
+
+### Development Environment
+- **Start Command**: `npm run direct` for development
+- **Supervisor**: `npm start` for production with auto-restart
+- **Debug Mode**: Debug logging with environment variables
+
+### Production Considerations
+- **Process Management**: Custom supervisor script with crash recovery
+- **Error Handling**: Comprehensive error catching and logging
+- **Connection Enhancement**: Automatic reconnection logic
+- **Graceful Shutdown**: Proper cleanup on process termination
+
+### Database Migration
+- **Migration Files**: Generated in `/migrations/` directory
+- **Schema Updates**: Automated through Drizzle Kit
+- **Backup Strategy**: Required before schema changes
+
+### Monitoring
+- **Uptime Tracking**: Built-in uptime calculation
+- **Performance Metrics**: Memory usage and response time monitoring
+- **Error Logging**: Comprehensive error tracking and reporting
+- **Web Dashboard**: Real-time statistics through Express server
+
+The bot is designed for high availability with automatic recovery mechanisms and comprehensive error handling to ensure stable operation across multiple Discord servers.

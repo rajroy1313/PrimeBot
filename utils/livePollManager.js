@@ -364,6 +364,9 @@ class LivePollManager {
                 return { success: false, message: 'Only the poll creator can end this poll' };
             }
 
+            // Get final results before ending
+            const results = await this.getPollResults(pollId);
+
             // Update poll as inactive
             if (this.dbReady && (db || global.livePollDb || this.drizzleDb)) {
                 const dbInstance = db || global.livePollDb || this.drizzleDb;
@@ -377,7 +380,19 @@ class LivePollManager {
                 this.pollCaches.get(pollId).isActive = false;
             }
 
-            return { success: true, message: 'Poll ended successfully' };
+            // Create winning celebration message
+            let celebrationMessage = 'Poll ended successfully';
+            if (results && results.totalVotes > 0) {
+                const winningInfo = this.createWinningMessage(results.poll, results.options, results.totalVotes);
+                celebrationMessage = winningInfo.winnerText;
+            }
+
+            return { 
+                success: true, 
+                message: celebrationMessage,
+                results: results,
+                isEnded: true
+            };
         } catch (error) {
             console.error('Error ending poll:', error);
             return { success: false, message: 'Error ending poll' };
@@ -439,13 +454,68 @@ class LivePollManager {
         }
     }
 
+    // Generate winning celebration message
+    createWinningMessage(poll, options, totalVotes) {
+        if (totalVotes === 0) {
+            return {
+                title: '🏁 Poll Ended - No Votes',
+                description: `**${poll.question}**\n\nNo votes were cast for this poll.`,
+                color: config.colors.warning
+            };
+        }
+
+        // Find the winning option(s)
+        const maxVotes = Math.max(...options.map(opt => opt.voteCount));
+        const winners = options.filter(opt => opt.voteCount === maxVotes);
+        
+        const celebrationEmojis = ['🎉', '🏆', '✨', '🎊', '🥳', '🎈', '🌟'];
+        const randomEmoji = celebrationEmojis[Math.floor(Math.random() * celebrationEmojis.length)];
+        
+        if (winners.length === 1) {
+            // Single winner
+            const winner = winners[0];
+            const percentage = ((winner.voteCount / totalVotes) * 100).toFixed(1);
+            
+            return {
+                title: `${randomEmoji} Congratulations! We Have a Winner! ${randomEmoji}`,
+                description: `**${poll.question}**\n\n🏆 **"${winner.optionText}"** wins with **${winner.voteCount}** votes (${percentage}%)!\n\nThank you to everyone who participated in this poll!`,
+                color: config.colors.success,
+                winnerText: `🎊 Winner: **${winner.optionText}** with ${winner.voteCount} votes!`
+            };
+        } else {
+            // Multiple winners (tie)
+            const winnerNames = winners.map(w => `"${w.optionText}"`).join(', ');
+            const percentage = ((maxVotes / totalVotes) * 100).toFixed(1);
+            
+            return {
+                title: `${randomEmoji} It's a Tie! Multiple Winners! ${randomEmoji}`,
+                description: `**${poll.question}**\n\n🏆 We have a ${winners.length}-way tie!\n**${winnerNames}** each received **${maxVotes}** votes (${percentage}%)!\n\nAmazing participation from everyone!`,
+                color: config.colors.primary,
+                winnerText: `🎊 Tie between: ${winnerNames} with ${maxVotes} votes each!`
+            };
+        }
+    }
+
     // Create poll embed
-    createPollEmbed(poll, options, totalVotes = 0, showResults = false) {
-        const embed = new EmbedBuilder()
-            .setColor(config.colors.primary)
-            .setTitle('📊 Live Poll')
-            .setDescription(`**${poll.question}**`)
-            .setTimestamp();
+    createPollEmbed(poll, options, totalVotes = 0, showResults = false, isWinningAnnouncement = false) {
+        let embed;
+        
+        if (isWinningAnnouncement && !poll.isActive) {
+            // Create special winning announcement embed
+            const winningInfo = this.createWinningMessage(poll, options, totalVotes);
+            embed = new EmbedBuilder()
+                .setColor(winningInfo.color)
+                .setTitle(winningInfo.title)
+                .setDescription(winningInfo.description)
+                .setTimestamp();
+        } else {
+            // Regular poll embed
+            embed = new EmbedBuilder()
+                .setColor(config.colors.primary)
+                .setTitle('📊 Live Poll')
+                .setDescription(`**${poll.question}**`)
+                .setTimestamp();
+        }
 
         if (showResults) {
             const resultsText = options.map((option, index) => {
@@ -566,11 +636,14 @@ class LivePollManager {
                                     // Get updated poll results with expired status
                                     const pollResults = await this.getPollResults(poll.pollId);
                                     if (pollResults) {
+                                        // Show winning celebration for expired polls with votes
+                                        const isWinningAnnouncement = pollResults.totalVotes > 0;
                                         const updatedEmbed = this.createPollEmbed(
                                             pollResults.poll, 
                                             pollResults.options, 
                                             pollResults.totalVotes, 
-                                            true
+                                            true,
+                                            isWinningAnnouncement
                                         );
                                         
                                         // Remove buttons for expired polls
@@ -578,6 +651,12 @@ class LivePollManager {
                                             embeds: [updatedEmbed],
                                             components: []
                                         });
+                                        
+                                        // Send celebration message in channel if there were votes
+                                        if (pollResults.totalVotes > 0) {
+                                            const winningInfo = this.createWinningMessage(pollResults.poll, pollResults.options, pollResults.totalVotes);
+                                            await channel.send(`⏰ **Poll Expired!** ${winningInfo.winnerText}`);
+                                        }
                                         
                                         console.log(`[LIVE POLLS] Updated Discord message for expired poll ${poll.pollId}`);
                                     }
