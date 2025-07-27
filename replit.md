@@ -8,18 +8,6 @@ This is a sophisticated Discord bot built with Node.js that provides comprehensi
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Changes
-
-### July 27, 2025 - Live Poll Duplicate Message Fix & Winning Celebrations
-✓ Fixed duplicate message issue where commands sent multiple responses
-✓ Combined poll creation and voting interface into single message
-✓ Simplified poll end commands to show celebration text without duplicate embeds
-✓ Added winning celebration messages for completed polls
-✓ Created dynamic winner announcements with random celebration emojis
-✓ Implemented tie-breaker handling for multiple winners
-✓ Enhanced user experience with festive winner announcements
-✓ Fixed database schema issues with missing message_id and channel_id columns
-
 ## System Architecture
 
 ### Core Technology Stack

@@ -193,7 +193,13 @@ module.exports = {
             });
         }
 
-        // Send combined creation confirmation and voting interface
+        // First send the creation confirmation
+        await interaction.reply({
+            embeds: [embed],
+            ephemeral: false
+        });
+
+        // Then send the voting interface in the same channel
         const pollData = await interaction.client.livePollManager.getPoll(result.pollId);
         if (pollData) {
             const votingEmbed = interaction.client.livePollManager.createPollEmbed(
@@ -204,14 +210,7 @@ module.exports = {
             );
             const buttons = interaction.client.livePollManager.createVoteButtons(result.pollId, pollData.options);
 
-            // Add creation info to the voting embed
-            votingEmbed.addFields(
-                { name: '🆔 Poll ID', value: `\`${result.pollId}\``, inline: true },
-                { name: '🔑 Pass Code', value: `\`${result.passCode}\``, inline: true },
-                { name: '🔗 Share', value: 'Share the Poll ID or Pass Code to let others vote!', inline: false }
-            );
-
-            const votingMessage = await interaction.reply({
+            const votingMessage = await interaction.followUp({
                 embeds: [votingEmbed],
                 components: buttons,
                 ephemeral: false
@@ -223,12 +222,6 @@ module.exports = {
                 votingMessage.id, 
                 interaction.channel.id
             );
-        } else {
-            // Fallback if poll data couldn't be retrieved
-            await interaction.reply({
-                embeds: [embed],
-                ephemeral: false
-            });
         }
     },
 
@@ -309,11 +302,37 @@ module.exports = {
             });
         }
 
-        // Send the celebration message returned by the manager
-        await interaction.reply({
-            content: `🎉 **Poll Ended!** ${result.message}`,
-            ephemeral: false
-        });
+        // Show winning celebration if there are results
+        if (result.results && result.results.totalVotes > 0) {
+            const winningEmbed = interaction.client.livePollManager.createPollEmbed(
+                result.results.poll, 
+                result.results.options, 
+                result.results.totalVotes, 
+                true,
+                true // Show as winning announcement
+            );
+            
+            await interaction.reply({
+                embeds: [winningEmbed],
+                ephemeral: false
+            });
+        } else {
+            // Regular end message if no votes
+            const embed = new EmbedBuilder()
+                .setColor(config.colors.success)
+                .setTitle('📊 Poll Ended')
+                .setDescription(`Poll \`${pollId}\` has been successfully ended.\n\nNo votes were cast for this poll.`)
+                .setFooter({ 
+                    text: `Ended by ${interaction.user.tag} • Version ${config.version}`, 
+                    iconURL: interaction.user.displayAvatarURL({ dynamic: true }) 
+                })
+                .setTimestamp();
+
+            await interaction.reply({
+                embeds: [embed],
+                ephemeral: false
+            });
+        }
     },
 
     async handleList(interaction) {

@@ -3849,7 +3849,10 @@ async function handleLivePollCreate(message, args, prefix, client) {
             });
         }
 
-        // Send combined creation confirmation and voting interface
+        // First send the creation confirmation
+        await message.reply({ embeds: [embed] });
+
+        // Then send the voting interface in the same channel
         const pollData = await client.livePollManager.getPoll(result.pollId);
         if (pollData) {
             const votingEmbed = client.livePollManager.createPollEmbed(
@@ -3860,14 +3863,7 @@ async function handleLivePollCreate(message, args, prefix, client) {
             );
             const buttons = client.livePollManager.createVoteButtons(result.pollId, pollData.options);
 
-            // Add creation info to the voting embed
-            votingEmbed.addFields(
-                { name: '🆔 Poll ID', value: `\`${result.pollId}\``, inline: true },
-                { name: '🔑 Pass Code', value: `\`${result.passCode}\``, inline: true },
-                { name: '🔗 Share', value: 'Share the Poll ID or Pass Code to let others vote!', inline: false }
-            );
-
-            const votingMessage = await message.reply({
+            const votingMessage = await message.channel.send({
                 embeds: [votingEmbed],
                 components: buttons
             });
@@ -3878,9 +3874,6 @@ async function handleLivePollCreate(message, args, prefix, client) {
                 votingMessage.id, 
                 message.channel.id
             );
-        } else {
-            // Fallback if poll data couldn't be retrieved
-            await message.reply({ embeds: [embed] });
         }
     } catch (error) {
         console.error('Error creating live poll:', error);
@@ -3974,8 +3967,31 @@ async function handleLivePollEnd(message, args, prefix, client) {
             return message.reply(result.message);
         }
 
-        // Send the celebration message returned by the manager
-        await message.reply(`🎉 **Poll Ended!** ${result.message}`);
+        // Show winning celebration if there are results
+        if (result.results && result.results.totalVotes > 0) {
+            const winningEmbed = client.livePollManager.createPollEmbed(
+                result.results.poll, 
+                result.results.options, 
+                result.results.totalVotes, 
+                true,
+                true // Show as winning announcement
+            );
+            
+            await message.reply({ embeds: [winningEmbed] });
+        } else {
+            // Regular end message if no votes
+            const embed = new EmbedBuilder()
+                .setColor(config.colors.success)
+                .setTitle('📊 Poll Ended')
+                .setDescription(`Poll \`${pollId}\` has been successfully ended.\n\nNo votes were cast for this poll.`)
+                .setFooter({ 
+                    text: `Ended by ${message.author.tag} • Version ${config.version}`, 
+                    iconURL: message.author.displayAvatarURL({ dynamic: true }) 
+                })
+                .setTimestamp();
+
+            await message.reply({ embeds: [embed] });
+        }
     } catch (error) {
         console.error('Error ending live poll:', error);
         return message.reply('There was an error ending the poll. Please try again later.');
