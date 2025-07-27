@@ -11,6 +11,9 @@ Preferred communication style: Simple, everyday language.
 ## Recent Changes
 
 ### July 27, 2025 - Live Poll System Enhancement & Bug Fixes
+✓ Fixed live poll confirmation message not being sent
+✓ Updated handleLivePollCreate to send confirmation embed before voting interface
+✓ Resolved Discord token connection issues preventing message delivery
 ✓ Fixed duplicate message issue in Live Poll commands
 ✓ Simplified message handling to send single responses per command
 ✓ Added explicit return statements to prevent execution flow issues
