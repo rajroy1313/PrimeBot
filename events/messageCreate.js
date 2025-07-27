@@ -3784,9 +3784,12 @@ async function handleLivePollCreate(message, args, prefix, client) {
 
     // Join all arguments and split by pipe
     const fullContent = args.join(' ');
+    console.log(`[LPOLL DEBUG] Full content: "${fullContent}"`);
     const parts = fullContent.split('|').map(part => part.trim());
+    console.log(`[LPOLL DEBUG] Parts after split:`, parts);
 
     if (parts.length < 3) {
+        console.log(`[LPOLL DEBUG] Not enough parts (${parts.length}), sending error message`);
         return message.reply('Please provide a question and at least 2 options separated by | characters.');
     }
 
