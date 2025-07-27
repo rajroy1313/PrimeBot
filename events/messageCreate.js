@@ -14,6 +14,9 @@ module.exports = {
         try {
             // Ignore messages from bots
             if (message.author.bot) return;
+            
+            // Prevent infinite recursion from no-prefix command processing
+            if (message._processedAsNoPrefix) return;
 
             const prefix = config.prefix;
 
