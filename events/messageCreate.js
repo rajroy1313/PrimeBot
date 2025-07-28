@@ -256,24 +256,25 @@ module.exports = {
                 
                 // If user has no-prefix mode, process the message as a command
                 if (isNoPrefixCommand) {
-                    // First word is the command name
+                    // Parse the command and arguments
                     const args = message.content.trim().split(/ +/);
                     const commandName = args.shift().toLowerCase();
                     
                     console.log(`[NO-PREFIX] Processing command '${commandName}' from ${message.author.tag}`);
                     
                     // Create a simulated prefixed message for the command handler
-                    const simulatedContent = `${prefix}${message.content}`;
+                    const simulatedContent = `${prefix}${commandName}${args.length > 0 ? ' ' + args.join(' ') : ''}`;
                     
-                    // Create a completely new message object to avoid reference issues
-                    const simulatedMessage = {...message};
+                    // Create a new message object to avoid reference issues
+                    const simulatedMessage = Object.create(Object.getPrototypeOf(message));
+                    Object.assign(simulatedMessage, message);
                     simulatedMessage.content = simulatedContent;
+                    simulatedMessage._processedAsNoPrefix = true;
+                    
+                    console.log(`[NO-PREFIX] Simulated content: "${simulatedContent}"`);
                     
                     // Process this new content as a command (recursive processing)
                     try {
-                        // Adding a direct flag to avoid infinite recursion
-                        simulatedMessage._processedAsNoPrefix = true;
-                        
                         // Process the command
                         await module.exports.execute(simulatedMessage, client);
                         
@@ -282,6 +283,7 @@ module.exports = {
                         return; // Stop processing after handling the no-prefix command
                     } catch (error) {
                         console.error('[NO-PREFIX] Error processing no-prefix command:', error);
+                        console.error('[NO-PREFIX] Stack trace:', error.stack);
                     }
                 }
             }

@@ -216,17 +216,17 @@
       "badges": []
     },
     "844900179006324738": {
-      "xp": 310,
+      "xp": 347,
       "level": 2,
-      "messages": 15,
-      "lastMessage": 1753715462628,
+      "messages": 17,
+      "lastMessage": 1753715569597,
       "badges": []
     },
     "1323525166935965707": {
-      "xp": 499,
+      "xp": 519,
       "level": 3,
-      "messages": 24,
-      "lastMessage": 1753715298807,
+      "messages": 25,
+      "lastMessage": 1753715579379,
       "badges": []
     },
     "939762946274390046": {
@@ -262,6 +262,13 @@
       "level": 0,
       "messages": 2,
       "lastMessage": 1753607510761,
+      "badges": []
+    },
+    "1312336413936713773": {
+      "xp": 23,
+      "level": 0,
+      "messages": 1,
+      "lastMessage": 1753715494025,
       "badges": []
     }
   },
