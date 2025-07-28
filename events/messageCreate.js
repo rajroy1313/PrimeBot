@@ -2602,11 +2602,26 @@ module.exports = {
                         const loadingEmbed = new EmbedBuilder()
                             .setColor(config.colors.primary)
                             .setTitle("📡 Ping Check")
-                            .setDescription("Measuring latency...");
+                            .setDescription("Measuring latency and database connectivity...");
                             
                         const sentMessage = await message.channel.send({ embeds: [loadingEmbed] });
                         const ping = sentMessage.createdTimestamp - message.createdTimestamp;
                         const apiPing = Math.round(client.ws.ping);
+                        
+                        // Test database connectivity
+                        let dbPing = 'N/A';
+                        let dbStatus = '⛔ Offline';
+                        try {
+                            const dbStartTime = Date.now();
+                            // Simple database ping query
+                            await client.db.select().from(client.schema.livePolls).limit(1);
+                            dbPing = `${Date.now() - dbStartTime}ms`;
+                            dbStatus = '✅ Connected';
+                        } catch (dbError) {
+                            console.error('Database ping failed:', dbError);
+                            dbStatus = '⛔ Error';
+                            dbPing = 'Failed';
+                        }
                         
                         // Determine color based on ping
                         let color = config.colors.success; // Good ping (< 200ms)
@@ -2618,6 +2633,8 @@ module.exports = {
                         
                         // Create a visual ping bar
                         const createPingBar = (latency) => {
+                            if (typeof latency !== 'number') return '░░░░░░░░░░';
+                            
                             const maxBars = 10;
                             const bars = Math.min(Math.ceil(latency / 100), maxBars);
                             
@@ -2646,6 +2663,11 @@ module.exports = {
                                 { 
                                     name: '📶 API Latency', 
                                     value: `${apiPing}ms\n${createPingBar(apiPing)}`,
+                                    inline: true 
+                                },
+                                { 
+                                    name: '🗄️ Database', 
+                                    value: `${dbStatus}\n${dbPing}`,
                                     inline: true 
                                 }
                             )
