@@ -2613,13 +2613,15 @@ module.exports = {
                         let dbStatus = '⛔ Offline';
                         try {
                             const dbStartTime = Date.now();
-                            // Simple database ping query using live poll manager's connection
+                            // Simple database ping using raw query
                             if (client.livePollManager && client.livePollManager.drizzleDb) {
-                                await client.livePollManager.drizzleDb.select().from(client.livePollManager.schema.livePolls).limit(1);
+                                // Use raw SQL ping instead of schema-dependent query
+                                await client.livePollManager.drizzleDb.execute('SELECT 1 as ping');
                                 dbPing = `${Date.now() - dbStartTime}ms`;
                                 dbStatus = '✅ Connected';
-                            } else if (client.db && client.schema) {
-                                await client.db.select().from(client.schema.livePolls).limit(1);
+                            } else if (client.db) {
+                                // Fallback to client.db with raw query
+                                await client.db.execute('SELECT 1 as ping');
                                 dbPing = `${Date.now() - dbStartTime}ms`;
                                 dbStatus = '✅ Connected';
                             } else {
