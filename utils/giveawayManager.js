@@ -1,6 +1,5 @@
 const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require('discord.js');
-const fs = require('fs');
-const path = require('path');
+const { eq, and, lt } = require('drizzle-orm');
 const config = require('../config');
 
 class GiveawayManager {
@@ -8,111 +7,95 @@ class GiveawayManager {
         this.client = client;
         this.giveaways = new Map(); // Store active giveaways
         this.checkInterval = null;
-        this.dataPath = path.join(__dirname, '../data/giveaways.json');
+        this.db = null;
+        this.schema = null;
+        this.dbReady = false;
         
-        // Ensure data directory exists
-        const dataDir = path.join(__dirname, '../data');
-        if (!fs.existsSync(dataDir)) {
-            fs.mkdirSync(dataDir, { recursive: true });
-        }
-        
-        this.loadGiveaways();
+        // Initialize database connection
+        this.initializeDatabase();
         this.startCheckingGiveaways(); // Start checking for ended giveaways immediately
     }
 
-    /**
-     * Load saved giveaways from the data file
-     */
-    loadGiveaways() {
+    async initializeDatabase() {
         try {
-            if (fs.existsSync(this.dataPath)) {
-                const fileContent = fs.readFileSync(this.dataPath, 'utf8');
-                
-                // Check if file is empty or invalid JSON
-                if (!fileContent || fileContent.trim() === '') {
-                    console.log('Giveaways file exists but is empty. Initializing with empty data.');
-                    fs.writeFileSync(this.dataPath, JSON.stringify({}), 'utf8');
-                    return;
-                }
-                
-                let data;
-                try {
-                    data = JSON.parse(fileContent);
-                } catch (parseError) {
-                    console.error('Error parsing giveaways JSON file:', parseError);
-                    console.log('Backing up corrupted file and initializing with empty data');
-                    
-                    // Backup the corrupted file
-                    const backupPath = `${this.dataPath}.bak.${Date.now()}`;
-                    fs.copyFileSync(this.dataPath, backupPath);
-                    
-                    // Reinitialize with empty data
-                    fs.writeFileSync(this.dataPath, JSON.stringify({}), 'utf8');
-                    return;
-                }
-                
-                if (!data || typeof data !== 'object') {
-                    console.error('Invalid giveaways data format. Initializing with empty data.');
-                    fs.writeFileSync(this.dataPath, JSON.stringify({}), 'utf8');
-                    return;
-                }
-                
-                // Load the data into memory
-                let loadedCount = 0;
-                for (const [messageId, giveaway] of Object.entries(data)) {
-                    // Validate giveaway object
-                    if (!giveaway || typeof giveaway !== 'object') {
-                        console.warn(`Skipping invalid giveaway with ID ${messageId}`);
-                        continue;
-                    }
-                    
-                    // Ensure required properties exist
-                    if (!giveaway.channelId || !giveaway.prize) {
-                        console.warn(`Skipping giveaway ${messageId} with missing required properties`);
-                        continue;
-                    }
-                    
-                    // Convert participants from array back to Set
-                    if (giveaway.participants && Array.isArray(giveaway.participants)) {
-                        giveaway.participants = new Set(giveaway.participants);
-                    } else {
-                        giveaway.participants = new Set();
-                    }
-                    
-                    this.giveaways.set(messageId, giveaway);
-                    loadedCount++;
-                }
-                
-                console.log(`Loaded ${loadedCount} giveaways from file.`);
+            // Wait for client database to be ready
+            if (this.client.db && this.client.schema) {
+                this.db = this.client.db;
+                this.schema = this.client.schema;
+                this.dbReady = true;
+                console.log('✅ GiveawayManager database connection established');
+                await this.loadGiveaways();
             } else {
-                // Create the file if it doesn't exist
-                console.log('No giveaways file found. Creating new file.');
-                fs.writeFileSync(this.dataPath, JSON.stringify({}), 'utf8');
+                // Retry after a short delay if database isn't ready yet
+                setTimeout(() => this.initializeDatabase(), 1000);
             }
         } catch (error) {
-            console.error('Error loading giveaways:', error);
-            // Reset the giveaways map in case of error
-            this.giveaways = new Map();
-            
-            // Try to create a new file
-            try {
-                fs.writeFileSync(this.dataPath, JSON.stringify({}), 'utf8');
-                console.log('Created new giveaways file after error.');
-            } catch (writeError) {
-                console.error('Failed to create new giveaways file:', writeError);
+            console.error('❌ GiveawayManager database initialization failed:', error);
+            // Retry after a delay
+            setTimeout(() => this.initializeDatabase(), 5000);
+        }
+    }
+
+    /**
+     * Load saved giveaways from the database
+     */
+    async loadGiveaways() {
+        if (!this.dbReady) {
+            return; // Database not ready yet
+        }
+
+        try {
+            // Load active giveaways from database
+            const activeGiveaways = await this.db.select()
+                .from(this.schema.giveaways)
+                .where(and(
+                    eq(this.schema.giveaways.isActive, true),
+                    eq(this.schema.giveaways.ended, false)
+                ));
+
+            let loadedCount = 0;
+            for (const giveaway of activeGiveaways) {
+                // Load participants for this giveaway
+                const participants = await this.db.select()
+                    .from(this.schema.giveawayParticipants)
+                    .where(eq(this.schema.giveawayParticipants.giveawayId, giveaway.messageId));
+
+                // Convert to the format expected by the giveaway system
+                const giveawayData = {
+                    messageId: giveaway.messageId,
+                    channelId: giveaway.channelId,
+                    guildId: giveaway.guildId,
+                    prize: giveaway.prize,
+                    description: giveaway.description || '',
+                    winnerCount: giveaway.winnerCount,
+                    hostId: giveaway.hostId,
+                    endTime: new Date(giveaway.endsAt).getTime(),
+                    participants: new Set(participants.map(p => p.userId)),
+                    active: giveaway.isActive && !giveaway.ended
+                };
+
+                this.giveaways.set(giveaway.messageId, giveawayData);
+                loadedCount++;
             }
+
+            console.log(`[GIVEAWAY] Loaded ${loadedCount} active giveaways from database.`);
+        } catch (error) {
+            console.error('[GIVEAWAY] Error loading giveaways from database:', error);
         }
     }
     
     /**
-     * Save giveaways to the data file
+     * Save giveaways to the database (no longer uses files)
      */
-    saveGiveaways() {
+    async saveGiveaways() {
+        if (!this.dbReady) {
+            console.log('[GIVEAWAY] Database not ready for saving giveaways');
+            return;
+        }
+
         try {
-            console.log(`[GIVEAWAY] Saving ${this.giveaways.size} giveaways to file...`);
-            const data = {};
+            console.log(`[GIVEAWAY] Saving ${this.giveaways.size} giveaways to database...`);
             
-            // Before saving, clean up any potentially corrupted entries
             let validCount = 0;
             let invalidCount = 0;
             
@@ -125,59 +108,52 @@ class GiveawayManager {
                     continue;
                 }
                 
-                // Deep copy the giveaway object to avoid modifying the original
-                const giveawayData = { ...giveaway };
-                
-                // Convert Set to Array for JSON serialization
-                if (giveawayData.participants instanceof Set) {
-                    giveawayData.participants = Array.from(giveawayData.participants);
-                } else {
-                    // Ensure participants is always an array in the saved data
-                    giveawayData.participants = [];
-                }
-                
-                // Add required fields if missing
-                if (!giveawayData.prize) giveawayData.prize = 'Unknown Prize';
-                if (!giveawayData.channelId) {
-                    console.warn(`[GIVEAWAY] Removing giveaway ${messageId} due to missing channelId`);
-                    this.giveaways.delete(messageId);
-                    invalidCount++;
-                    continue;
-                }
-                
-                // Add to data object
-                data[messageId] = giveawayData;
+                // Update giveaway in database
+                await this.updateGiveawayInDatabase(giveaway);
                 validCount++;
             }
             
-            // Create a backup of the existing file if it exists
-            if (fs.existsSync(this.dataPath)) {
-                try {
-                    const backupPath = `${this.dataPath}.bak`;
-                    fs.copyFileSync(this.dataPath, backupPath);
-                } catch (backupError) {
-                    console.error('[GIVEAWAY] Failed to create backup file:', backupError);
+            console.log(`[GIVEAWAY] Successfully saved ${validCount} giveaways to database (${invalidCount} invalid entries removed).`);
+        } catch (error) {
+            console.error('[GIVEAWAY] Error saving giveaways to database:', error);
+        }
+    }
+
+    /**
+     * Update a single giveaway in the database
+     */
+    async updateGiveawayInDatabase(giveaway) {
+        if (!this.dbReady) return;
+
+        try {
+            // Update the main giveaway record
+            await this.db.update(this.schema.giveaways)
+                .set({
+                    isActive: giveaway.active,
+                    ended: !giveaway.active
+                })
+                .where(eq(this.schema.giveaways.messageId, giveaway.messageId));
+
+            // Update participants if needed
+            const existingParticipants = await this.db.select()
+                .from(this.schema.giveawayParticipants)
+                .where(eq(this.schema.giveawayParticipants.giveawayId, giveaway.messageId));
+
+            const existingUserIds = new Set(existingParticipants.map(p => p.userId));
+            const currentUserIds = giveaway.participants;
+
+            // Add new participants
+            for (const userId of currentUserIds) {
+                if (!existingUserIds.has(userId)) {
+                    await this.db.insert(this.schema.giveawayParticipants)
+                        .values({
+                            giveawayId: giveaway.messageId,
+                            userId: userId
+                        });
                 }
             }
-            
-            // Write the new data
-            fs.writeFileSync(this.dataPath, JSON.stringify(data, null, 2), 'utf8');
-            console.log(`[GIVEAWAY] Successfully saved ${validCount} giveaways to file (${invalidCount} invalid entries removed).`);
-            
-            return true;
         } catch (error) {
-            console.error('[GIVEAWAY] Error saving giveaways:', error);
-            console.error(error.stack);
-            
-            try {
-                // Try writing a simple empty object in case the error was with JSON.stringify or data structure
-                fs.writeFileSync(this.dataPath + '.emergency', JSON.stringify({}), 'utf8');
-                console.log('[GIVEAWAY] Created emergency backup empty giveaways file.');
-            } catch (emergencyError) {
-                console.error('[GIVEAWAY] Failed even emergency file write:', emergencyError);
-            }
-            
-            return false;
+            console.error(`[GIVEAWAY] Error updating giveaway ${giveaway.messageId} in database:`, error);
         }
     }
     
@@ -221,7 +197,7 @@ class GiveawayManager {
         }
         
         // Save changes if we cleaned up any old giveaways
-        this.saveGiveaways();
+        await this.saveGiveaways();
     }
 
     /**
@@ -295,10 +271,34 @@ class GiveawayManager {
             // Add the reaction emoji for entering
             await giveawayMessage.react('🎉');
             
-            // Store giveaway data
+            // Store giveaway data in database first
+            if (this.dbReady) {
+                try {
+                    await this.db.insert(this.schema.giveaways)
+                        .values({
+                            messageId: giveawayMessage.id,
+                            channelId: channelId,
+                            guildId: channel.guild.id,
+                            prize: prize,
+                            description: description,
+                            winnerCount: winnerCount,
+                            hostId: this.client.user.id,
+                            isActive: true,
+                            ended: false,
+                            endsAt: new Date(endTime)
+                        });
+                    console.log(`[GIVEAWAY] Created giveaway ${giveawayMessage.id} in database`);
+                } catch (dbError) {
+                    console.error('[GIVEAWAY] Error saving giveaway to database:', dbError);
+                    // Still continue with in-memory storage as fallback
+                }
+            }
+
+            // Store giveaway data in memory
             const giveaway = {
                 messageId: giveawayMessage.id,
                 channelId,
+                guildId: channel.guild.id,
                 prize,
                 winnerCount,
                 endTime,
@@ -306,11 +306,12 @@ class GiveawayManager {
                 description,
                 thumbnail,
                 requiredRoleId,
-                participants: new Set()
+                participants: new Set(),
+                active: true
             };
             
             this.giveaways.set(giveawayMessage.id, giveaway);
-            console.log(`Started giveaway in channel ${channelId} with ID ${giveawayMessage.id}`);
+            console.log(`[GIVEAWAY] Started giveaway in channel ${channelId} with ID ${giveawayMessage.id}`);
             
             return giveaway;
         } catch (error) {
@@ -363,7 +364,7 @@ class GiveawayManager {
                 }
                 
                 // Save and return
-                this.saveGiveaways();
+                await this.saveGiveaways();
                 console.log(`[GIVEAWAY] Giveaway ${messageId} ended with deleted message.`);
                 return true;
             }
@@ -422,7 +423,7 @@ class GiveawayManager {
             }
             
             // Save the updated giveaway with ended=true
-            this.saveGiveaways();
+            await this.saveGiveaways();
             console.log(`[GIVEAWAY] Giveaway ${messageId} successfully ended and saved.`);
             
             return true;
@@ -498,6 +499,92 @@ class GiveawayManager {
         }
         
         return winners;
+    }
+
+    /**
+     * Add a participant to a giveaway
+     * @param {string} messageId - The message ID of the giveaway
+     * @param {string} userId - The user ID to add
+     * @returns {Promise<boolean>} Whether the participant was successfully added
+     */
+    async addParticipant(messageId, userId) {
+        try {
+            const giveaway = this.giveaways.get(messageId);
+            if (!giveaway || giveaway.ended) return false;
+
+            // Check if user is already participating
+            if (giveaway.participants.has(userId)) {
+                return false; // Already participating
+            }
+
+            // Add to memory
+            giveaway.participants.add(userId);
+
+            // Add to database
+            if (this.dbReady) {
+                try {
+                    await this.db.insert(this.schema.giveawayParticipants)
+                        .values({
+                            giveawayId: messageId,
+                            userId: userId
+                        });
+                } catch (dbError) {
+                    console.error(`[GIVEAWAY] Error adding participant ${userId} to database:`, dbError);
+                    // Remove from memory if database operation failed
+                    giveaway.participants.delete(userId);
+                    return false;
+                }
+            }
+
+            console.log(`[GIVEAWAY] Added participant ${userId} to giveaway ${messageId}`);
+            return true;
+        } catch (error) {
+            console.error(`Error adding participant ${userId} to giveaway ${messageId}:`, error);
+            return false;
+        }
+    }
+
+    /**
+     * Remove a participant from a giveaway
+     * @param {string} messageId - The message ID of the giveaway
+     * @param {string} userId - The user ID to remove
+     * @returns {Promise<boolean>} Whether the participant was successfully removed
+     */
+    async removeParticipant(messageId, userId) {
+        try {
+            const giveaway = this.giveaways.get(messageId);
+            if (!giveaway || giveaway.ended) return false;
+
+            // Check if user is participating
+            if (!giveaway.participants.has(userId)) {
+                return false; // Not participating
+            }
+
+            // Remove from memory
+            giveaway.participants.delete(userId);
+
+            // Remove from database
+            if (this.dbReady) {
+                try {
+                    await this.db.delete(this.schema.giveawayParticipants)
+                        .where(and(
+                            eq(this.schema.giveawayParticipants.giveawayId, messageId),
+                            eq(this.schema.giveawayParticipants.userId, userId)
+                        ));
+                } catch (dbError) {
+                    console.error(`[GIVEAWAY] Error removing participant ${userId} from database:`, dbError);
+                    // Re-add to memory if database operation failed
+                    giveaway.participants.add(userId);
+                    return false;
+                }
+            }
+
+            console.log(`[GIVEAWAY] Removed participant ${userId} from giveaway ${messageId}`);
+            return true;
+        } catch (error) {
+            console.error(`Error removing participant ${userId} from giveaway ${messageId}:`, error);
+            return false;
+        }
     }
 }
 

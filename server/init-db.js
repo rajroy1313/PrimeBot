@@ -179,6 +179,46 @@ async function initializeTables() {
       )
     `);
 
+    // Create giveaways table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS giveaways (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        message_id VARCHAR(50) NOT NULL UNIQUE,
+        channel_id VARCHAR(50) NOT NULL,
+        guild_id VARCHAR(50) NOT NULL,
+        prize TEXT NOT NULL,
+        description TEXT,
+        winner_count INT DEFAULT 1,
+        host_id VARCHAR(50) NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        ended BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        ends_at TIMESTAMP NOT NULL
+      )
+    `);
+
+    // Create giveaway participants table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS giveaway_participants (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        giveaway_id VARCHAR(50) NOT NULL,
+        user_id VARCHAR(50) NOT NULL,
+        joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (giveaway_id) REFERENCES giveaways(message_id) ON DELETE CASCADE
+      )
+    `);
+
+    // Create giveaway winners table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS giveaway_winners (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        giveaway_id VARCHAR(50) NOT NULL,
+        user_id VARCHAR(50) NOT NULL,
+        selected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (giveaway_id) REFERENCES giveaways(message_id) ON DELETE CASCADE
+      )
+    `);
+
     // Create indexes for better performance
     await connection.execute(`
       CREATE INDEX IF NOT EXISTS idx_live_polls_poll_id ON live_polls(poll_id)

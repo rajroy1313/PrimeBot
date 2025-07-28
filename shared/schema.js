@@ -107,6 +107,58 @@ const pollVotesRelations = relations(pollVotes, ({ one }) => ({
   }),
 }));
 
+// Giveaways table
+const giveaways = mysqlTable('giveaways', {
+  id: int('id').primaryKey().autoincrement(),
+  messageId: varchar('message_id', { length: 50 }).notNull().unique(),
+  channelId: varchar('channel_id', { length: 50 }).notNull(),
+  guildId: varchar('guild_id', { length: 50 }).notNull(),
+  prize: text('prize').notNull(),
+  description: text('description'),
+  winnerCount: int('winner_count').default(1),
+  hostId: varchar('host_id', { length: 50 }).notNull(),
+  isActive: boolean('is_active').default(true),
+  ended: boolean('ended').default(false),
+  createdAt: timestamp('created_at').defaultNow(),
+  endsAt: timestamp('ends_at').notNull(),
+});
+
+// Giveaway participants table
+const giveawayParticipants = mysqlTable('giveaway_participants', {
+  id: int('id').primaryKey().autoincrement(),
+  giveawayId: varchar('message_id', { length: 50 }).notNull(),
+  userId: varchar('user_id', { length: 50 }).notNull(),
+  joinedAt: timestamp('joined_at').defaultNow(),
+});
+
+// Giveaway winners table
+const giveawayWinners = mysqlTable('giveaway_winners', {
+  id: int('id').primaryKey().autoincrement(),
+  giveawayId: varchar('message_id', { length: 50 }).notNull(),
+  userId: varchar('user_id', { length: 50 }).notNull(),
+  selectedAt: timestamp('selected_at').defaultNow(),
+});
+
+// Relations for giveaways
+const giveawaysRelations = relations(giveaways, ({ many }) => ({
+  participants: many(giveawayParticipants),
+  winners: many(giveawayWinners),
+}));
+
+const giveawayParticipantsRelations = relations(giveawayParticipants, ({ one }) => ({
+  giveaway: one(giveaways, {
+    fields: [giveawayParticipants.giveawayId],
+    references: [giveaways.messageId],
+  }),
+}));
+
+const giveawayWinnersRelations = relations(giveawayWinners, ({ one }) => ({
+  giveaway: one(giveaways, {
+    fields: [giveawayWinners.giveawayId],
+    references: [giveaways.messageId],
+  }),
+}));
+
 // Exports
 module.exports = {
   livePolls,
@@ -120,5 +172,11 @@ module.exports = {
   pollVotes,
   pollsRelations,
   pollOptionsRelations,
-  pollVotesRelations
+  pollVotesRelations,
+  giveaways,
+  giveawayParticipants,
+  giveawayWinners,
+  giveawaysRelations,
+  giveawayParticipantsRelations,
+  giveawayWinnersRelations
 };
