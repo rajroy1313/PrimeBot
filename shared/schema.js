@@ -54,6 +54,59 @@ const livePollVotesRelations = relations(livePollVotes, ({ one }) => ({
   }),
 }));
 
+// Regular polls table (unified with live polls system)
+const polls = mysqlTable('polls', {
+  id: int('id').primaryKey().autoincrement(),
+  messageId: varchar('message_id', { length: 50 }).notNull().unique(),
+  channelId: varchar('channel_id', { length: 50 }).notNull(),
+  guildId: varchar('guild_id', { length: 50 }).notNull(),
+  question: text('question').notNull(),
+  creatorId: varchar('creator_id', { length: 50 }).notNull(),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at').defaultNow(),
+  expiresAt: timestamp('expires_at'),
+  ended: boolean('ended').default(false)
+});
+
+// Regular poll options table
+const pollOptions = mysqlTable('poll_options', {
+  id: int('id').primaryKey().autoincrement(),
+  pollId: varchar('message_id', { length: 50 }).notNull(),
+  optionText: text('option_text').notNull(),
+  optionIndex: int('option_index').notNull(),
+  emoji: varchar('emoji', { length: 10 }).notNull(),
+  voteCount: int('vote_count').default(0),
+});
+
+// Regular poll votes table
+const pollVotes = mysqlTable('poll_votes', {
+  id: int('id').primaryKey().autoincrement(),
+  pollId: varchar('message_id', { length: 50 }).notNull(),
+  userId: varchar('user_id', { length: 50 }).notNull(),
+  optionIndex: int('option_index').notNull(),
+  votedAt: timestamp('voted_at').defaultNow(),
+});
+
+// Relations for regular polls
+const pollsRelations = relations(polls, ({ many }) => ({
+  options: many(pollOptions),
+  votes: many(pollVotes),
+}));
+
+const pollOptionsRelations = relations(pollOptions, ({ one }) => ({
+  poll: one(polls, {
+    fields: [pollOptions.pollId],
+    references: [polls.messageId],
+  }),
+}));
+
+const pollVotesRelations = relations(pollVotes, ({ one }) => ({
+  poll: one(polls, {
+    fields: [pollVotes.pollId],
+    references: [polls.messageId],
+  }),
+}));
+
 // Exports
 module.exports = {
   livePolls,
@@ -61,5 +114,11 @@ module.exports = {
   livePollVotes,
   livePollsRelations,
   livePollOptionsRelations,
-  livePollVotesRelations
+  livePollVotesRelations,
+  polls,
+  pollOptions,
+  pollVotes,
+  pollsRelations,
+  pollOptionsRelations,
+  pollVotesRelations
 };

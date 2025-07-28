@@ -138,6 +138,47 @@ async function initializeTables() {
       )
     `);
 
+    // Create regular polls table (unified database approach)
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS polls (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        message_id VARCHAR(50) NOT NULL UNIQUE,
+        channel_id VARCHAR(50) NOT NULL,
+        guild_id VARCHAR(50) NOT NULL,
+        question TEXT NOT NULL,
+        creator_id VARCHAR(50) NOT NULL,
+        is_active BOOLEAN DEFAULT TRUE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        expires_at TIMESTAMP NULL,
+        ended BOOLEAN DEFAULT FALSE
+      )
+    `);
+
+    // Create regular poll options table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS poll_options (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        message_id VARCHAR(50) NOT NULL,
+        option_text TEXT NOT NULL,
+        option_index INT NOT NULL,
+        emoji VARCHAR(10) NOT NULL,
+        vote_count INT DEFAULT 0,
+        FOREIGN KEY (message_id) REFERENCES polls(message_id) ON DELETE CASCADE
+      )
+    `);
+
+    // Create regular poll votes table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS poll_votes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        message_id VARCHAR(50) NOT NULL,
+        user_id VARCHAR(50) NOT NULL,
+        option_index INT NOT NULL,
+        voted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (message_id) REFERENCES polls(message_id) ON DELETE CASCADE
+      )
+    `);
+
     // Create indexes for better performance
     await connection.execute(`
       CREATE INDEX IF NOT EXISTS idx_live_polls_poll_id ON live_polls(poll_id)

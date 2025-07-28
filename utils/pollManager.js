@@ -223,9 +223,28 @@ class PollManager {
                 return false;
             }
             
-            // Ensure ALL reactions are completely fetched (Discord.js sometimes caches incomplete reactions)
-            await message.reactions.fetch();
-            console.log(`[POLLS] Fetched ${message.reactions.cache.size} reactions from poll message`);
+            // Check if message has reactions manager
+            if (!message || !message.reactions || typeof message.reactions.fetch !== 'function') {
+                console.error(`[POLLS] Message ${messageId} does not have valid reactions manager`);
+                // Try to get reactions manually
+                if (!message.reactions || !message.reactions.cache) {
+                    console.log(`[POLLS] Removing poll ${messageId} due to invalid message or reactions`);
+                    this.polls.delete(messageId);
+                    this.savePolls();
+                    return false;
+                }
+                console.log(`[POLLS] Using cached reactions only for poll ${messageId}`);
+            } else {
+                // Ensure ALL reactions are completely fetched (Discord.js sometimes caches incomplete reactions)
+                try {
+                    await message.reactions.fetch();
+                    console.log(`[POLLS] Fetched ${message.reactions.cache.size} reactions from poll message`);
+                } catch (fetchError) {
+                    console.error(`[POLLS] Error fetching reactions: ${fetchError.message}`);
+                    // If reaction fetching fails, we'll work with what we have in cache
+                    console.log(`[POLLS] Using cached reactions as fallback`);
+                }
+            }
             
             // Count votes
             const results = [];

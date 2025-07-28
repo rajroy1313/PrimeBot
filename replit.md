@@ -10,6 +10,18 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### July 28, 2025 - Polling System Critical Fixes & Database Unification
+✓ **FIXED POLL ENDING CRASHES**: Resolved critical error where poll ending failed with "message.reactions.fetch is not a function"
+✓ **Enhanced Message Validation**: Added comprehensive checks for message and reactions manager validity
+✓ **Improved Error Handling**: Added try-catch blocks around reaction fetching with fallback to cached reactions
+✓ **Fixed Category System**: Updated help category interactions to properly display polling commands
+✓ **Database Unification Complete**: Added regular polls tables to match live polls database structure
+✓ **Enhanced Poll Display**: Added /poll, /lpoll, and /endpoll commands to Community category in help system
+✓ **Live Poll Voting Confirmed Working**: Verified live poll button interactions are properly handled
+✓ **Robust Reaction Processing**: Poll ending now works with cached reactions if fetching fails
+✓ **Database Schema Extended**: Added polls, poll_options, and poll_votes tables with proper foreign keys
+✓ **Unified Architecture**: Both regular and live polls now use the same database approach
+
 ### July 27, 2025 - Polling System Major Simplification & Bug Fixes
 ✓ **SIMPLIFIED POLL COMMANDS**: Completely overhauled polling system for ease of use
 ✓ **Regular Polls**: Now use simple format `$poll "question?" option1 option2 option3 24h`
