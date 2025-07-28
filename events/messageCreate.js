@@ -277,8 +277,7 @@ module.exports = {
                         // Process the command
                         await module.exports.execute(simulatedMessage, client);
                         
-                        // Add a small indicator that this was a no-prefix command
-                        message.react('🪄').catch(() => {}); // React with a magic wand emoji
+                        // NO REACTION - Commands should execute silently in no-prefix mode
                         
                         return; // Stop processing after handling the no-prefix command
                     } catch (error) {

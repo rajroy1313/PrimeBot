@@ -268,8 +268,7 @@ class ServerSettingsManager {
                 return false;
             }
             
-            // Only log when user actually has active no-prefix mode
-            console.log(`[NO-PREFIX] User ${userId} has active no-prefix mode in guild ${guildId}`);
+            // User has active no-prefix mode (only log during command processing)
             return true;
         } catch (error) {
             console.error(`[SERVER SETTINGS] Error checking no-prefix mode for user ${userId} in guild ${guildId}:`, error);

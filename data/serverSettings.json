@@ -23,7 +23,9 @@
       "enabled": false,
       "reactions": []
     },
-    "noPrefixUsers": {}
+    "noPrefixUsers": {
+      "1310654136290639894": 1753716058398
+    }
   },
   "1342037642358951998": {
     "receiveBroadcasts": true,

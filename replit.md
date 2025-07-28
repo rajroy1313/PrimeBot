@@ -14,7 +14,9 @@ Preferred communication style: Simple, everyday language.
 ✓ **FIXED CATEGORIES COMMAND**: Resolved missing `showDetailedCategoryHelp` function causing prefix categories to fail
 ✓ **RESTORED FULL CATEGORIES FUNCTIONALITY**: Both `$categories` and `$commands` now work with interactive dropdown menus
 ✓ **Enhanced Category Support**: Added detailed category help with comprehensive command descriptions
+✓ **FIXED NO-PREFIX MODE**: Removed unwanted reactions and optimized command execution for seamless no-prefix experience
 ✓ **No-Prefix System Clarified**: "np" refers to no-prefix mode allowing command execution without prefix ($np enable [minutes])
+✓ **Silent Command Execution**: No-prefix commands now execute without reactions or visual indicators
 ✓ **Interactive Menu Support**: Dropdown menus work for both slash and prefix command versions
 ✓ **Comprehensive Command Coverage**: All 6 categories (general, leveling, games, moderation, community, admin) fully functional
 
