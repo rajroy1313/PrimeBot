@@ -75,6 +75,12 @@ client.truthDareManager = new TruthDareManager(client);
 const LevelingManager = require('./utils/levelingManager');
 client.levelingManager = new LevelingManager(client);
 
+// Initialize database connection
+const { db } = require('./server/db');
+const schema = require('./shared/schema');
+client.db = db;
+client.schema = schema;
+
 // Initialize server settings manager for broadcast opt-outs
 const ServerSettingsManager = require('./utils/serverSettingsManager');
 client.serverSettingsManager = new ServerSettingsManager(client);

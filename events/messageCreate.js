@@ -2613,12 +2613,21 @@ module.exports = {
                         let dbStatus = '⛔ Offline';
                         try {
                             const dbStartTime = Date.now();
-                            // Simple database ping query
-                            await client.db.select().from(client.schema.livePolls).limit(1);
-                            dbPing = `${Date.now() - dbStartTime}ms`;
-                            dbStatus = '✅ Connected';
+                            // Simple database ping query using live poll manager's connection
+                            if (client.livePollManager && client.livePollManager.drizzleDb) {
+                                await client.livePollManager.drizzleDb.select().from(client.livePollManager.schema.livePolls).limit(1);
+                                dbPing = `${Date.now() - dbStartTime}ms`;
+                                dbStatus = '✅ Connected';
+                            } else if (client.db && client.schema) {
+                                await client.db.select().from(client.schema.livePolls).limit(1);
+                                dbPing = `${Date.now() - dbStartTime}ms`;
+                                dbStatus = '✅ Connected';
+                            } else {
+                                dbStatus = '⚠️ Not Initialized';
+                                dbPing = 'N/A';
+                            }
                         } catch (dbError) {
-                            console.error('Database ping failed:', dbError);
+                            console.error('Database ping failed:', dbError.message);
                             dbStatus = '⛔ Error';
                             dbPing = 'Failed';
                         }
