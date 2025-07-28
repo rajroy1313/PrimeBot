@@ -224,8 +224,11 @@ class PollManager {
             }
             
             // Ensure ALL reactions are completely fetched (Discord.js sometimes caches incomplete reactions)
-            await message.reactions.fetch();
-            console.log(`[POLLS] Fetched ${message.reactions.cache.size} reactions from poll message`);
+            if (message.reactions && message.reactions.cache) {
+                console.log(`[POLLS] Found ${message.reactions.cache.size} reactions from poll message`);
+            } else {
+                console.log(`[POLLS] No reactions found on poll message`);
+            }
             
             // Count votes
             const results = [];

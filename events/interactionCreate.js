@@ -153,6 +153,9 @@ async function showCategoryHelpUpdate(interaction, category) {
                 .setTitle('👥 Community Features')
                 .setDescription('Engagement and social features:')
                 .addFields(
+                    { name: '/poll', value: 'Create server polls with voting options', inline: true },
+                    { name: '/lpoll', value: 'Create cross-server live polls', inline: true },
+                    { name: '/endpoll', value: 'End active polls and show results', inline: true },
                     { name: '/giveaway', value: 'Create exciting giveaways with role requirements', inline: true },
                     { name: '/reroll', value: 'Reroll giveaway winners', inline: true },
                     { name: '/birthday', value: 'Birthday celebration system', inline: true },
