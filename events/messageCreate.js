@@ -401,6 +401,7 @@ module.exports = {
                     return message.reply({ embeds: [categoryEmbed] });
 
                 case "commands":
+                case "categories":
                     // Interactive category browser with select menu
                     const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
                     
@@ -411,7 +412,7 @@ module.exports = {
                         .addFields(
                             { name: '📊 Quick Stats', value: `**Total Commands:** 30+\n**Categories:** 6\n**Active Servers:** ${message.client.guilds.cache.size}`, inline: true },
                             { name: '🚀 Getting Started', value: 'Select a category from the menu to see available commands and their descriptions.', inline: true },
-                            { name: '💡 Pro Tip', value: `Use \`${prefix}help\` for traditional browsing or \`${prefix}cat\` for this interactive experience.`, inline: true }
+                            { name: '💡 Pro Tip', value: `Use \`${prefix}help\` for traditional browsing or \`${prefix}categories\` for this interactive experience.`, inline: true }
                         )
                         .setFooter({ text: `Version: ${config.version}` })
                         .setTimestamp();
@@ -4066,4 +4067,159 @@ async function handleLivePollList(message, args, prefix, client) {
         console.error('Error listing live polls:', error);
         return message.reply('There was an error retrieving your polls. Please try again later.');
     }
+}
+
+/**
+ * Show detailed category help for prefix commands
+ */
+async function showDetailedCategoryHelp(message, category, prefix) {
+    const config = require('../config');
+    const { EmbedBuilder } = require('discord.js');
+    
+    let categoryEmbed;
+    let commandCount = 0;
+
+    switch (category) {
+        case 'general':
+            commandCount = 5;
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.primary)
+                .setTitle('⚡ General Commands - Detailed View')
+                .setDescription('Essential bot commands for everyday use. These commands provide basic information and utility functions.')
+                .addFields(
+                    { name: `${prefix}help [category]`, value: '**Shows categorized command menu**\nQuickly browse all available commands by category', inline: false },
+                    { name: `${prefix}about`, value: '**Displays bot information and statistics**\nView bot uptime, server count, and version details', inline: false },
+                    { name: `${prefix}updates`, value: '**Shows latest bot updates and features**\nStay informed about new features and improvements', inline: false },
+                    { name: `${prefix}ses`, value: '**Bot session and status information**\nDetailed technical information about bot performance', inline: false },
+                    { name: `${prefix}np [duration]`, value: '**Enable no-prefix mode temporarily**\nUse commands without prefix for specified minutes', inline: false }
+                );
+            break;
+            
+        case 'leveling':
+            commandCount = 9;
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.success)
+                .setTitle('📊 Leveling System - Detailed View')
+                .setDescription('Comprehensive XP and ranking system to encourage server activity and engagement.')
+                .addFields(
+                    { name: `${prefix}rank [@user]`, value: '**View user level and XP progress**\nCheck your current level, XP, and progress to next level', inline: false },
+                    { name: `${prefix}leaderboard [page]`, value: '**Server XP leaderboard with pagination**\nSee top-ranked members and their achievements', inline: false },
+                    { name: `${prefix}badges [@user]`, value: '**View and manage achievement badges**\nDisplay special badges earned through activities', inline: false },
+                    { name: `${prefix}set-level @user [level]`, value: '**Set user level (Admin)**\nManually set a user\'s level and XP', inline: false },
+                    { name: `${prefix}award-badge @user [type] [id]`, value: '**Award badges to users (Admin)**\nGrant special achievement badges to deserving members', inline: false },
+                    { name: `${prefix}revoke-badge @user [id]`, value: '**Revoke badges from users (Admin)**\nRemove badges from users if needed', inline: false }
+                );
+            break;
+            
+        case 'games':
+            commandCount = 4;
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.warning)
+                .setTitle('🎮 Games & Activities - Detailed View')
+                .setDescription('Interactive games and fun activities to boost server engagement and entertainment.')
+                .addFields(
+                    { name: `${prefix}tictactoe @user`, value: '**Classic Tic-Tac-Toe game**\nPlay against other members with interactive buttons', inline: false },
+                    { name: `${prefix}truthdare`, value: '**Truth or Dare game with custom questions**\nAdd your own questions or use the built-in database', inline: false },
+                    { name: `${prefix}cstart [start] [goal]`, value: '**Number counting game**\nServer-wide counting game with streak tracking', inline: false },
+                    { name: `${prefix}poll [question] [options]`, value: '**Create interactive polls with timers**\nGather opinions with customizable voting options', inline: false }
+                );
+            break;
+            
+        case 'moderation':
+            commandCount = 5;
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.secondary)
+                .setTitle('🛡️ Moderation Tools - Detailed View')
+                .setDescription('Comprehensive moderation and server management tools for maintaining order and providing support.')
+                .addFields(
+                    { name: `${prefix}ticket-setup`, value: '**Create ticket support system**\nSet up support channels with automatic categorization', inline: false },
+                    { name: `${prefix}create-ticket [reason]`, value: '**Create ticket with custom name**\nInstantly create a support ticket with specific purpose', inline: false },
+                    { name: `${prefix}ticket-history [@user]`, value: '**View ticket history and logs**\nReview past tickets and support interactions', inline: false },
+                    { name: `${prefix}move @user #channel`, value: '**Move members between voice channels**\nQuickly relocate users to different voice channels', inline: false },
+                    { name: `${prefix}end [activity]`, value: '**End ongoing activities**\nStop giveaways, polls, or other time-based activities', inline: false }
+                );
+            break;
+            
+        case 'community':
+            commandCount = 5;
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.success)
+                .setTitle('👥 Community Features - Detailed View')
+                .setDescription('Tools to build and engage your community with special events and social features.')
+                .addFields(
+                    { name: `${prefix}gstart [duration] [winners] [prize]`, value: '**Create giveaways with role requirements**\nHost exciting giveaways with customizable entry requirements', inline: false },
+                    { name: `${prefix}reroll [message_id]`, value: '**Reroll giveaway winners**\nSelect new winners if original winners are unavailable', inline: false },
+                    { name: `${prefix}welcome-config`, value: '**Configure welcome messages**\nCustomize welcome messages for new server members', inline: false },
+                    { name: `${prefix}broadcast [message]`, value: '**Send announcements to all servers**\nShare important updates across multiple servers', inline: false }
+                );
+            break;
+            
+        case 'admin':
+            commandCount = 8;
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.error)
+                .setTitle('⚙️ Administration - Detailed View')
+                .setDescription('Advanced server configuration and management tools. Requires administrator permissions.')
+                .addFields(
+                    { name: `${prefix}welcome-enable`, value: '**Enable welcome system**\nActivate welcome messages for new members', inline: false },
+                    { name: `${prefix}welcome-disable`, value: '**Disable welcome system**\nTurn off welcome messages for new members', inline: false },
+                    { name: `${prefix}welcome-channel #channel`, value: '**Set welcome message channel**\nConfigure where welcome messages are sent', inline: false },
+                    { name: `${prefix}broadcastsettings`, value: '**Configure broadcast system settings**\nSet up cross-server announcement preferences', inline: false },
+                    { name: `${prefix}autoreact enable`, value: '**Enable auto-reactions**\nAutomatic emoji reactions to trigger words', inline: false },
+                    { name: `${prefix}autoreact disable`, value: '**Disable auto-reactions**\nTurn off automatic emoji reactions', inline: false },
+                    { name: `${prefix}autoreact add [word] [emoji]`, value: '**Add auto-reaction trigger**\nSet up new automatic reactions to specific words', inline: false },
+                    { name: `${prefix}autoreact remove [word]`, value: '**Remove auto-reaction trigger**\nRemove existing automatic reactions', inline: false }
+                );
+            break;
+            
+        default:
+            categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.error)
+                .setTitle('❌ Unknown Category')
+                .setDescription(`The category "${category}" was not found. Available categories: general, leveling, games, moderation, community, admin`);
+    }
+    
+    if (categoryEmbed && category !== 'unknown') {
+        categoryEmbed.addFields({
+            name: '📈 Category Stats',
+            value: `**Commands in this category:** ${commandCount}\n**Usage Level:** ${getCategoryUsageLevel(category)}\n**Permission Level:** ${getCategoryPermissionLevel(category)}`,
+            inline: true
+        });
+    }
+    
+    categoryEmbed
+        .setFooter({ text: `Use ${prefix}help to see all categories • Version: ${config.version}` })
+        .setTimestamp();
+
+    return message.reply({ embeds: [categoryEmbed] });
+}
+
+/**
+ * Get usage level description for category
+ */
+function getCategoryUsageLevel(category) {
+    const levels = {
+        'general': 'Beginner Friendly',
+        'leveling': 'Intermediate',
+        'games': 'Beginner Friendly',
+        'moderation': 'Intermediate',
+        'community': 'Intermediate',
+        'admin': 'Advanced'
+    };
+    return levels[category] || 'Unknown';
+}
+
+/**
+ * Get permission level description for category
+ */
+function getCategoryPermissionLevel(category) {
+    const permissions = {
+        'general': 'Everyone',
+        'leveling': 'Members/Moderators',
+        'games': 'Everyone',
+        'moderation': 'Moderators',
+        'community': 'Moderators',
+        'admin': 'Administrators'
+    };
+    return permissions[category] || 'Unknown';
 }
