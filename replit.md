@@ -10,6 +10,14 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### July 28, 2025 - Categories Command Fix & No-Prefix System Complete
+✓ **FIXED CATEGORIES COMMAND**: Resolved missing `showDetailedCategoryHelp` function causing prefix categories to fail
+✓ **RESTORED FULL CATEGORIES FUNCTIONALITY**: Both `$categories` and `$commands` now work with interactive dropdown menus
+✓ **Enhanced Category Support**: Added detailed category help with comprehensive command descriptions
+✓ **No-Prefix System Clarified**: "np" refers to no-prefix mode allowing command execution without prefix ($np enable [minutes])
+✓ **Interactive Menu Support**: Dropdown menus work for both slash and prefix command versions
+✓ **Comprehensive Command Coverage**: All 6 categories (general, leveling, games, moderation, community, admin) fully functional
+
 ### July 28, 2025 - System Optimizations & No-Prefix Fixes
 ✓ **OPTIMIZED NO-PREFIX SYSTEM**: Reduced verbose debug logging that was cluttering console output
 ✓ **Confirmed No-Prefix Functionality**: System working correctly - users can enable with $np enable [minutes]
