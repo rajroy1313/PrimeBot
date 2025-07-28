@@ -192,7 +192,8 @@ class ServerSettingsManager {
             
             return { 
                 success: true, 
-                message: `No-prefix mode enabled for ${minutes} minute${minutes !== 1 ? 's' : ''}`
+                message: `No-prefix mode enabled for ${minutes} minute${minutes !== 1 ? 's' : ''}`,
+                expiresAt: expirationTime
             };
         } catch (error) {
             console.error(`[SERVER SETTINGS] Error enabling no-prefix mode for user ${userId} in guild ${guildId}:`, error);
@@ -250,13 +251,6 @@ class ServerSettingsManager {
             
             const settings = this.getGuildSettings(guildId);
             
-            // Debug output to help diagnose no-prefix issues
-            console.log(`[NO-PREFIX DEBUG] Checking no-prefix for user ${userId} in guild ${guildId}`);
-            console.log(`[NO-PREFIX DEBUG] Has noPrefixUsers: ${!!settings.noPrefixUsers}`);
-            if (settings.noPrefixUsers) {
-                console.log(`[NO-PREFIX DEBUG] User has entry: ${!!settings.noPrefixUsers[userId]}`);
-            }
-            
             // If noPrefixUsers doesn't exist or user doesn't have no-prefix mode enabled
             if (!settings.noPrefixUsers || !settings.noPrefixUsers[userId]) {
                 return false;
@@ -266,8 +260,6 @@ class ServerSettingsManager {
             const now = Date.now();
             const expiresAt = settings.noPrefixUsers[userId];
             
-            console.log(`[NO-PREFIX DEBUG] Current time: ${now}, Expiration: ${expiresAt}, Expired: ${now > expiresAt}`);
-            
             if (now > expiresAt) {
                 // No-prefix mode has expired, clean it up
                 console.log(`[NO-PREFIX] No-prefix mode expired for user ${userId} in guild ${guildId}`);
@@ -276,6 +268,7 @@ class ServerSettingsManager {
                 return false;
             }
             
+            // Only log when user actually has active no-prefix mode
             console.log(`[NO-PREFIX] User ${userId} has active no-prefix mode in guild ${guildId}`);
             return true;
         } catch (error) {
