@@ -22,10 +22,7 @@ module.exports = {
             
             // Check if giveawayManager exists
             if (!client.giveawayManager) {
-                console.error('[GIVEAWAY] GiveawayManager not found on client');
-                console.error('[GIVEAWAY] Available client properties:', Object.keys(client));
-                console.error('[GIVEAWAY] Client type:', typeof client);
-                console.error('[GIVEAWAY] Client constructor:', client.constructor.name);
+                console.log('[GIVEAWAY] GiveawayManager not available, skipping giveaway check');
                 return;
             }
             
