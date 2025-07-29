@@ -126,7 +126,7 @@ const giveaways = mysqlTable('giveaways', {
 // Giveaway participants table
 const giveawayParticipants = mysqlTable('giveaway_participants', {
   id: int('id').primaryKey().autoincrement(),
-  giveawayId: varchar('giveaway_id', { length: 50 }).notNull(),
+  giveawayId: varchar('message_id', { length: 50 }).notNull(),
   userId: varchar('user_id', { length: 50 }).notNull(),
   joinedAt: timestamp('joined_at').defaultNow(),
 });
@@ -134,7 +134,7 @@ const giveawayParticipants = mysqlTable('giveaway_participants', {
 // Giveaway winners table
 const giveawayWinners = mysqlTable('giveaway_winners', {
   id: int('id').primaryKey().autoincrement(),
-  giveawayId: varchar('giveaway_id', { length: 50 }).notNull(),
+  giveawayId: varchar('message_id', { length: 50 }).notNull(),
   userId: varchar('user_id', { length: 50 }).notNull(),
   selectedAt: timestamp('selected_at').defaultNow(),
 });

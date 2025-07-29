@@ -363,7 +363,7 @@ class GiveawayManager {
                     }
                 }
                 
-                // Save and return - don't continue to the main path
+                // Save and return
                 await this.saveGiveaways();
                 console.log(`[GIVEAWAY] Giveaway ${messageId} ended with deleted message.`);
                 return true;
