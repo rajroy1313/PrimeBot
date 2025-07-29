@@ -77,17 +77,38 @@ class PollManager {
     async checkPolls() {
         const now = Date.now();
         const endedPolls = [];
+        const activePolls = [];
         
-        console.log(`[POLLS] Checking for ended polls. Active polls: ${this.polls.size}`);
+        // Clean up old ended polls (older than 24 hours)
+        const oneDayAgo = now - (24 * 60 * 60 * 1000);
         
-        // Log all active polls
         for (const [messageId, poll] of this.polls.entries()) {
-            console.log(`[POLLS] Active poll ${messageId}: "${poll.question}", end time: ${new Date(poll.endTime).toISOString()}, current time: ${new Date(now).toISOString()}, ended: ${poll.ended}`);
+            // Remove old ended polls from memory
+            if (poll.ended && poll.endTime < oneDayAgo) {
+                console.log(`[POLLS] Removing old ended poll ${messageId} from memory`);
+                this.polls.delete(messageId);
+                continue;
+            }
             
-            // Only process polls that are not yet ended and have reached their end time
-            if (!poll.ended && poll.endTime <= now) {
-                console.log(`[POLLS] Poll ${messageId} has ended, marking for processing`);
-                endedPolls.push(messageId);
+            // Only count truly active polls (not ended)
+            if (!poll.ended) {
+                activePolls.push(messageId);
+                
+                // Check if this poll should end now
+                if (poll.endTime <= now) {
+                    console.log(`[POLLS] Poll ${messageId} has ended, marking for processing`);
+                    endedPolls.push(messageId);
+                }
+            }
+        }
+        
+        console.log(`[POLLS] Checking for ended polls. Active polls: ${activePolls.length}`);
+        
+        // Only log details for truly active polls to reduce spam
+        for (const messageId of activePolls) {
+            const poll = this.polls.get(messageId);
+            if (poll) {
+                console.log(`[POLLS] Active poll ${messageId}: "${poll.question}", end time: ${new Date(poll.endTime).toISOString()}, current time: ${new Date(now).toISOString()}, ended: ${poll.ended}`);
             }
         }
         
