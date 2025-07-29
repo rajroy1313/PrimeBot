@@ -10,6 +10,13 @@ Preferred communication style: Simple, everyday language.
 
 ## Recent Changes
 
+### July 29, 2025 - Giveaway Database Schema Fix
+✓ **FIXED GIVEAWAY DATABASE SCHEMA ERROR**: Resolved critical "Unknown column 'message_id'" error in giveaway_participants table
+✓ **Schema Mapping Corrected**: Fixed Drizzle ORM schema to properly map giveawayId to 'giveaway_id' column instead of 'message_id'
+✓ **Database Operations Restored**: Giveaway participant tracking now works correctly with proper column references
+✓ **System Stability Improved**: Eliminated recurring database query failures that were preventing giveaway updates
+✓ **Error-Free Giveaway Processing**: Giveaway system now processes ended giveaways without database errors
+
 ### July 28, 2025 - Giveaway System Database Migration Complete
 ✓ **GIVEAWAY SYSTEM MIGRATED TO MYSQL**: Complete migration from JSON files to database storage
 ✓ **Database Tables Created**: Added giveaways, giveaway_participants, and giveaway_winners tables
