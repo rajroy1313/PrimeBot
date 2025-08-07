@@ -68,52 +68,92 @@ class LevelingManager {
             
             let userCount = 0;
             let badgeCount = 0;
+            
+            // Prepare batch data for bulk insert
+            const usersToInsert = [];
+            const badgesToInsert = [];
 
+            console.log('[LEVELING] Processing JSON data for bulk insert...');
+            
             for (const [guildId, guildData] of Object.entries(jsonData)) {
+                console.log(`[LEVELING] Processing guild ${guildId} with ${Object.keys(guildData).length} users`);
+                
                 for (const [userId, userData] of Object.entries(guildData)) {
-                    // Check if user already exists in database
-                    const existingUser = await this.db.select()
-                        .from(this.schema.userLevels)
-                        .where(and(
-                            eq(this.schema.userLevels.guildId, guildId),
-                            eq(this.schema.userLevels.userId, userId)
-                        ))
-                        .limit(1);
+                    try {
+                        // Check if user already exists in database (batch check would be better but this is safer)
+                        const existingUser = await this.db.select()
+                            .from(this.schema.userLevels)
+                            .where(and(
+                                eq(this.schema.userLevels.guildId, guildId),
+                                eq(this.schema.userLevels.userId, userId)
+                            ))
+                            .limit(1);
 
-                    if (existingUser.length === 0) {
-                        // Insert user data
-                        await this.db.insert(this.schema.userLevels).values({
-                            guildId: guildId,
-                            userId: userId,
-                            xp: userData.xp || 0,
-                            level: userData.level || 0,
-                            messages: userData.messages || 0,
-                            lastMessage: userData.lastMessage ? new Date(userData.lastMessage) : null,
-                            createdAt: new Date(),
-                            updatedAt: new Date()
-                        });
-                        userCount++;
+                        if (existingUser.length === 0) {
+                            // Prepare user data for batch insert
+                            usersToInsert.push({
+                                guildId: guildId,
+                                userId: userId,
+                                xp: userData.xp || 0,
+                                level: userData.level || 0,
+                                messages: userData.messages || 0,
+                                lastMessage: userData.lastMessage ? new Date(userData.lastMessage) : null,
+                                createdAt: new Date(),
+                                updatedAt: new Date()
+                            });
 
-                        // Insert badges
-                        if (userData.badges && userData.badges.length > 0) {
-                            for (const badge of userData.badges) {
-                                await this.db.insert(this.schema.userBadges).values({
-                                    guildId: guildId,
-                                    userId: userId,
-                                    badgeId: badge.id,
-                                    badgeName: badge.name,
-                                    badgeEmoji: badge.emoji,
-                                    badgeColor: badge.color,
-                                    badgeDescription: badge.description,
-                                    badgeType: badge.type,
-                                    earnedAt: new Date(badge.earnedAt),
-                                    createdAt: new Date()
-                                });
-                                badgeCount++;
+                            // Prepare badges for batch insert
+                            if (userData.badges && userData.badges.length > 0) {
+                                for (const badge of userData.badges) {
+                                    badgesToInsert.push({
+                                        guildId: guildId,
+                                        userId: userId,
+                                        badgeId: badge.id,
+                                        badgeName: badge.name,
+                                        badgeEmoji: badge.emoji,
+                                        badgeColor: badge.color,
+                                        badgeDescription: badge.description,
+                                        badgeType: badge.type,
+                                        earnedAt: new Date(badge.earnedAt),
+                                        createdAt: new Date()
+                                    });
+                                }
                             }
                         }
+                        
+                        // Process in smaller batches to avoid memory issues
+                        if (usersToInsert.length >= 50) {
+                            console.log(`[LEVELING] Inserting batch of ${usersToInsert.length} users...`);
+                            await this.db.insert(this.schema.userLevels).values(usersToInsert);
+                            userCount += usersToInsert.length;
+                            usersToInsert.length = 0; // Clear array
+                        }
+                        
+                        if (badgesToInsert.length >= 100) {
+                            console.log(`[LEVELING] Inserting batch of ${badgesToInsert.length} badges...`);
+                            await this.db.insert(this.schema.userBadges).values(badgesToInsert);
+                            badgeCount += badgesToInsert.length;
+                            badgesToInsert.length = 0; // Clear array
+                        }
+                        
+                    } catch (error) {
+                        console.error(`[LEVELING] Error processing user ${userId} in guild ${guildId}:`, error.message);
+                        // Continue with next user instead of failing entire migration
                     }
                 }
+            }
+
+            // Insert remaining users and badges
+            if (usersToInsert.length > 0) {
+                console.log(`[LEVELING] Inserting final batch of ${usersToInsert.length} users...`);
+                await this.db.insert(this.schema.userLevels).values(usersToInsert);
+                userCount += usersToInsert.length;
+            }
+            
+            if (badgesToInsert.length > 0) {
+                console.log(`[LEVELING] Inserting final batch of ${badgesToInsert.length} badges...`);
+                await this.db.insert(this.schema.userBadges).values(badgesToInsert);
+                badgeCount += badgesToInsert.length;
             }
 
             console.log(`[LEVELING] ✅ Migration complete! Migrated ${userCount} users and ${badgeCount} badges`);
@@ -126,6 +166,7 @@ class LevelingManager {
             this.migrationComplete = true;
         } catch (error) {
             console.error('[LEVELING] Migration error:', error);
+            console.error('[LEVELING] Stack trace:', error.stack);
             this.migrationComplete = false;
         }
     }

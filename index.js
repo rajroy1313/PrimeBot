@@ -71,15 +71,15 @@ client.countingManager = new CountingManager(client);
 const TruthDareManager = require('./utils/truthDareManager');
 client.truthDareManager = new TruthDareManager(client);
 
-// Initialize leveling and badges manager
-const LevelingManager = require('./utils/levelingManager');
-client.levelingManager = new LevelingManager(client);
-
-// Initialize database connection
+// Initialize database connection FIRST (before LevelingManager)
 const { db } = require('./server/db');
 const schema = require('./shared/schema');
 client.db = db;
 client.schema = schema;
+
+// Initialize leveling and badges manager (after database is available)
+const LevelingManager = require('./utils/levelingManager');
+client.levelingManager = new LevelingManager(client);
 
 // Initialize server settings manager for broadcast opt-outs
 const ServerSettingsManager = require('./utils/serverSettingsManager');
