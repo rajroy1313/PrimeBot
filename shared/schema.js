@@ -159,6 +159,46 @@ const giveawayWinnersRelations = relations(giveawayWinners, ({ one }) => ({
   }),
 }));
 
+// User levels table
+const userLevels = mysqlTable('user_levels', {
+  id: int('id').primaryKey().autoincrement(),
+  guildId: varchar('guild_id', { length: 50 }).notNull(),
+  userId: varchar('user_id', { length: 50 }).notNull(),
+  xp: int('xp').default(0),
+  level: int('level').default(0),
+  messages: int('messages').default(0),
+  lastMessage: timestamp('last_message'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
+// User badges table
+const userBadges = mysqlTable('user_badges', {
+  id: int('id').primaryKey().autoincrement(),
+  guildId: varchar('guild_id', { length: 50 }).notNull(),
+  userId: varchar('user_id', { length: 50 }).notNull(),
+  badgeId: varchar('badge_id', { length: 100 }).notNull(),
+  badgeName: varchar('badge_name', { length: 255 }).notNull(),
+  badgeEmoji: varchar('badge_emoji', { length: 10 }).notNull(),
+  badgeColor: varchar('badge_color', { length: 50 }).notNull(),
+  badgeDescription: text('badge_description').notNull(),
+  badgeType: varchar('badge_type', { length: 50 }).notNull(),
+  earnedAt: timestamp('earned_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Relations for leveling
+const userLevelsRelations = relations(userLevels, ({ many }) => ({
+  badges: many(userBadges),
+}));
+
+const userBadgesRelations = relations(userBadges, ({ one }) => ({
+  user: one(userLevels, {
+    fields: [userBadges.guildId, userBadges.userId],
+    references: [userLevels.guildId, userLevels.userId],
+  }),
+}));
+
 // Exports
 module.exports = {
   livePolls,
@@ -178,5 +218,9 @@ module.exports = {
   giveawayWinners,
   giveawaysRelations,
   giveawayParticipantsRelations,
-  giveawayWinnersRelations
+  giveawayWinnersRelations,
+  userLevels,
+  userBadges,
+  userLevelsRelations,
+  userBadgesRelations
 };

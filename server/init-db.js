@@ -219,6 +219,39 @@ async function initializeTables() {
       )
     `);
 
+    // Create user levels table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS user_levels (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        guild_id VARCHAR(50) NOT NULL,
+        user_id VARCHAR(50) NOT NULL,
+        xp INT DEFAULT 0,
+        level INT DEFAULT 0,
+        messages INT DEFAULT 0,
+        last_message TIMESTAMP NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_user_guild (guild_id, user_id)
+      )
+    `);
+
+    // Create user badges table
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS user_badges (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        guild_id VARCHAR(50) NOT NULL,
+        user_id VARCHAR(50) NOT NULL,
+        badge_id VARCHAR(100) NOT NULL,
+        badge_name VARCHAR(255) NOT NULL,
+        badge_emoji VARCHAR(10) NOT NULL,
+        badge_color VARCHAR(50) NOT NULL,
+        badge_description TEXT NOT NULL,
+        badge_type VARCHAR(50) NOT NULL,
+        earned_at TIMESTAMP NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
     // Create indexes for better performance
     await connection.execute(`
       CREATE INDEX IF NOT EXISTS idx_live_polls_poll_id ON live_polls(poll_id)
@@ -236,8 +269,25 @@ async function initializeTables() {
       CREATE INDEX IF NOT EXISTS idx_live_poll_votes_user_id ON live_poll_votes(user_id)
     `);
 
+    // Create indexes for leveling tables
+    await connection.execute(`
+      CREATE INDEX IF NOT EXISTS idx_user_levels_guild_user ON user_levels(guild_id, user_id)
+    `);
+    await connection.execute(`
+      CREATE INDEX IF NOT EXISTS idx_user_levels_guild_level ON user_levels(guild_id, level DESC)
+    `);
+    await connection.execute(`
+      CREATE INDEX IF NOT EXISTS idx_user_levels_guild_xp ON user_levels(guild_id, xp DESC)
+    `);
+    await connection.execute(`
+      CREATE INDEX IF NOT EXISTS idx_user_badges_guild_user ON user_badges(guild_id, user_id)
+    `);
+    await connection.execute(`
+      CREATE INDEX IF NOT EXISTS idx_user_badges_badge_id ON user_badges(badge_id)
+    `);
+
     await connection.end();
-    console.log('✅ Live poll database tables initialized successfully');
+    console.log('✅ Database tables initialized successfully (including leveling system)');
   } catch (error) {
     console.error('❌ Database table initialization failed:', error);
     throw error;

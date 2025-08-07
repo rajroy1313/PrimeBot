@@ -20,7 +20,84 @@ module.exports = {
 
             const prefix = config.prefix;
 
-            // Bot mention handling removed - no longer needed
+            // Check for ping (mention)
+  if (
+                [`<@${client.user.id}>`, `<@!${client.user.id}>`].includes(message.content.trim()) &&
+                client.ws.status === 0
+            ){                       // Calculate bot uptime
+                const uptime = process.uptime();
+                const uptimeString = formatUptime(uptime);
+
+                // Get guild count
+                const guildCount = client.guilds.cache.size;
+
+                // Get command count
+                const commandCount = 9; // Update this manually when adding commands (giveaway, end, reroll, gstart, gend, commands, help, echo)
+
+                // Create ping embed
+                const inviteButton = new ButtonBuilder()
+                    .setLabel("Invite Me")
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(
+                        `https://discord.com/api/oauth2/authorize?client_id=${client.user.id}&permissions=563242011339808&scope=bot%20applications.commands`,
+                    );
+                    
+                const supportServerButton = new ButtonBuilder()
+                    .setLabel("Support Server")
+                    .setStyle(ButtonStyle.Link)
+                    .setURL(config.supportServer);
+
+                const row = new ActionRowBuilder().addComponents(inviteButton, supportServerButton);
+
+                const pingEmbed = new EmbedBuilder()
+                    .setColor(config.colors.primary)
+                    .setTitle("Hello there! 👋")
+                    .setDescription(
+                        `I'm **${client.user.username}**, your personal digital assistant (PDA)`,
+                    )
+                    .addFields(
+                        {
+                            name: "📋 Prefix",
+                            value: `\`${prefix}\``,
+                            inline: true,
+                        },
+                        {
+                            name: "🏓 Ping",
+                            value: `${client.ws.ping}ms`,
+                            inline: true,
+                        },
+                        {
+                            name: "⏱️ Uptime",
+                            value: uptimeString,
+                            inline: true,
+                        },
+                        {
+                            name: "🔧 Commands",
+                            value: `Type \`${prefix}help\` to see all available commands!`,
+                        },
+                    )
+                    .setThumbnail(
+                        client.user.displayAvatarURL({ dynamic: true }),
+                    )
+                    .setFooter({
+                        text: `Requested by ${message.author.tag} • Version: ${config.version}`,
+                        iconURL: message.author.displayAvatarURL({ dynamic: true }),
+                    })
+                    .setTimestamp();
+
+                try {
+                    await message.reply({
+                        embeds: [pingEmbed],
+                        components: [row],
+                    });
+                } catch (error) {
+                    console.error("Error handling ping:", error);
+                    await message.reply(
+                        "Sorry, I encountered an error while processing your ping. Please try again later.",
+                    );
+                }
+                return;
+            }
 
             // Format uptime in a readable format
             function formatUptime(uptime) {
@@ -1149,12 +1226,12 @@ module.exports = {
                                 .setTitle("Live Poll Commands")
                                 .setDescription("Cross-server polls with pass code sharing")
                                 .addFields(
-                                    { name: `${prefix}lpoll create [question] [option1] [option2] [duration]`, value: "Create a new cross-server poll" },
+                                    { name: `${prefix}lpoll create [question] [option1] [option2] [duration] [multiple_votes]`, value: "Create a new cross-server poll" },
                                     { name: `${prefix}lpoll join [poll_id_or_passcode]`, value: "Join an existing poll to vote" },
                                     { name: `${prefix}lpoll results [poll_id_or_passcode]`, value: "View live poll results" },
                                     { name: `${prefix}lpoll end [poll_id]`, value: "End your poll (creator only)" },
                                     { name: `${prefix}lpoll list`, value: "List your created polls with IDs/codes" },
-                                    { name: "Examples", value: `\`${prefix}lpoll create "Best pizza?" Pepperoni Cheese Veggie\`\n\`${prefix}lpoll create Gaming? PC Console Mobile 24h\`` }
+                                    { name: "Examples", value: `\`${prefix}lpoll create "Best pizza?" Pepperoni Cheese Veggie\`\n\`${prefix}lpoll create Gaming? PC Console Mobile 24h true\`` }
                                 )
                                 .setFooter({ text: `Version: ${config.version}` });
                             return message.reply({ embeds: [usageEmbed] });
@@ -3831,11 +3908,11 @@ async function handleLivePollCreate(message, args, prefix, client) {
     const ms = require('ms');
     
     if (args.length < 3) {
-        return message.reply(`**Correct Usage:** \`${prefix}lpoll create [question] [option1] [option2] [option3] [duration]\`\n**Example:** \`${prefix}lpoll create "Favorite game?" Minecraft Fortnite Valorant 2h\``);
+        return message.reply(`**Correct Usage:** \`${prefix}lpoll create [question] [option1] [option2] [option3] [duration] [multiple_votes]\`\n**Example:** \`${prefix}lpoll create "Favorite game?" Minecraft Fortnite Valorant 2h true\``);
     }
 
     // Parse arguments similar to regular poll
-    let question, options, duration = null; // Live polls don't expire by default
+    let question, options, duration = null, allowMultipleVotes = false; // Live polls don't expire by default
     
     // If first arg has quotes, extract the full quoted question
     if (args[0].startsWith('"')) {
@@ -3856,7 +3933,19 @@ async function handleLivePollCreate(message, args, prefix, client) {
         options = args.slice(1);
     }
 
-    // Check if last option is actually a duration
+    // Check if last option is actually multiple_votes boolean
+    if (options.length > 0) {
+        const lastOption = options[options.length - 1].toLowerCase();
+        if (lastOption === 'true' || lastOption === 'multi' || lastOption === 'multiple') {
+            allowMultipleVotes = true;
+            options = options.slice(0, -1); // Remove multiple_votes from options
+        } else if (lastOption === 'false' || lastOption === 'single') {
+            allowMultipleVotes = false;
+            options = options.slice(0, -1); // Remove multiple_votes from options
+        }
+    }
+
+    // Check if last remaining option is actually a duration
     if (options.length > 0) {
         const lastOption = options[options.length - 1];
         const parsedDuration = ms(lastOption);
@@ -3880,7 +3969,7 @@ async function handleLivePollCreate(message, args, prefix, client) {
             options,
             creatorId: message.author.id,
             duration,
-            allowMultipleVotes: false
+            allowMultipleVotes
         });
 
         const embed = new EmbedBuilder()
