@@ -38,31 +38,23 @@ module.exports = {
         });
 
         // Set bot status
-        client.user.setPresence({
-            activities: [
-                {
-                    name: `${client.guilds.cache.size} servers | $help`,
-                    type: ActivityType.Watching,
-                },
-            ],
-            status: "online",
-        });
+        const updateStatus = () => {
+            const serverCount = client.guilds.cache.size;
+            client.user.setPresence({
+                activities: [
+                    {
+                        name: `${serverCount} servers | $help`,
+                        type: ActivityType.Watching,
+                    },
+                ],
+                status: "online",
+            });
+        };
+
+        updateStatus();
 
         // Update activity every 5 minutes
-        setInterval(
-            () => {
-                client.user.setPresence({
-                    activities: [
-                        {
-                            name: `${client.guilds.cache.size} servers | $help`,
-                            type: ActivityType.Watching,
-                        },
-                    ],
-                    status: "online",
-                });
-            },
-            5 * 60 * 1000,
-        );
+        setInterval(updateStatus, 5 * 60 * 1000);
 
         console.log(
             `Bot is ready! Serving ${client.guilds.cache.size} servers.`,

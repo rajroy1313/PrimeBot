@@ -1,7 +1,7 @@
 
 const debug = require('debug')('bot:main');
 
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
@@ -154,6 +154,39 @@ for (const file of eventFiles) {
     }
 }
 console.log('===== EVENTS LOADED =====\n');
+
+// Add event handlers for guild join/leave to update status
+client.on('guildCreate', (guild) => {
+    console.log(`Joined guild: ${guild.name} (${guild.id})`);
+    // Update bot status with new server count
+    if (client.user) {
+        client.user.setPresence({
+            activities: [
+                {
+                    name: `${client.guilds.cache.size} servers | $help`,
+                    type: ActivityType.Watching,
+                },
+            ],
+            status: "online",
+        });
+    }
+});
+
+client.on('guildDelete', (guild) => {
+    console.log(`Left guild: ${guild.name} (${guild.id})`);
+    // Update bot status with new server count
+    if (client.user) {
+        client.user.setPresence({
+            activities: [
+                {
+                    name: `${client.guilds.cache.size} servers | $help`,
+                    type: ActivityType.Watching,
+                },
+            ],
+            status: "online",
+        });
+    }
+});
 
 // Make client globally available for the website
 global.client = client;

@@ -14,7 +14,7 @@ app.use((req, res, next) => {
         if (global.client && global.client.commands) {
             commandNames = Array.from(global.client.commands.keys());
         }
-        
+
         // Create bot info with proper error handling
         res.locals.botInfo = {
             name: 'AFK Devs Bot',
@@ -40,18 +40,18 @@ app.use((req, res, next) => {
 // Format uptime in a readable format
 function formatUptime(uptime) {
     if (!uptime) return 'Offline';
-    
+
     const seconds = Math.floor((uptime / 1000) % 60);
     const minutes = Math.floor((uptime / (1000 * 60)) % 60);
     const hours = Math.floor((uptime / (1000 * 60 * 60)) % 24);
     const days = Math.floor(uptime / (1000 * 60 * 60 * 24));
-    
+
     const parts = [];
     if (days > 0) parts.push(`${days}d`);
     if (hours > 0) parts.push(`${hours}h`);
     if (minutes > 0) parts.push(`${minutes}m`);
     if (seconds > 0) parts.push(`${seconds}s`);
-    
+
     return parts.join(' ');
 }
 
@@ -61,24 +61,31 @@ app.get('/', (req, res) => {
 });
 
 app.get('/api/botinfo', (req, res) => {
-    try {
-        // Refresh server count and uptime if possible
-        if (global.client && global.client.guilds) {
-            res.locals.botInfo.servers = global.client.guilds.cache.size;
-            res.locals.botInfo.uptime = formatUptime(global.client.uptime);
-        }
-        res.json(res.locals.botInfo);
-    } catch (error) {
-        console.error('Error serving bot info:', error);
-        // Return fallback data on error
-        res.json({
-            name: 'AFK Devs Bot',
-            prefix: '/',
-            servers: 'Online',
-            commands: ['help', 'about', 'giveaway'],
-            uptime: 'Online'
-        });
+    if (!global.client) {
+        return res.status(503).json({ error: 'Bot not ready' });
     }
+
+    const uptime = process.uptime();
+    const days = Math.floor(uptime / 86400);
+    const hours = Math.floor((uptime % 86400) / 3600);
+    const minutes = Math.floor((uptime % 3600) / 60);
+    const seconds = Math.floor(uptime % 60);
+
+    let uptimeString = '';
+    if (days > 0) uptimeString += `${days}d `;
+    if (hours > 0) uptimeString += `${hours}h `;
+    if (minutes > 0) uptimeString += `${minutes}m `;
+    uptimeString += `${seconds}s`;
+
+    // Ensure we get the actual current server count
+    const serverCount = global.client.guilds.cache.size || 0;
+
+    res.json({
+        servers: serverCount,
+        uptime: uptimeString,
+        commands: global.client.commands ? Array.from(global.client.commands.keys()) : [],
+        prefix: config.prefix
+    });
 });
 
 // Start server
