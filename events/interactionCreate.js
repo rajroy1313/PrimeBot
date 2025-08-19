@@ -82,7 +82,7 @@ async function showMainHelpUpdate(interaction) {
  */
 async function showCategoryHelpUpdate(interaction, category) {
     let categoryEmbed;
-    
+
     switch (category) {
         case 'general':
             categoryEmbed = new EmbedBuilder()
@@ -98,7 +98,7 @@ async function showCategoryHelpUpdate(interaction, category) {
                     { name: '/stats', value: 'Display comprehensive bot statistics', inline: true }
                 );
             break;
-            
+
         case 'leveling':
             categoryEmbed = new EmbedBuilder()
                 .setColor(config.colors.success)
@@ -116,7 +116,7 @@ async function showCategoryHelpUpdate(interaction, category) {
                     { name: '/leveling awardbadge', value: 'Award badges to users (Admin)', inline: true }
                 );
             break;
-            
+
         case 'games':
             categoryEmbed = new EmbedBuilder()
                 .setColor(config.colors.warning)
@@ -132,7 +132,7 @@ async function showCategoryHelpUpdate(interaction, category) {
                     { name: '/endpoll', value: 'End a poll early', inline: true }
                 );
             break;
-            
+
         case 'moderation':
             categoryEmbed = new EmbedBuilder()
                 .setColor(config.colors.secondary)
@@ -146,7 +146,7 @@ async function showCategoryHelpUpdate(interaction, category) {
                     { name: '/end', value: 'End giveaways and other activities', inline: true }
                 );
             break;
-            
+
         case 'community':
             categoryEmbed = new EmbedBuilder()
                 .setColor(config.colors.success)
@@ -163,7 +163,7 @@ async function showCategoryHelpUpdate(interaction, category) {
                     { name: '/broadcast', value: 'Send announcements to all servers', inline: true }
                 );
             break;
-            
+
         case 'admin':
             categoryEmbed = new EmbedBuilder()
                 .setColor(config.colors.error)
@@ -176,14 +176,14 @@ async function showCategoryHelpUpdate(interaction, category) {
                     { name: '/welcomeconfig', value: 'Complete welcome system setup', inline: true }
                 );
             break;
-            
+
         default:
             categoryEmbed = new EmbedBuilder()
                 .setColor(config.colors.error)
                 .setTitle('❌ Unknown Category')
                 .setDescription('The requested category was not found.');
     }
-    
+
     const backButton = new ActionRowBuilder()
         .addComponents(
             new ButtonBuilder()
@@ -192,10 +192,10 @@ async function showCategoryHelpUpdate(interaction, category) {
                 .setStyle(ButtonStyle.Secondary)
                 .setEmoji('◀️')
         );
-    
+
     categoryEmbed.setFooter({ text: `Version: ${config.version}` })
                 .setTimestamp();
-    
+
     await interaction.update({
         embeds: [categoryEmbed],
         components: [backButton]
@@ -204,7 +204,7 @@ async function showCategoryHelpUpdate(interaction, category) {
 
 module.exports = {
     name: 'interactionCreate',
-    
+
     async execute(interaction, client) {
         try {
             // Initialize interaction debugger on first run
@@ -213,15 +213,15 @@ module.exports = {
             }
             // Log interaction for debugging
             interactionDebugger.logInteraction(interaction, 'Incoming Interaction');
-            
+
             // Handle slash commands
             if (interaction.isChatInputCommand()) {
                 // Log the command usage
                 console.log(`[COMMAND] Executing slash command /${interaction.commandName} from ${interaction.user.tag}`);
                 interactionDebugger.logInteraction(interaction, `Slash Command (/${interaction.commandName})`);
-                
+
                 const command = client.commands.get(interaction.commandName);
-                
+
                 if (!command) {
                     console.error(`No command matching ${interaction.commandName} was found.`);
                     return safeReply(interaction, {
@@ -229,7 +229,7 @@ module.exports = {
                         ephemeral: true
                     });
                 }
-                
+
                 try {
                     // Execute the command safely
                     await safeExecute(
@@ -241,7 +241,7 @@ module.exports = {
                 } catch (slashCommandError) {
                     console.error(`Error executing command ${interaction.commandName}:`, slashCommandError);
                     interactionDebugger.debugInteractionError(interaction, slashCommandError, `Slash Command (/${interaction.commandName})`);
-                    
+
                     // Reply with an error message if not already replied
                     if (!interaction.replied && !interaction.deferred) {
                         await safeReply(interaction, {
@@ -250,23 +250,23 @@ module.exports = {
                         }).catch(console.error);
                     }
                 }
-                
+
                 return;
             }
-            
+
             // Handle buttons
             if (interaction.isButton()) {
                 // Get the full customId
                 const customId = interaction.customId;
-                
+
                 // Log ALL button interactions for debugging
                 console.log(`[DEBUG] ALL BUTTON INTERACTIONS - CustomId: "${customId}", User: ${interaction.user.username}, Channel: ${interaction.channel?.name}, Guild: ${interaction.guild?.name}`);
-                
+
                 // Handle voting buttons IMMEDIATELY before any other processing
                 if (customId.startsWith('vote_')) {
                     console.log(`[VOTE DEBUG] Button pressed: ${customId} by ${interaction.user.username}`);
                     console.log(`[VOTE DEBUG] Interaction state - replied: ${interaction.replied}, deferred: ${interaction.deferred}`);
-                    
+
                     try {
                         // IMMEDIATELY acknowledge the interaction to prevent timeout
                         if (!interaction.replied && !interaction.deferred) {
@@ -277,11 +277,11 @@ module.exports = {
                             console.log(`[VOTE DEBUG] Interaction already handled - replied: ${interaction.replied}, deferred: ${interaction.deferred}`);
                             return;
                         }
-                        
+
                         const parts = customId.split('_');
                         const pollId = parts[1];
                         const optionIndex = parseInt(parts[2]);
-                        
+
                         console.log(`[VOTE DEBUG] Parsed - Poll ID: ${pollId}, Option: ${optionIndex}`);
 
                         if (!client.livePollManager) {
@@ -296,21 +296,21 @@ module.exports = {
                         console.log(`[VOTE DEBUG] Processing vote for poll ${pollId}, option ${optionIndex}...`);
                         const result = await client.livePollManager.vote(pollId, interaction.user.id, optionIndex);
                         console.log(`[VOTE DEBUG] Vote result:`, result);
-                        
+
                         if (result && result.success) {
                             console.log(`[VOTE DEBUG] Vote successful, updating display...`);
                             const pollResults = await client.livePollManager.getPollResults(pollId);
-                            
+
                             if (pollResults) {
                                 const updatedEmbed = client.livePollManager.createPollEmbed(
-                                    pollResults.poll, 
-                                    pollResults.options, 
-                                    pollResults.totalVotes, 
+                                    pollResults.poll,
+                                    pollResults.options,
+                                    pollResults.totalVotes,
                                     true
                                 );
-                                
+
                                 const buttons = client.livePollManager.createVoteButtons(pollId, pollResults.options);
-                                
+
                                 console.log(`[VOTE DEBUG] Editing reply with updated results...`);
                                 await interaction.editReply({
                                     embeds: [updatedEmbed],
@@ -330,7 +330,7 @@ module.exports = {
                     } catch (voteError) {
                         console.error('[VOTE ERROR] Critical error in vote processing:', voteError);
                         console.error('[VOTE ERROR] Stack trace:', voteError.stack);
-                        
+
                         try {
                             if (!interaction.replied && !interaction.deferred) {
                                 await interaction.reply({
@@ -349,13 +349,13 @@ module.exports = {
                     }
                     return; // Exit early for vote buttons to prevent further processing
                 }
-                
+
                 // Log detailed button information for debugging (for non-vote buttons)
                 console.log(`[DEBUG] Button pressed with customId: "${customId}"`);
-                
+
                 // Log button interaction
                 interactionDebugger.logInteraction(interaction, `Button (${customId})`);
-                
+
                 try {
                     // For other buttons that use colons as separators, extract the parts
                     const [action, ...params] = customId.split(':');
@@ -436,7 +436,7 @@ module.exports = {
                         // Handle help category buttons
                         const category = interaction.customId.replace('help_', '');
                         console.log(`[HELP] Category button pressed: ${category}`);
-                        
+
                         if (category === 'back') {
                             // Show main help menu
                             await showMainHelpUpdate(interaction);
@@ -455,33 +455,27 @@ module.exports = {
                                 ephemeral: true
                             });
                         }
-                    } else if (interaction.customId.startsWith('categories_')) {
-                        // Handle categories command buttons
-                        const action = interaction.customId.replace('categories_', '');
-                        console.log(`[CATEGORIES] Button pressed: ${action}`);
-                        
-                        if (action === 'refresh') {
-                            // Refresh categories menu
-                            const { showCategorySelector } = require('../commands/categories');
-                            await interaction.deferUpdate();
-                            await showCategorySelector(interaction);
-                        } else if (action === 'help') {
-                            await interaction.reply({
-                                content: 'This is an interactive category browser. Use the dropdown menu to explore different command categories. Each category shows detailed information about available commands.',
-                                ephemeral: true
-                            });
-                        } else if (action === 'main') {
-                            // Back to main categories
-                            const { showCategorySelector } = require('../commands/categories');
-                            await showCategorySelector(interaction);
-                        }
+                    } else if (interaction.customId === 'categories_main') {
+                        const { showCategorySelector } = require('../commands/categories');
+                        await showCategorySelector(interaction);
+                        return;
+                    } else if (interaction.customId === 'categories_refresh') {
+                        const { showCategorySelector } = require('../commands/categories');
+                        await showCategorySelector(interaction);
+                        return;
+                    } else if (interaction.customId === 'categories_help') {
+                        await interaction.reply({
+                            content: 'Use the dropdown menu to browse different command categories. Each category contains specialized commands for different server needs.\n\n**Available Categories:**\n• General - Basic bot commands\n• Leveling - XP and ranking system\n• Games - Interactive games and fun\n• Moderation - Server management tools\n• Community - Social features and events\n• Administration - Advanced server config',
+                            ephemeral: true
+                        });
+                        return;
                     } else if (interaction.customId === 'broadcast_confirm') {
                         console.log('[BROADCAST] Broadcast confirmation button clicked');
                         // Handle broadcast confirmation - this now directly processes the broadcast
                         // Get the broadcast embed from the original message
                         const originalMessage = interaction.message;
                         const broadcastEmbed = originalMessage.embeds.length > 1 ? originalMessage.embeds[1] : null;
-                        
+
                         if (!broadcastEmbed) {
                             await interaction.update({
                                 content: 'Error: Could not find broadcast embed. Broadcast cancelled.',
@@ -490,73 +484,73 @@ module.exports = {
                             });
                             return;
                         }
-                        
+
                         // Update the message to show that broadcasting has started
                         await interaction.update({
                             content: '📣 Broadcasting message to all servers...',
                             embeds: [broadcastEmbed],
                             components: []
                         });
-                        
+
                         // Track statistics
                         let successCount = 0;
                         let failCount = 0;
                         let skippedOptOut = 0;
                         let totalGuilds = client.guilds.cache.size;
-                        
+
                         // Get count of receptive servers
-                        const receptiveServers = client.serverSettingsManager ? 
+                        const receptiveServers = client.serverSettingsManager ?
                             client.serverSettingsManager.getBroadcastReceptionCount() : totalGuilds;
-                            
+
                         // Broadcast to guilds that haven't opted out
                         console.log(`[BROADCAST] Starting broadcast to ${receptiveServers} guilds that haven't opted out (total: ${totalGuilds})`);
-                        
+
                         // Helper function for progress bar
                         function createProgressBar(percentage) {
                             const barLength = 20;
                             const filledLength = Math.round((percentage / 100) * barLength);
                             const emptyLength = barLength - filledLength;
-                            
+
                             const filled = '█'.repeat(filledLength);
                             const empty = '░'.repeat(emptyLength);
-                            
+
                             return `[${filled}${empty}]`;
                         }
-                        
+
                         // Process each guild
                         let processedCount = 0;
                         const startTime = Date.now();
-                        
+
                         for (const guild of client.guilds.cache.values()) {
                             try {
                                 console.log(`[BROADCAST] Processing guild: ${guild.name} (${guild.id})`);
                                 processedCount++;
-                                
+
                                 // Check if the guild has opted out of broadcasts
                                 if (client.serverSettingsManager && !client.serverSettingsManager.receivesBroadcasts(guild.id)) {
                                     console.log(`[BROADCAST] Guild ${guild.name} has opted out of broadcasts, skipping`);
                                     skippedOptOut++;
                                     continue;
                                 }
-                                
+
                                 // Find the first available text channel
                                 const channel = guild.channels.cache
                                     .filter(ch => ch.type === 0) // 0 is GuildText channel type
                                     .sort((a, b) => a.position - b.position)
                                     .first();
-                                
+
                                 if (!channel) {
                                     console.log(`[BROADCAST] No suitable text channel found in guild: ${guild.name}`);
                                     failCount++;
                                     continue;
                                 }
-                                
+
                                 console.log(`[BROADCAST] Selected channel: ${channel.name} (${channel.id})`);
-                                
+
                                 // Check bot permissions
                                 const hasPermission = channel.permissionsFor(guild.members.me).has("SendMessages");
                                 console.log(`[BROADCAST] Bot has SendMessages permission: ${hasPermission}`);
-                                
+
                                 if (hasPermission) {
                                     await channel.send({ embeds: [broadcastEmbed] });
                                     console.log(`[BROADCAST] Successfully sent broadcast to guild: ${guild.name}`);
@@ -565,7 +559,7 @@ module.exports = {
                                     console.log(`[BROADCAST] Missing SendMessages permission in channel: ${channel.name}`);
                                     failCount++;
                                 }
-                                
+
                                 // Update progress every 5 guilds or when done
                                 if (processedCount % 5 === 0 || processedCount === totalGuilds) {
                                     try {
@@ -573,7 +567,7 @@ module.exports = {
                                         const progressPercent = Math.round((processedCount / totalGuilds) * 100);
                                         const progressBar = createProgressBar(progressPercent);
                                         const elapsedTime = Math.round((Date.now() - startTime) / 1000);
-                                        
+
                                         await interaction.editReply({
                                             content: `📣 Broadcasting message to servers...\n${progressBar} ${progressPercent}% Complete\n\nProgress: ${processedCount}/${totalGuilds} servers\n✅ Success: ${successCount} | ❌ Failed: ${failCount} | 🔕 Opted Out: ${skippedOptOut}\n⏱️ Time elapsed: ${elapsedTime}s`,
                                             embeds: [broadcastEmbed],
@@ -583,18 +577,18 @@ module.exports = {
                                         console.error('[BROADCAST] Failed to update progress:', e);
                                     }
                                 }
-                                
+
                             } catch (error) {
                                 console.error(`[BROADCAST] Error broadcasting to guild ${guild.name}:`, error);
                                 failCount++;
                             }
                         }
-                        
+
                         // Calculate completion metrics
                         const completionTime = Math.round((Date.now() - startTime) / 1000);
                         const eligibleServers = totalGuilds - skippedOptOut;
                         const successRate = eligibleServers > 0 ? Math.round((successCount / eligibleServers) * 100) : 0;
-                        
+
                         // Update with final results - modern design
                         const resultEmbed = new EmbedBuilder()
                             .setColor(config.colors.success)
@@ -611,7 +605,7 @@ module.exports = {
                             )
                             .setTimestamp()
                             .setFooter({ text: `Broadcast ID: ${Date.now().toString(36)}` });
-                            
+
                         await interaction.editReply({
                             content: "✅ Broadcast successfully completed!",
                             embeds: [resultEmbed, broadcastEmbed],
@@ -620,14 +614,14 @@ module.exports = {
                     } else if (interaction.customId === 'broadcast_cancel') {
                         // Handle cancellation with a more descriptive response
                         console.log('[BROADCAST] Broadcast cancelled by user');
-                        
+
                         const cancelEmbed = new EmbedBuilder()
                             .setColor(config.colors.danger)
                             .setTitle('📣 Broadcast Cancelled')
                             .setDescription('Your broadcast has been cancelled. No messages were sent to any servers.')
                             .setFooter({ text: `Cancelled by ${interaction.user.tag}` })
                             .setTimestamp();
-                            
+
                         await interaction.update({
                             content: '✅ Broadcast has been cancelled.',
                             embeds: [cancelEmbed],
@@ -638,7 +632,7 @@ module.exports = {
                         // Unknown button action
                         console.warn(`Unknown button action: ${action}`);
                         interactionDebugger.logInteraction(interaction, `Unknown Button Action (${action})`);
-                        
+
                         if (!interaction.replied) {
                             await interaction.reply({
                                 content: 'This button is not currently functional.',
@@ -649,7 +643,7 @@ module.exports = {
                 } catch (buttonError) {
                     console.error(`[ERROR] Button interaction error for customId "${interaction.customId}":`, buttonError);
                     interactionDebugger.debugInteractionError(interaction, buttonError, `Button (${interaction.customId})`);
-                    
+
                     // Try to provide feedback to the user if we haven't already replied
                     if (!interaction.replied && !interaction.deferred) {
                         await interaction.reply({
@@ -657,14 +651,14 @@ module.exports = {
                             ephemeral: true
                         }).catch(e => console.error('Failed to send error reply:', e));
                     }
-                    
+
                     // Don't throw to prevent the entire interaction handler from failing
                     // This will allow the bot to continue handling other interactions
                 }
-                
+
                 return;
             }
-            
+
             // Handle modal submissions
             if (interaction.isModalSubmit()) {
                 // Route to appropriate handler based on customId
@@ -678,37 +672,29 @@ module.exports = {
                 }
                 return;
             }
-            
+
             // Handle select menus
             if (interaction.isStringSelectMenu()) {
                 console.log(`[DEBUG] Select menu interaction with customId: "${interaction.customId}"`);
                 interactionDebugger.logInteraction(interaction, `Select Menu (${interaction.customId})`);
-                
+
                 try {
                     if (interaction.customId === 'category_select_prefix') {
                         const selectedCategory = interaction.values[0];
                         console.log(`[CATEGORIES] User selected category: ${selectedCategory}`);
-                        
+
                         // Import the functions from the categories module
                         const { showDetailedCategoryMenuHelp } = require('../utils/categoryHelpers');
                         await showDetailedCategoryMenuHelp(interaction, selectedCategory);
-                    } else if (interaction.customId === 'category_select') {
-                        // Handle category select menu from categories command
+                        return;
+                    }
+                    if (interaction.customId === 'category_select') {
                         const selectedCategory = interaction.values[0];
                         console.log(`[CATEGORIES] User selected category: ${selectedCategory}`);
-                        
+
                         const { showCategoryDetails } = require('../commands/categories');
                         await showCategoryDetails(interaction, selectedCategory);
-                    } else if (interaction.customId === 'categories_refresh') {
-                        // Handle refresh button
-                        await interaction.deferUpdate();
-                        // Could refresh the menu here if needed
-                    } else if (interaction.customId === 'categories_help') {
-                        // Handle help button
-                        await interaction.reply({
-                            content: 'This is an interactive category browser. Use the dropdown menu to explore different command categories. Each category shows detailed information about available commands, their usage, and permission requirements.',
-                            ephemeral: true
-                        });
+                        return;
                     }
                 } catch (selectError) {
                     console.error('Error handling select menu interaction:', selectError);
@@ -719,15 +705,15 @@ module.exports = {
                         }).catch(console.error);
                     }
                 }
-                
+
                 return;
             }
-            
+
             // Handle other interaction types as needed
-            
+
         } catch (error) {
             console.error('Error in interactionCreate event:', error);
-            
+
             // Try to respond to the user if possible
             try {
                 if (!interaction.replied && !interaction.deferred) {

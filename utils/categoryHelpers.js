@@ -122,7 +122,7 @@ async function showDetailedCategoryMenuHelp(interaction, category) {
     const backSelect = new ActionRowBuilder()
         .addComponents(
             new StringSelectMenuBuilder()
-                .setCustomId('category_select_prefix')
+                .setCustomId('category_select')
                 .setPlaceholder('Choose another category...')
                 .addOptions([
                     {
@@ -187,10 +187,21 @@ async function showDetailedCategoryMenuHelp(interaction, category) {
     categoryEmbed.setFooter({ text: `Version: ${config.version} • Category: ${category.charAt(0).toUpperCase() + category.slice(1)}` })
                .setTimestamp();
 
-    await interaction.update({
-        embeds: [categoryEmbed],
-        components: [backSelect, navigationButtons]
-    });
+    try {
+        await interaction.update({
+            embeds: [categoryEmbed],
+            components: [backSelect, navigationButtons]
+        });
+    } catch (error) {
+        console.error('Error updating interaction:', error);
+        // Fallback to reply if update fails
+        if (!interaction.replied) {
+            await interaction.reply({
+                embeds: [categoryEmbed],
+                components: [backSelect, navigationButtons]
+            });
+        }
+    }
 }
 
 /**

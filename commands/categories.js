@@ -6,7 +6,7 @@ module.exports = {
         .setName('categories')
         .setDescription('Browse commands by category with interactive menus')
         .setDefaultMemberPermissions('0'),
-    
+
     async execute(interaction) {
         await showCategorySelector(interaction);
     }
@@ -120,7 +120,7 @@ async function showCategoryDetails(interaction, category) {
                     { name: '</echo:0>', value: '`Makes the bot repeat your message`\nUseful for announcements and formatted messages', inline: false }
                 );
             break;
-            
+
         case 'leveling':
             commandCount = 9;
             categoryEmbed = new EmbedBuilder()
@@ -139,7 +139,7 @@ async function showCategoryDetails(interaction, category) {
                     { name: '</leveling award-badge:0>', value: '`Award badges to users (Admin)`\nGrant special achievement badges to deserving members', inline: false }
                 );
             break;
-            
+
         case 'games':
             commandCount = 4;
             categoryEmbed = new EmbedBuilder()
@@ -153,7 +153,7 @@ async function showCategoryDetails(interaction, category) {
                     { name: '</poll:0>', value: '`Create interactive polls with timers`\nGather opinions with customizable voting options', inline: false }
                 );
             break;
-            
+
         case 'moderation':
             commandCount = 5;
             categoryEmbed = new EmbedBuilder()
@@ -168,7 +168,7 @@ async function showCategoryDetails(interaction, category) {
                     { name: '</end:0>', value: '`End ongoing activities`\nStop giveaways, polls, or other time-based activities', inline: false }
                 );
             break;
-            
+
         case 'community':
             commandCount = 5;
             categoryEmbed = new EmbedBuilder()
@@ -183,7 +183,7 @@ async function showCategoryDetails(interaction, category) {
                     { name: '</broadcast:0>', value: '`Send announcements to all servers`\nShare important updates across multiple servers', inline: false }
                 );
             break;
-            
+
         case 'admin':
             commandCount = 6;
             categoryEmbed = new EmbedBuilder()
@@ -199,7 +199,7 @@ async function showCategoryDetails(interaction, category) {
                     { name: '</sync status:0>', value: '`Check synchronization status`\nView current sync settings and last sync times', inline: false }
                 );
             break;
-            
+
         default:
             categoryEmbed = new EmbedBuilder()
                 .setColor(config.colors.error)
