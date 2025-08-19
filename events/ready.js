@@ -7,8 +7,7 @@ module.exports = {
     execute(client) {
         console.log(`Logged in as ${client.user.tag}!`);
 
-        // Start checking for ended giveaways
-        client.giveawayManager.startCheckingGiveaways();
+        // Giveaway checking will be started automatically by GiveawayManager after database initialization
 
         // Debug: List all registered slash commands
         console.log('\n===== SLASH COMMANDS DEBUG =====');

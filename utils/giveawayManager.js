@@ -10,10 +10,10 @@ class GiveawayManager {
         this.db = null;
         this.schema = null;
         this.dbReady = false;
+        this.startupComplete = false;
         
         // Initialize database connection
         this.initializeDatabase();
-        this.startCheckingGiveaways(); // Start checking for ended giveaways immediately
     }
 
     async initializeDatabase() {
@@ -54,11 +54,34 @@ class GiveawayManager {
                 ));
 
             let loadedCount = 0;
+            let silentlyEndedCount = 0;
+            const now = Date.now();
+
             for (const giveaway of activeGiveaways) {
                 // Load participants for this giveaway
                 const participants = await this.db.select()
                     .from(this.schema.giveawayParticipants)
                     .where(eq(this.schema.giveawayParticipants.giveawayId, giveaway.messageId));
+
+                const endTime = new Date(giveaway.endsAt).getTime();
+                
+                // If giveaway has already ended, mark it as ended in database without processing
+                if (endTime <= now) {
+                    console.log(`[GIVEAWAY] Silently marking expired giveaway ${giveaway.messageId} as ended (startup cleanup)`);
+                    
+                    try {
+                        await this.db.update(this.schema.giveaways)
+                            .set({
+                                isActive: false,
+                                ended: true
+                            })
+                            .where(eq(this.schema.giveaways.messageId, giveaway.messageId));
+                        silentlyEndedCount++;
+                    } catch (dbError) {
+                        console.error(`[GIVEAWAY] Error marking giveaway ${giveaway.messageId} as ended:`, dbError);
+                    }
+                    continue;
+                }
 
                 // Convert to the format expected by the giveaway system
                 const giveawayData = {
@@ -69,9 +92,10 @@ class GiveawayManager {
                     description: giveaway.description || '',
                     winnerCount: giveaway.winnerCount,
                     hostId: giveaway.hostId,
-                    endTime: new Date(giveaway.endsAt).getTime(),
+                    endTime: endTime,
                     participants: new Set(participants.map(p => p.userId)),
-                    active: giveaway.isActive && !giveaway.ended
+                    active: true,
+                    ended: false
                 };
 
                 this.giveaways.set(giveaway.messageId, giveawayData);
@@ -79,6 +103,13 @@ class GiveawayManager {
             }
 
             console.log(`[GIVEAWAY] Loaded ${loadedCount} active giveaways from database.`);
+            if (silentlyEndedCount > 0) {
+                console.log(`[GIVEAWAY] Silently ended ${silentlyEndedCount} expired giveaways during startup cleanup.`);
+            }
+            
+            // Mark startup as complete and start the checking system with a delay
+            this.startupComplete = true;
+            this.startCheckingGiveaways();
         } catch (error) {
             console.error('[GIVEAWAY] Error loading giveaways from database:', error);
         }
@@ -161,11 +192,14 @@ class GiveawayManager {
      * Start checking for ended giveaways at a regular interval
      */
     startCheckingGiveaways() {
-        this.checkInterval = setInterval(() => {
-            this.checkGiveaways();
-        }, config.giveaway.checkInterval);
-        
-        console.log('Giveaway checking system started.');
+        // Add a delay before starting the checking system to avoid startup spam
+        setTimeout(() => {
+            this.checkInterval = setInterval(() => {
+                this.checkGiveaways();
+            }, config.giveaway.checkInterval);
+            
+            console.log('Giveaway checking system started.');
+        }, 10000); // Wait 10 seconds after startup before starting checks
     }
 
     /**
