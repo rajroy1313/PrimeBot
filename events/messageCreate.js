@@ -30,9 +30,12 @@ module.exports = {
 
                 // Get guild count
                 const guildCount = client.guilds.cache.size;
+                
+                // Calculate total users across all guilds
+                const totalUsers = client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0);
 
                 // Get command count
-                const commandCount = 9; // Update this manually when adding commands (giveaway, end, reroll, gstart, gend, commands, help, echo)
+                const commandCount = 30; // Updated count
 
                 // Create ping embed
                 const inviteButton = new ButtonBuilder()
@@ -69,6 +72,16 @@ module.exports = {
                         {
                             name: "⏱️ Uptime",
                             value: uptimeString,
+                            inline: true,
+                        },
+                        {
+                            name: "🌐 Servers",
+                            value: `${guildCount} servers`,
+                            inline: true,
+                        },
+                        {
+                            name: "👥 Total Users",
+                            value: `${totalUsers.toLocaleString()} users`,
                             inline: true,
                         },
                         {
@@ -352,8 +365,8 @@ module.exports = {
                     
                     // Process this new content as a command (recursive processing)
                     try {
-                        // Process the command
-                        await module.exports.execute(simulatedMessage, client);
+                        // Process the command by calling the command handler directly
+                        await processCommand(simulatedMessage, client, commandName, args, prefix);
                         
                         // NO REACTION - Commands should execute silently in no-prefix mode
                         
@@ -361,6 +374,7 @@ module.exports = {
                     } catch (error) {
                         console.error('[NO-PREFIX] Error processing no-prefix command:', error);
                         console.error('[NO-PREFIX] Stack trace:', error.stack);
+                        // Don't show error to user in no-prefix mode to avoid spam
                     }
                 }
             }
@@ -412,43 +426,8 @@ module.exports = {
             switch (commandName) {
                 case "np":
                 case "noprefix":
-                    // Toggle no-prefix mode
-                    if (!message.guild) {
-                        return message.reply("No-prefix mode can only be used in servers.");
-                    }
-                    
-                    // Get current status
-                    const hasNoPrefix = client.serverSettingsManager.hasNoPrefixMode(
-                        message.guild.id,
-                        message.author.id
-                    );
-                    
-                    if (hasNoPrefix) {
-                        // Disable no-prefix mode
-                        client.serverSettingsManager.disableNoPrefixMode(message.guild.id, message.author.id);
-                        return message.reply("No-prefix mode has been disabled. You now need to use the command prefix.");
-                    } else {
-                        // Enable no-prefix mode (default 10 minutes)
-                        let duration = 10;
-                        if (args.length > 0) {
-                            const parsedDuration = parseInt(args[0]);
-                            if (!isNaN(parsedDuration) && parsedDuration > 0 && parsedDuration <= 60) {
-                                duration = parsedDuration;
-                            }
-                        }
-                        
-                        const result = client.serverSettingsManager.enableNoPrefixMode(
-                            message.guild.id, 
-                            message.author.id, 
-                            duration
-                        );
-                        
-                        if (result.success) {
-                            return message.reply(`No-prefix mode has been enabled for ${duration} minutes. You can now use commands without the prefix.`);
-                        } else {
-                            return message.reply(`Failed to enable no-prefix mode: ${result.message}`);
-                        }
-                    }
+                    // Handle no-prefix mode - moved to separate case section for better organization
+                    break;
                     
                 case "help":
                 
@@ -3609,6 +3588,146 @@ module.exports = {
         }
     },
 };
+
+/**
+ * Process a command with given arguments
+ */
+async function processCommand(message, client, commandName, args, prefix) {
+    const config = require("../config");
+    const { EmbedBuilder, ButtonBuilder, ButtonStyle, ActionRowBuilder } = require("discord.js");
+    
+    // Handle commands based on commandName
+    switch (commandName) {
+        case "help":
+            // Check if user wants a specific category
+            const category = args[0]?.toLowerCase();
+            
+            // If category is provided, show category-specific help
+            if (category && ['general', 'leveling', 'games', 'moderation', 'community', 'admin'].includes(category)) {
+                return showPrefixCategoryHelp(message, category, prefix);
+            }
+            
+            // Show main category menu
+            const categoryEmbed = new EmbedBuilder()
+                .setColor(config.colors.primary)
+                .setTitle('📚 Command Categories')
+                .setDescription(`Choose a category to explore available commands:\n\n**Usage:** \`${prefix}help [category]\``)
+                .addFields(
+                    { name: '⚡ General', value: `\`${prefix}help general\`\nBasic bot commands and information`, inline: true },
+                    { name: '📊 Leveling', value: `\`${prefix}help leveling\`\nXP, ranks, and progression system`, inline: true },
+                    { name: '🎮 Games', value: `\`${prefix}help games\`\nFun interactive games and activities`, inline: true },
+                    { name: '🛡️ Moderation', value: `\`${prefix}help moderation\`\nServer management and moderation tools`, inline: true },
+                    { name: '👥 Community', value: `\`${prefix}help community\`\nEngagement and social features`, inline: true },
+                    { name: '⚙️ Administration', value: `\`${prefix}help admin\`\nAdvanced server configuration`, inline: true }
+                )
+                .setFooter({ text: `Total Commands: 30+ • Version: ${config.version}` })
+                .setTimestamp();
+
+            return message.reply({ embeds: [categoryEmbed] });
+            
+        case "ping":
+            try {
+                const loadingEmbed = new EmbedBuilder()
+                    .setColor(config.colors.primary)
+                    .setTitle("📡 Ping Check")
+                    .setDescription("Measuring latency and database connectivity...");
+                    
+                const sentMessage = await message.channel.send({ embeds: [loadingEmbed] });
+                const ping = sentMessage.createdTimestamp - message.createdTimestamp;
+                const apiPing = Math.round(client.ws.ping);
+                
+                // Calculate total users across all guilds
+                const totalUsers = client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0);
+                
+                // Determine color based on ping
+                let color = config.colors.success;
+                if (ping > 500) {
+                    color = config.colors.error;
+                } else if (ping > 200) {
+                    color = config.colors.warning;
+                }
+                
+                const pingEmbed = new EmbedBuilder()
+                    .setColor(color)
+                    .setTitle("📡 Ping Results")
+                    .setDescription(`${ping <= 200 ? '✅' : ping <= 500 ? '⚠️' : '⛔'} Bot Status: ${ping <= 200 ? 'Excellent' : ping <= 500 ? 'Good' : 'Slow'}`)
+                    .addFields(
+                        { name: '🤖 Bot Latency', value: `${ping}ms`, inline: true },
+                        { name: '📶 API Latency', value: `${apiPing}ms`, inline: true },
+                        { name: '🌐 Servers', value: `${client.guilds.cache.size}`, inline: true },
+                        { name: '👥 Users', value: `${totalUsers.toLocaleString()}`, inline: true }
+                    )
+                    .setFooter({ 
+                        text: `Requested by ${message.author.tag}`,
+                        iconURL: message.author.displayAvatarURL() 
+                    })
+                    .setTimestamp();
+                
+                return sentMessage.edit({ embeds: [pingEmbed] });
+            } catch (error) {
+                console.error("Error handling ping:", error);
+                return message.reply("Sorry, I encountered an error while processing your ping. Please try again later.");
+            }
+            
+        case "about":
+        case "ab":
+            const prefixAboutEmbed = new EmbedBuilder()
+                .setColor(config.colors.primary)
+                .setTitle("About PrimeBot")
+                .setDescription("A sophisticated Discord bot for community engagement")
+                .addFields(
+                    { name: "Version", value: config.version, inline: true },
+                    { name: "Servers", value: client.guilds.cache.size.toString(), inline: true },
+                    { name: "Users", value: client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0).toLocaleString(), inline: true },
+                    { name: "Uptime", value: formatUptime(process.uptime()), inline: true }
+                )
+                .setFooter({ text: `Version: ${config.version}` })
+                .setTimestamp();
+
+            return message.reply({ embeds: [prefixAboutEmbed] });
+            
+        case "echo":
+            if (args.length < 1) {
+                return message.reply("Please provide a message to echo.");
+            }
+            
+            const echoMessage = args.join(" ");
+            await message.channel.send(echoMessage);
+            
+            const confirmEmbed = new EmbedBuilder()
+                .setColor(config.colors.success)
+                .setDescription("✅ Message echoed successfully!")
+                .setFooter({ text: `Version: ${config.version}` });
+
+            const reply = await message.reply({ embeds: [confirmEmbed] });
+            setTimeout(() => {
+                reply.delete().catch(() => {});
+            }, 3000);
+            break;
+            
+        default:
+            // Command not recognized in no-prefix mode
+            break;
+    }
+}
+
+/**
+ * Format uptime in a readable format
+ */
+function formatUptime(uptime) {
+    const seconds = Math.floor(uptime % 60);
+    const minutes = Math.floor((uptime / 60) % 60);
+    const hours = Math.floor((uptime / 3600) % 24);
+    const days = Math.floor(uptime / 86400);
+
+    const parts = [];
+    if (days > 0) parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (minutes > 0) parts.push(`${minutes}m`);
+    if (seconds > 0) parts.push(`${seconds}s`);
+
+    return parts.join(" ") || "0s";
+}
 
 /**
  * Show category-specific help for prefix commands
