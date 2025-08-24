@@ -1,9 +1,9 @@
-const { pgTable, text, integer, timestamp, boolean, varchar, serial } = require('drizzle-orm/pg-core');
+const { mysqlTable, text, int, timestamp, boolean, varchar } = require('drizzle-orm/mysql-core');
 const { relations } = require('drizzle-orm');
 
 // Live polls table
-const livePolls = pgTable('live_polls', {
-  id: serial('id').primaryKey(),
+const livePolls = mysqlTable('live_polls', {
+  id: int('id').primaryKey().autoincrement(),
   pollId: varchar('poll_id', { length: 100 }).notNull().unique(),
   passCode: varchar('pass_code', { length: 20 }).notNull(),
   question: text('question').notNull(),
@@ -17,20 +17,20 @@ const livePolls = pgTable('live_polls', {
 });
 
 // Live poll options table
-const livePollOptions = pgTable('live_poll_options', {
-  id: serial('id').primaryKey(),
+const livePollOptions = mysqlTable('live_poll_options', {
+  id: int('id').primaryKey().autoincrement(),
   pollId: varchar('poll_id', { length: 100 }).notNull(),
   optionText: text('option_text').notNull(),
-  optionIndex: integer('option_index').notNull(),
-  voteCount: integer('vote_count').default(0),
+  optionIndex: int('option_index').notNull(),
+  voteCount: int('vote_count').default(0),
 });
 
 // Live poll votes table
-const livePollVotes = pgTable('live_poll_votes', {
-  id: serial('id').primaryKey(),
+const livePollVotes = mysqlTable('live_poll_votes', {
+  id: int('id').primaryKey().autoincrement(),
   pollId: varchar('poll_id', { length: 100 }).notNull(),
   userId: varchar('user_id', { length: 50 }).notNull(),
-  optionIndex: integer('option_index').notNull(),
+  optionIndex: int('option_index').notNull(),
   votedAt: timestamp('voted_at').defaultNow(),
 });
 
@@ -55,8 +55,8 @@ const livePollVotesRelations = relations(livePollVotes, ({ one }) => ({
 }));
 
 // Regular polls table (unified with live polls system)
-const polls = pgTable('polls', {
-  id: serial('id').primaryKey(),
+const polls = mysqlTable('polls', {
+  id: int('id').primaryKey().autoincrement(),
   messageId: varchar('message_id', { length: 50 }).notNull().unique(),
   channelId: varchar('channel_id', { length: 50 }).notNull(),
   guildId: varchar('guild_id', { length: 50 }).notNull(),
@@ -69,21 +69,21 @@ const polls = pgTable('polls', {
 });
 
 // Regular poll options table
-const pollOptions = pgTable('poll_options', {
-  id: serial('id').primaryKey(),
+const pollOptions = mysqlTable('poll_options', {
+  id: int('id').primaryKey().autoincrement(),
   pollId: varchar('message_id', { length: 50 }).notNull(),
   optionText: text('option_text').notNull(),
-  optionIndex: integer('option_index').notNull(),
+  optionIndex: int('option_index').notNull(),
   emoji: varchar('emoji', { length: 10 }).notNull(),
-  voteCount: integer('vote_count').default(0),
+  voteCount: int('vote_count').default(0),
 });
 
 // Regular poll votes table
-const pollVotes = pgTable('poll_votes', {
-  id: serial('id').primaryKey(),
+const pollVotes = mysqlTable('poll_votes', {
+  id: int('id').primaryKey().autoincrement(),
   pollId: varchar('message_id', { length: 50 }).notNull(),
   userId: varchar('user_id', { length: 50 }).notNull(),
-  optionIndex: integer('option_index').notNull(),
+  optionIndex: int('option_index').notNull(),
   votedAt: timestamp('voted_at').defaultNow(),
 });
 
@@ -108,14 +108,14 @@ const pollVotesRelations = relations(pollVotes, ({ one }) => ({
 }));
 
 // Giveaways table
-const giveaways = pgTable('giveaways', {
-  id: serial('id').primaryKey(),
+const giveaways = mysqlTable('giveaways', {
+  id: int('id').primaryKey().autoincrement(),
   messageId: varchar('message_id', { length: 50 }).notNull().unique(),
   channelId: varchar('channel_id', { length: 50 }).notNull(),
   guildId: varchar('guild_id', { length: 50 }).notNull(),
   prize: text('prize').notNull(),
   description: text('description'),
-  winnerCount: integer('winner_count').default(1),
+  winnerCount: int('winner_count').default(1),
   hostId: varchar('host_id', { length: 50 }).notNull(),
   isActive: boolean('is_active').default(true),
   ended: boolean('ended').default(false),
@@ -124,16 +124,16 @@ const giveaways = pgTable('giveaways', {
 });
 
 // Giveaway participants table
-const giveawayParticipants = pgTable('giveaway_participants', {
-  id: serial('id').primaryKey(),
+const giveawayParticipants = mysqlTable('giveaway_participants', {
+  id: int('id').primaryKey().autoincrement(),
   giveawayId: varchar('giveaway_id', { length: 50 }).notNull(),
   userId: varchar('user_id', { length: 50 }).notNull(),
   joinedAt: timestamp('joined_at').defaultNow(),
 });
 
 // Giveaway winners table
-const giveawayWinners = pgTable('giveaway_winners', {
-  id: serial('id').primaryKey(),
+const giveawayWinners = mysqlTable('giveaway_winners', {
+  id: int('id').primaryKey().autoincrement(),
   giveawayId: varchar('giveaway_id', { length: 50 }).notNull(),
   userId: varchar('user_id', { length: 50 }).notNull(),
   selectedAt: timestamp('selected_at').defaultNow(),
@@ -160,21 +160,21 @@ const giveawayWinnersRelations = relations(giveawayWinners, ({ one }) => ({
 }));
 
 // User levels table
-const userLevels = pgTable('user_levels', {
-  id: serial('id').primaryKey(),
+const userLevels = mysqlTable('user_levels', {
+  id: int('id').primaryKey().autoincrement(),
   guildId: varchar('guild_id', { length: 50 }).notNull(),
   userId: varchar('user_id', { length: 50 }).notNull(),
-  xp: integer('xp').default(0),
-  level: integer('level').default(0),
-  messages: integer('messages').default(0),
+  xp: int('xp').default(0),
+  level: int('level').default(0),
+  messages: int('messages').default(0),
   lastMessage: timestamp('last_message'),
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 });
 
 // User badges table
-const userBadges = pgTable('user_badges', {
-  id: serial('id').primaryKey(),
+const userBadges = mysqlTable('user_badges', {
+  id: int('id').primaryKey().autoincrement(),
   guildId: varchar('guild_id', { length: 50 }).notNull(),
   userId: varchar('user_id', { length: 50 }).notNull(),
   badgeId: varchar('badge_id', { length: 100 }).notNull(),
