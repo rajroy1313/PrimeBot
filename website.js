@@ -1,8 +1,12 @@
 const express = require('express');
 const path = require('path');
 const config = require('./config.js');
+const { setupAuth, isAuthenticated } = require('./server/replitAuth.js');
 const app = express();
 const port = 5000;
+
+// Initialize authentication
+setupAuth(app).catch(console.error);
 
 // JSON parsing middleware
 app.use(express.json());
@@ -66,9 +70,30 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Dashboard route - serve React app
-app.get('/dashboard', (req, res) => {
+// Dashboard route - serve React app (protected)
+app.get('/dashboard', isAuthenticated, (req, res) => {
     res.sendFile(path.join(__dirname, 'public/dashboard', 'index.html'));
+});
+
+// Auth routes
+app.get('/api/auth/user', isAuthenticated, async (req, res) => {
+    try {
+        const user = req.user;
+        if (user && user.claims) {
+            res.json({
+                id: user.claims.sub,
+                email: user.claims.email,
+                firstName: user.claims.first_name,
+                lastName: user.claims.last_name,
+                profileImageUrl: user.claims.profile_image_url,
+            });
+        } else {
+            res.status(401).json({ message: 'User data not found' });
+        }
+    } catch (error) {
+        console.error("Error fetching user:", error);
+        res.status(500).json({ message: "Failed to fetch user" });
+    }
 });
 
 app.get('/api/botinfo', (req, res) => {

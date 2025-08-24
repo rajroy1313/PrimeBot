@@ -252,6 +252,29 @@ async function initializeTables() {
       )
     `);
 
+    // Create sessions table for authentication
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS sessions (
+        sid VARCHAR(255) PRIMARY KEY,
+        sess TEXT NOT NULL,
+        expire TIMESTAMP NOT NULL,
+        INDEX idx_session_expire (expire)
+      )
+    `);
+
+    // Create users table for authentication
+    await connection.execute(`
+      CREATE TABLE IF NOT EXISTS users (
+        id VARCHAR(255) PRIMARY KEY,
+        email VARCHAR(255) UNIQUE,
+        first_name VARCHAR(255),
+        last_name VARCHAR(255),
+        profile_image_url VARCHAR(500),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+      )
+    `);
+
     // Create indexes for better performance
     await connection.execute(`
       CREATE INDEX IF NOT EXISTS idx_live_polls_poll_id ON live_polls(poll_id)

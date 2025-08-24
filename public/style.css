@@ -75,6 +75,18 @@ img {
     background-color: #8799a5;
 }
 
+.btn-dashboard {
+    background: linear-gradient(45deg, #7289da, #99aab5);
+    color: var(--light-color);
+    border: none;
+}
+
+.btn-dashboard:hover {
+    background: linear-gradient(45deg, #677bc4, #8799a5);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(114, 137, 218, 0.3);
+}
+
 /* Header */
 header {
     background-color: var(--light-color);

@@ -199,6 +199,24 @@ const userBadgesRelations = relations(userBadges, ({ one }) => ({
   }),
 }));
 
+// Session storage table (for Replit Auth)
+const sessions = mysqlTable('sessions', {
+  sid: varchar('sid', { length: 255 }).primaryKey(),
+  sess: text('sess').notNull(),
+  expire: timestamp('expire').notNull(),
+});
+
+// User storage table (for Replit Auth)
+const users = mysqlTable('users', {
+  id: varchar('id', { length: 255 }).primaryKey(),
+  email: varchar('email', { length: 255 }).unique(),
+  firstName: varchar('first_name', { length: 255 }),
+  lastName: varchar('last_name', { length: 255 }),
+  profileImageUrl: varchar('profile_image_url', { length: 500 }),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+});
+
 // Exports
 module.exports = {
   livePolls,
@@ -222,5 +240,7 @@ module.exports = {
   userLevels,
   userBadges,
   userLevelsRelations,
-  userBadgesRelations
+  userBadgesRelations,
+  sessions,
+  users
 };
