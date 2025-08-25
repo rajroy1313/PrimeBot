@@ -70,9 +70,9 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Dashboard route - serve React app (protected)
+// Dashboard route - redirect to main page after authentication
 app.get('/dashboard', isAuthenticated, (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/dashboard', 'index.html'));
+    res.redirect('/?dashboard=true');
 });
 
 // Auth routes
