@@ -65,6 +65,12 @@ function setupSmoothScrolling() {
             e.preventDefault();
             
             const targetId = this.getAttribute('href');
+            
+            // Skip if targetId is just '#' or invalid
+            if (!targetId || targetId === '#' || targetId.length <= 1) {
+                return;
+            }
+            
             const targetElement = document.querySelector(targetId);
             
             if (targetElement) {
