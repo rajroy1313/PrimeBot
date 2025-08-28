@@ -23,15 +23,24 @@ function fetchBotInfo() {
         })
         .then(data => {
             try {
-                // Safely update stats on the page with error handling
+                // Safely update stats on the page with error handling and animations
                 const serverCount = document.getElementById('server-count');
-                if (serverCount) serverCount.textContent = data.servers || 'Online';
+                if (serverCount) {
+                    // Add animation for number changes
+                    if (serverCount.textContent !== data.servers.toString()) {
+                        serverCount.style.transform = 'scale(1.1)';
+                        setTimeout(() => {
+                            serverCount.style.transform = 'scale(1)';
+                        }, 200);
+                    }
+                    serverCount.textContent = data.servers || 'Online';
+                }
 
                 const uptime = document.getElementById('uptime');
                 if (uptime) uptime.textContent = data.uptime || 'Online';
 
                 const commandCount = document.getElementById('command-count');
-                if (commandCount) commandCount.textContent = data.commands ? data.commands.length : '19';
+                if (commandCount) commandCount.textContent = data.commands ? data.commands.length : '28';
 
                 const prefix = document.getElementById('prefix');
                 if (prefix) prefix.textContent = data.prefix || '/';
@@ -42,23 +51,42 @@ function fetchBotInfo() {
                         element.textContent = data.prefix || '/';
                     }
                 });
+
+                // Update last updated time
+                const lastUpdated = document.getElementById('last-updated');
+                if (lastUpdated) {
+                    lastUpdated.textContent = new Date().toLocaleTimeString();
+                }
+
+                // Show connection status
+                updateConnectionStatus(true);
             } catch (innerError) {
                 console.warn('Error updating DOM with bot info:', innerError);
-                // Don't crash the page if elements aren't found
+                updateConnectionStatus(false);
             }
         })
         .catch(error => {
             console.warn('Error fetching bot info:', error);
+            updateConnectionStatus(false);
             // Set fallback values on error to avoid displaying empty data
             try {
-                document.getElementById('server-count').textContent = 'Online';
-                document.getElementById('uptime').textContent = 'Online';
-                document.getElementById('command-count').textContent = '19';
+                document.getElementById('server-count').textContent = 'Offline';
+                document.getElementById('uptime').textContent = 'Offline';
+                document.getElementById('command-count').textContent = '28';
                 document.getElementById('prefix').textContent = '/';
             } catch (fallbackError) {
                 // Silent fail - the page might not have these elements
             }
         });
+}
+
+// Update connection status indicator
+function updateConnectionStatus(connected) {
+    const indicator = document.getElementById('connection-status');
+    if (indicator) {
+        indicator.className = connected ? 'status-online' : 'status-offline';
+        indicator.textContent = connected ? '🟢 Online' : '🔴 Offline';
+    }
 }
 
 // Set up smooth scrolling for anchor links

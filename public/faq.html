@@ -1,0 +1,574 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrimeBot FAQ</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        .faq-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .back-to-home {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            text-decoration: none;
+            z-index: 1000;
+            transition: transform 0.3s;
+        }
+        .back-to-home:hover {
+            transform: scale(1.05);
+        }
+        .faq-search {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 30px;
+            text-align: center;
+        }
+        .search-input {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        .search-input:focus {
+            border-color: #3498db;
+        }
+        .faq-categories {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+        .category-btn {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+        .category-btn:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+        .category-btn.active {
+            background: #e74c3c;
+        }
+        .faq-item {
+            background: white;
+            margin-bottom: 15px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+            transition: all 0.3s;
+        }
+        .faq-item:hover {
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+        .faq-question {
+            background: #f8f9fa;
+            padding: 20px;
+            cursor: pointer;
+            border: none;
+            width: 100%;
+            text-align: left;
+            font-size: 16px;
+            font-weight: 600;
+            color: #2c3e50;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: background 0.3s;
+        }
+        .faq-question:hover {
+            background: #e9ecef;
+        }
+        .faq-answer {
+            padding: 0 20px;
+            max-height: 0;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        .faq-answer.active {
+            padding: 20px;
+            max-height: 500px;
+        }
+        .faq-icon {
+            transition: transform 0.3s;
+        }
+        .faq-icon.active {
+            transform: rotate(180deg);
+        }
+        .command-example {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+        .highlight {
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+        }
+        .category {
+            display: none;
+        }
+        .category.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-to-home">
+        <i class="fas fa-home"></i> Back to Home
+    </a>
+
+    <div class="faq-container">
+        <header style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2c3e50;">Frequently Asked Questions</h1>
+            <p style="color: #7f8c8d; font-size: 18px;">Find quick answers to common questions about PrimeBot</p>
+        </header>
+
+        <div class="faq-search">
+            <h3 style="margin-top: 0;"><i class="fas fa-search"></i> Search FAQ</h3>
+            <input type="text" class="search-input" placeholder="Search for questions..." id="searchInput">
+        </div>
+
+        <div class="faq-categories">
+            <button class="category-btn active" data-category="all">All Questions</button>
+            <button class="category-btn" data-category="setup">Setup & Installation</button>
+            <button class="category-btn" data-category="commands">Commands & Usage</button>
+            <button class="category-btn" data-category="giveaways">Giveaways</button>
+            <button class="category-btn" data-category="leveling">Leveling System</button>
+            <button class="category-btn" data-category="tickets">Ticket System</button>
+            <button class="category-btn" data-category="troubleshooting">Troubleshooting</button>
+        </div>
+
+        <div class="faq-content">
+            <!-- Setup & Installation -->
+            <div class="faq-item category setup" data-category="setup">
+                <button class="faq-question">
+                    How do I add PrimeBot to my Discord server?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>Adding PrimeBot to your server is simple:</p>
+                    <ol>
+                        <li>Click the invite link: <a href="https://discord.com/oauth2/authorize?client_id=1356575287151951943&permissions=8&integration_type=0&scope=bot%20applications.commands" target="_blank">Invite PrimeBot</a></li>
+                        <li>Select your Discord server from the dropdown</li>
+                        <li>Make sure you have "Manage Server" permissions</li>
+                        <li>Review and approve the permissions</li>
+                        <li>Click "Authorize" to complete the process</li>
+                    </ol>
+                    <div class="highlight">
+                        <strong>Note:</strong> You need to have "Manage Server" permissions to add bots to a Discord server.
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item category setup" data-category="setup">
+                <button class="faq-question">
+                    What permissions does PrimeBot need?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>PrimeBot requires these permissions to function properly:</p>
+                    <ul>
+                        <li><strong>Send Messages</strong> - To respond to commands and send notifications</li>
+                        <li><strong>Embed Links</strong> - To send rich, formatted messages</li>
+                        <li><strong>Add Reactions</strong> - For giveaways and polls</li>
+                        <li><strong>Attach Files</strong> - To send images and files when needed</li>
+                        <li><strong>Manage Messages</strong> - To clean up and manage content</li>
+                        <li><strong>Manage Channels</strong> - For the ticket system</li>
+                        <li><strong>Manage Roles</strong> - For leveling system rewards</li>
+                    </ul>
+                    <div class="highlight">
+                        <strong>Tip:</strong> Granting Administrator permissions makes setup easier, but it's not required for basic functionality.
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item category setup" data-category="setup">
+                <button class="faq-question">
+                    How do I set up PrimeBot after adding it to my server?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>After adding PrimeBot, follow these steps:</p>
+                    <ol>
+                        <li>Use <code>/help</code> to see all available commands</li>
+                        <li>Configure welcome messages with <code>/welcomeconfig</code></li>
+                        <li>Set up the leveling system with <code>/leveling setup</code></li>
+                        <li>Configure the ticket system with <code>/ticket setup</code></li>
+                        <li>Test basic functionality with <code>/about</code> or <code>/stats</code></li>
+                    </ol>
+                    <div class="command-example">
+                        Quick setup commands:<br>
+                        /help<br>
+                        /about<br>
+                        /stats
+                    </div>
+                </div>
+            </div>
+
+            <!-- Commands & Usage -->
+            <div class="faq-item category commands" data-category="commands">
+                <button class="faq-question">
+                    What's the difference between slash commands and prefix commands?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>PrimeBot supports both command types:</p>
+                    <ul>
+                        <li><strong>Slash Commands (/):</strong> Modern Discord commands that auto-complete and show help text. Recommended for new users.</li>
+                        <li><strong>Prefix Commands ($):</strong> Traditional commands that start with a prefix. Still supported for compatibility.</li>
+                    </ul>
+                    <div class="command-example">
+                        Examples:<br>
+                        /help (slash command)<br>
+                        $help (prefix command)
+                    </div>
+                    <div class="highlight">
+                        <strong>Recommendation:</strong> Use slash commands for the best experience with auto-completion and parameter hints.
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item category commands" data-category="commands">
+                <button class="faq-question">
+                    How do I see all available commands?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>There are several ways to see available commands:</p>
+                    <ul>
+                        <li>Use <code>/help</code> for a complete command list</li>
+                        <li>Type <code>/</code> and look for PrimeBot commands in the auto-complete</li>
+                        <li>Visit our <a href="/docs.html">documentation page</a> for detailed explanations</li>
+                        <li>Use <code>/categories</code> to browse commands by category</li>
+                    </ul>
+                    <div class="command-example">
+                        /help - Complete command list<br>
+                        /categories - Browse by category<br>
+                        /about - Bot information
+                    </div>
+                </div>
+            </div>
+
+            <!-- Giveaways -->
+            <div class="faq-item category giveaways" data-category="giveaways">
+                <button class="faq-question">
+                    How do I create a giveaway?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>Creating a giveaway is easy with the <code>/giveaway</code> command:</p>
+                    <div class="command-example">
+                        /giveaway duration:1d winners:1 prize:Discord Nitro
+                    </div>
+                    <p>Parameters:</p>
+                    <ul>
+                        <li><strong>duration:</strong> How long the giveaway runs (s/m/h/d)</li>
+                        <li><strong>winners:</strong> Number of winners to select</li>
+                        <li><strong>prize:</strong> Description of what you're giving away</li>
+                    </ul>
+                    <div class="highlight">
+                        <strong>Duration examples:</strong> 30s, 15m, 2h, 7d
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item category giveaways" data-category="giveaways">
+                <button class="faq-question">
+                    Can I end a giveaway early or reroll winners?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>Yes! You can manage giveaways with these commands:</p>
+                    <div class="command-example">
+                        /end message_id:123456789 - End a giveaway early<br>
+                        /reroll message_id:123456789 - Pick new winners
+                    </div>
+                    <p>To get the message ID:</p>
+                    <ol>
+                        <li>Right-click on the giveaway message</li>
+                        <li>Select "Copy Message ID" (Developer Mode must be enabled)</li>
+                        <li>Use the ID in your command</li>
+                    </ol>
+                    <div class="highlight">
+                        <strong>Tip:</strong> Enable Developer Mode in Discord Settings > Advanced > Developer Mode to see message IDs.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Leveling System -->
+            <div class="faq-item category leveling" data-category="leveling">
+                <button class="faq-question">
+                    How does the leveling system work?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>The leveling system tracks member activity and awards XP:</p>
+                    <ul>
+                        <li><strong>XP per message:</strong> 15-25 XP (random amount)</li>
+                        <li><strong>Cooldown:</strong> 60 seconds between XP gains</li>
+                        <li><strong>Level formula:</strong> Level × 100 XP required to level up</li>
+                        <li><strong>Rewards:</strong> Roles can be assigned at certain levels</li>
+                    </ul>
+                    <div class="command-example">
+                        /leveling setup - Configure the system<br>
+                        /stats - Check your level and XP
+                    </div>
+                    <div class="highlight">
+                        <strong>Note:</strong> The cooldown prevents spam and ensures fair XP distribution.
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item category leveling" data-category="leveling">
+                <button class="faq-question">
+                    How do I set up level roles?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>Set up automatic role rewards for reaching certain levels:</p>
+                    <ol>
+                        <li>Create roles in your server settings</li>
+                        <li>Use <code>/leveling roles</code> to configure level rewards</li>
+                        <li>Set which role is awarded at which level</li>
+                        <li>Members automatically receive roles when leveling up</li>
+                    </ol>
+                    <div class="command-example">
+                        /leveling roles - Configure level roles<br>
+                        /leveling channel - Set announcement channel
+                    </div>
+                    <div class="highlight">
+                        <strong>Tip:</strong> Make sure PrimeBot has "Manage Roles" permission and its role is above the reward roles.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ticket System -->
+            <div class="faq-item category tickets" data-category="tickets">
+                <button class="faq-question">
+                    How do I set up the ticket system?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>Setting up tickets involves a few configuration steps:</p>
+                    <ol>
+                        <li>Create a category for ticket channels</li>
+                        <li>Use <code>/ticket setup</code> to configure the system</li>
+                        <li>Set the ticket category with <code>/ticket category</code></li>
+                        <li>Configure support roles with <code>/ticket role</code></li>
+                        <li>Test by creating a ticket with <code>/createticket</code></li>
+                    </ol>
+                    <div class="command-example">
+                        /ticket setup - Initial configuration<br>
+                        /ticket category - Set ticket category<br>
+                        /ticket role - Configure support roles
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item category tickets" data-category="tickets">
+                <button class="faq-question">
+                    How do members create and use tickets?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>Members can create tickets for private support:</p>
+                    <div class="command-example">
+                        /createticket subject:"Need help" description:"Describe your issue here"
+                    </div>
+                    <p>What happens when a ticket is created:</p>
+                    <ul>
+                        <li>A private channel is created in the ticket category</li>
+                        <li>Only the member and support roles can see it</li>
+                        <li>Support staff are notified of the new ticket</li>
+                        <li>The ticket can be closed when resolved</li>
+                    </ul>
+                    <div class="highlight">
+                        <strong>Features:</strong> Automatic logging, ticket history, and archive functionality.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Troubleshooting -->
+            <div class="faq-item category troubleshooting" data-category="troubleshooting">
+                <button class="faq-question">
+                    PrimeBot isn't responding to my commands. What should I do?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>Try these troubleshooting steps:</p>
+                    <ol>
+                        <li><strong>Check bot status:</strong> Is PrimeBot online in your member list?</li>
+                        <li><strong>Verify permissions:</strong> Does the bot have "Send Messages" in the channel?</li>
+                        <li><strong>Try slash commands:</strong> Use <code>/help</code> instead of <code>$help</code></li>
+                        <li><strong>Check channel permissions:</strong> Make sure the bot can read and send messages</li>
+                        <li><strong>Re-invite if needed:</strong> Use the invite link to refresh permissions</li>
+                    </ol>
+                    <div class="highlight">
+                        <strong>Quick test:</strong> Try <code>/about</code> in a channel where you know the bot has permissions.
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item category troubleshooting" data-category="troubleshooting">
+                <button class="faq-question">
+                    The leveling system isn't working. How do I fix it?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>Common leveling issues and solutions:</p>
+                    <ul>
+                        <li><strong>Not gaining XP:</strong> Check the 60-second cooldown between messages</li>
+                        <li><strong>No level announcements:</strong> Set an announcement channel with <code>/leveling channel</code></li>
+                        <li><strong>Roles not being assigned:</strong> Ensure bot has "Manage Roles" permission</li>
+                        <li><strong>XP not showing:</strong> Use <code>/stats</code> to check your current level and XP</li>
+                        <li><strong>System disabled:</strong> Use <code>/leveling setup</code> to enable it</li>
+                    </ul>
+                    <div class="command-example">
+                        /leveling setup - Enable/configure leveling<br>
+                        /stats - Check your level<br>
+                        /leveling channel - Set announcement channel
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item category troubleshooting" data-category="troubleshooting">
+                <button class="faq-question">
+                    Giveaways aren't working properly. What's wrong?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>Common giveaway issues:</p>
+                    <ul>
+                        <li><strong>No reaction button:</strong> Bot needs "Add Reactions" permission</li>
+                        <li><strong>Can't end giveaway:</strong> Check message ID format and use <code>/end</code></li>
+                        <li><strong>Embed not showing:</strong> Bot needs "Embed Links" permission</li>
+                        <li><strong>Winner selection failed:</strong> Ensure participants joined before the giveaway ended</li>
+                    </ul>
+                    <div class="command-example">
+                        /giveaway duration:1m winners:1 prize:Test - Quick test giveaway<br>
+                        /end message_id:YOUR_MESSAGE_ID - End early for testing
+                    </div>
+                    <div class="highlight">
+                        <strong>Test tip:</strong> Create a 1-minute test giveaway to verify everything works.
+                    </div>
+                </div>
+            </div>
+
+            <div class="faq-item category troubleshooting" data-category="troubleshooting">
+                <button class="faq-question">
+                    Where can I get more help?
+                    <i class="fas fa-chevron-down faq-icon"></i>
+                </button>
+                <div class="faq-answer">
+                    <p>If you need additional support:</p>
+                    <ul>
+                        <li><strong>Documentation:</strong> Check our <a href="/docs.html">complete documentation</a></li>
+                        <li><strong>Support Server:</strong> Join our <a href="https://discord.gg/gd7UNSfX86" target="_blank">Discord support server</a></li>
+                        <li><strong>Command Help:</strong> Use <code>/help</code> for in-bot assistance</li>
+                        <li><strong>Test Commands:</strong> Try <code>/about</code> or <code>/stats</code> to verify functionality</li>
+                    </ul>
+                    <div class="command-example">
+                        🔗 Support Server: <a href="https://discord.gg/gd7UNSfX86" target="_blank">discord.gg/gd7UNSfX86</a><br>
+                        📚 Documentation: <a href="/docs.html">docs.html</a><br>
+                        🤖 Bot Commands: /help
+                    </div>
+                    <div class="highlight">
+                        <strong>Before asking for help:</strong> Try the basic troubleshooting steps and include specific error messages or symptoms.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const categoryBtns = document.querySelectorAll('.category-btn');
+        const faqItems = document.querySelectorAll('.faq-item');
+        const faqQuestions = document.querySelectorAll('.faq-question');
+
+        // Toggle FAQ answers
+        faqQuestions.forEach(question => {
+            question.addEventListener('click', () => {
+                const answer = question.nextElementSibling;
+                const icon = question.querySelector('.faq-icon');
+                
+                answer.classList.toggle('active');
+                icon.classList.toggle('active');
+            });
+        });
+
+        // Category filtering
+        categoryBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                const category = btn.dataset.category;
+                
+                // Update active button
+                categoryBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Filter items
+                faqItems.forEach(item => {
+                    if (category === 'all' || item.dataset.category === category) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        });
+
+        // Search functionality
+        searchInput.addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            
+            faqItems.forEach(item => {
+                const question = item.querySelector('.faq-question').textContent.toLowerCase();
+                const answer = item.querySelector('.faq-answer').textContent.toLowerCase();
+                
+                if (question.includes(searchTerm) || answer.includes(searchTerm)) {
+                    item.style.display = 'block';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+            
+            // Reset category filter when searching
+            if (searchTerm) {
+                categoryBtns.forEach(b => b.classList.remove('active'));
+            }
+        });
+    </script>
+</body>
+</html>

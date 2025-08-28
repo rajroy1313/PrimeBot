@@ -1,0 +1,506 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PrimeBot Documentation</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <style>
+        .docs-container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .docs-nav {
+            background: #2c3e50;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            position: sticky;
+            top: 20px;
+        }
+        .docs-nav h3 {
+            color: #3498db;
+            margin-top: 0;
+        }
+        .docs-nav ul {
+            list-style: none;
+            padding: 0;
+        }
+        .docs-nav li {
+            margin: 10px 0;
+        }
+        .docs-nav a {
+            color: #ecf0f1;
+            text-decoration: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            display: block;
+            transition: background 0.3s;
+        }
+        .docs-nav a:hover {
+            background: #34495e;
+        }
+        .docs-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .docs-section {
+            margin-bottom: 40px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 30px;
+        }
+        .docs-section:last-child {
+            border-bottom: none;
+        }
+        .command-example {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            font-family: 'Courier New', monospace;
+        }
+        .permission-badge {
+            background: #e74c3c;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            margin-left: 10px;
+        }
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+        .feature-item {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+        .back-to-home {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            background: #3498db;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 25px;
+            text-decoration: none;
+            z-index: 1000;
+            transition: transform 0.3s;
+        }
+        .back-to-home:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <a href="/" class="back-to-home">
+        <i class="fas fa-home"></i> Back to Home
+    </a>
+
+    <div class="docs-container">
+        <header style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #2c3e50;">PrimeBot Documentation</h1>
+            <p style="color: #7f8c8d; font-size: 18px;">Complete guide to using PrimeBot in your Discord server</p>
+        </header>
+
+        <div style="display: grid; grid-template-columns: 250px 1fr; gap: 30px;">
+            <div class="docs-nav">
+                <h3><i class="fas fa-list"></i> Contents</h3>
+                <ul>
+                    <li><a href="#getting-started">Getting Started</a></li>
+                    <li><a href="#commands">Commands</a></li>
+                    <li><a href="#giveaways">Giveaways</a></li>
+                    <li><a href="#leveling">Leveling System</a></li>
+                    <li><a href="#tickets">Ticket System</a></li>
+                    <li><a href="#polls">Polls & Voting</a></li>
+                    <li><a href="#moderation">Moderation</a></li>
+                    <li><a href="#welcome">Welcome System</a></li>
+                    <li><a href="#games">Games & Fun</a></li>
+                    <li><a href="#permissions">Permissions</a></li>
+                    <li><a href="#troubleshooting">Troubleshooting</a></li>
+                </ul>
+            </div>
+
+            <div class="docs-content">
+                <section id="getting-started" class="docs-section">
+                    <h2><i class="fas fa-rocket"></i> Getting Started</h2>
+                    <p>Welcome to PrimeBot! Follow these simple steps to get started:</p>
+                    
+                    <h3>1. Invite PrimeBot to Your Server</h3>
+                    <p>Click the invite link and select your server. Make sure you have "Manage Server" permissions.</p>
+                    <div class="command-example">
+                        <a href="https://discord.com/oauth2/authorize?client_id=1356575287151951943&permissions=8&integration_type=0&scope=bot%20applications.commands" target="_blank">
+                            🔗 Invite PrimeBot to Your Server
+                        </a>
+                    </div>
+
+                    <h3>2. Set Up Permissions</h3>
+                    <p>PrimeBot requires the following permissions to function properly:</p>
+                    <ul>
+                        <li>Send Messages</li>
+                        <li>Embed Links</li>
+                        <li>Attach Files</li>
+                        <li>Add Reactions</li>
+                        <li>Manage Messages</li>
+                        <li>Manage Channels (for tickets)</li>
+                        <li>Manage Roles (for leveling)</li>
+                    </ul>
+
+                    <h3>3. First Commands</h3>
+                    <p>Try these commands to get familiar with PrimeBot:</p>
+                    <div class="command-example">
+                        /help - View all available commands<br>
+                        /about - Learn more about PrimeBot<br>
+                        /stats - View bot statistics
+                    </div>
+                </section>
+
+                <section id="commands" class="docs-section">
+                    <h2><i class="fas fa-terminal"></i> Command Reference</h2>
+                    <p>PrimeBot supports both slash commands (/) and prefix commands ($). Here's a complete list:</p>
+
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <h4>General Commands</h4>
+                            <div class="command-example">
+                                /help - Show command list<br>
+                                /about - Bot information<br>
+                                /stats - Bot statistics<br>
+                                /echo [text] - Repeat a message
+                            </div>
+                        </div>
+
+                        <div class="feature-item">
+                            <h4>Giveaway Commands</h4>
+                            <div class="command-example">
+                                /giveaway - Create a new giveaway<br>
+                                /end [message_id] - End a giveaway<br>
+                                /reroll [message_id] - Reroll winners
+                            </div>
+                        </div>
+
+                        <div class="feature-item">
+                            <h4>Leveling Commands</h4>
+                            <div class="command-example">
+                                /leveling - Manage leveling system<br>
+                                /stats - View your level and XP
+                            </div>
+                        </div>
+
+                        <div class="feature-item">
+                            <h4>Ticket Commands</h4>
+                            <div class="command-example">
+                                /ticket - Manage ticket system<br>
+                                /createticket - Create a new ticket<br>
+                                /tickethistory - View ticket history
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section id="giveaways" class="docs-section">
+                    <h2><i class="fas fa-gift"></i> Giveaway System</h2>
+                    <p>Create engaging giveaways to boost server activity and reward your community members.</p>
+
+                    <h3>Creating a Giveaway</h3>
+                    <p>Use the <code>/giveaway</code> command to create a new giveaway:</p>
+                    <div class="command-example">
+                        /giveaway duration:1d winners:1 prize:Discord Nitro
+                    </div>
+
+                    <h3>Duration Formats</h3>
+                    <ul>
+                        <li><strong>s</strong> - Seconds (e.g., 30s)</li>
+                        <li><strong>m</strong> - Minutes (e.g., 15m)</li>
+                        <li><strong>h</strong> - Hours (e.g., 2h)</li>
+                        <li><strong>d</strong> - Days (e.g., 7d)</li>
+                    </ul>
+
+                    <h3>Managing Giveaways</h3>
+                    <p>You can end giveaways early or reroll winners:</p>
+                    <div class="command-example">
+                        /end message_id:123456789 - End a giveaway early<br>
+                        /reroll message_id:123456789 - Pick new winners
+                    </div>
+
+                    <h3>Features</h3>
+                    <ul>
+                        <li>Automatic winner selection</li>
+                        <li>Customizable duration and prizes</li>
+                        <li>Multiple winners support</li>
+                        <li>Reroll functionality</li>
+                        <li>Automatic notifications</li>
+                    </ul>
+                </section>
+
+                <section id="leveling" class="docs-section">
+                    <h2><i class="fas fa-chart-line"></i> Leveling System</h2>
+                    <p>Reward active members with an engaging leveling system that tracks activity and awards XP.</p>
+
+                    <h3>How It Works</h3>
+                    <ul>
+                        <li>Members earn XP by sending messages</li>
+                        <li>XP gain has a cooldown to prevent spam</li>
+                        <li>Level up announcements in designated channels</li>
+                        <li>Role rewards for reaching certain levels</li>
+                    </ul>
+
+                    <h3>Configuration</h3>
+                    <p>Set up the leveling system using:</p>
+                    <div class="command-example">
+                        /leveling setup - Initial setup<br>
+                        /leveling channel - Set announcement channel<br>
+                        /leveling roles - Configure level roles
+                    </div>
+
+                    <h3>XP System</h3>
+                    <ul>
+                        <li><strong>XP per message:</strong> 15-25 XP (random)</li>
+                        <li><strong>Cooldown:</strong> 60 seconds</li>
+                        <li><strong>Level formula:</strong> XP required = level × 100</li>
+                    </ul>
+                </section>
+
+                <section id="tickets" class="docs-section">
+                    <h2><i class="fas fa-ticket-alt"></i> Ticket System</h2>
+                    <p>Provide private support channels for your community members with the ticket system.</p>
+
+                    <h3>Setup</h3>
+                    <p>Configure the ticket system:</p>
+                    <div class="command-example">
+                        /ticket setup - Set up ticket system<br>
+                        /ticket category - Set ticket category<br>
+                        /ticket role - Set support role
+                    </div>
+
+                    <h3>Creating Tickets</h3>
+                    <p>Members can create tickets using:</p>
+                    <div class="command-example">
+                        /createticket subject:Need help description:Describe your issue
+                    </div>
+
+                    <h3>Managing Tickets</h3>
+                    <ul>
+                        <li>Auto-generated ticket channels</li>
+                        <li>Support role notifications</li>
+                        <li>Ticket history tracking</li>
+                        <li>Close/archive functionality</li>
+                    </ul>
+                </section>
+
+                <section id="polls" class="docs-section">
+                    <h2><i class="fas fa-poll"></i> Polls & Voting</h2>
+                    <p>Create interactive polls to gather community feedback and make decisions together.</p>
+
+                    <h3>Creating Polls</h3>
+                    <div class="command-example">
+                        /poll question:"What should we add next?" option1:Games option2:Music duration:1d
+                    </div>
+
+                    <h3>Poll Types</h3>
+                    <ul>
+                        <li><strong>Regular polls:</strong> Multiple choice with reactions</li>
+                        <li><strong>Live polls:</strong> Real-time updating results</li>
+                        <li><strong>Anonymous polls:</strong> Private voting</li>
+                    </ul>
+
+                    <h3>Features</h3>
+                    <ul>
+                        <li>Automatic result calculation</li>
+                        <li>Custom duration settings</li>
+                        <li>Real-time vote tracking</li>
+                        <li>Result announcements</li>
+                    </ul>
+                </section>
+
+                <section id="moderation" class="docs-section">
+                    <h2><i class="fas fa-shield-alt"></i> Moderation Tools</h2>
+                    <p>Keep your server safe and organized with built-in moderation features.</p>
+
+                    <h3>Available Tools</h3>
+                    <ul>
+                        <li>Message management and cleanup</li>
+                        <li>User timeout and moderation actions</li>
+                        <li>Automated rule enforcement</li>
+                        <li>Logging and audit trails</li>
+                    </ul>
+
+                    <h3>Auto-Moderation</h3>
+                    <p>Configure automatic moderation rules:</p>
+                    <div class="command-example">
+                        /settings automod - Configure auto-moderation<br>
+                        /settings logs - Set up logging channels
+                    </div>
+                </section>
+
+                <section id="welcome" class="docs-section">
+                    <h2><i class="fas fa-user-plus"></i> Welcome System</h2>
+                    <p>Greet new members with customizable welcome messages and automatic role assignment.</p>
+
+                    <h3>Configuration</h3>
+                    <div class="command-example">
+                        /welcomeconfig channel - Set welcome channel<br>
+                        /welcomeconfig message - Customize welcome message<br>
+                        /welcomeconfig role - Set auto-role
+                    </div>
+
+                    <h3>Message Variables</h3>
+                    <ul>
+                        <li><code>{user}</code> - Mention the new member</li>
+                        <li><code>{username}</code> - Display username</li>
+                        <li><code>{server}</code> - Server name</li>
+                        <li><code>{membercount}</code> - Total member count</li>
+                    </ul>
+                </section>
+
+                <section id="games" class="docs-section">
+                    <h2><i class="fas fa-gamepad"></i> Games & Fun</h2>
+                    <p>Engage your community with interactive games and entertainment features.</p>
+
+                    <h3>Available Games</h3>
+                    <div class="feature-grid">
+                        <div class="feature-item">
+                            <h4>Tic Tac Toe</h4>
+                            <div class="command-example">/tictactoe @opponent</div>
+                            <p>Classic 3x3 grid game with interactive buttons</p>
+                        </div>
+
+                        <div class="feature-item">
+                            <h4>Truth or Dare</h4>
+                            <div class="command-example">/truthdare</div>
+                            <p>Interactive truth or dare with custom questions</p>
+                        </div>
+
+                        <div class="feature-item">
+                            <h4>Counting Game</h4>
+                            <div class="command-example">/counting setup</div>
+                            <p>Community counting game with streak tracking</p>
+                        </div>
+                    </div>
+
+                    <h3>Adding Custom Content</h3>
+                    <p>Customize games with your own content:</p>
+                    <div class="command-example">
+                        /addquestion type:truth question:"Your custom truth question"<br>
+                        /addquestion type:dare question:"Your custom dare challenge"
+                    </div>
+                </section>
+
+                <section id="permissions" class="docs-section">
+                    <h2><i class="fas fa-key"></i> Permissions & Security</h2>
+                    <p>Understanding PrimeBot's permission system and security features.</p>
+
+                    <h3>Required Permissions</h3>
+                    <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+                        <tr style="background: #f8f9fa;">
+                            <th style="padding: 10px; border: 1px solid #ddd;">Permission</th>
+                            <th style="padding: 10px; border: 1px solid #ddd;">Required For</th>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Send Messages</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Basic functionality</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Embed Links</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Rich message formatting</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Add Reactions</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Polls and giveaways</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Manage Channels</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Ticket system</td>
+                        </tr>
+                        <tr>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Manage Roles</td>
+                            <td style="padding: 10px; border: 1px solid #ddd;">Leveling rewards</td>
+                        </tr>
+                    </table>
+
+                    <h3>Admin Commands</h3>
+                    <p>Some commands require administrator permissions:</p>
+                    <ul>
+                        <li>Server configuration commands</li>
+                        <li>Moderation setup</li>
+                        <li>Channel and role management</li>
+                        <li>System settings</li>
+                    </ul>
+                </section>
+
+                <section id="troubleshooting" class="docs-section">
+                    <h2><i class="fas fa-wrench"></i> Troubleshooting</h2>
+                    <p>Common issues and solutions for PrimeBot usage.</p>
+
+                    <h3>Bot Not Responding</h3>
+                    <ul>
+                        <li>Check bot permissions in the channel</li>
+                        <li>Ensure bot has "Send Messages" permission</li>
+                        <li>Try using slash commands instead of prefix commands</li>
+                        <li>Check if bot is online in member list</li>
+                    </ul>
+
+                    <h3>Commands Not Working</h3>
+                    <ul>
+                        <li>Use <code>/help</code> to see available commands</li>
+                        <li>Check command syntax and parameters</li>
+                        <li>Ensure you have required permissions</li>
+                        <li>Try re-inviting the bot with updated permissions</li>
+                    </ul>
+
+                    <h3>Giveaways Issues</h3>
+                    <ul>
+                        <li>Ensure bot can add reactions to messages</li>
+                        <li>Check that bot has "Embed Links" permission</li>
+                        <li>Verify message ID format for end/reroll commands</li>
+                    </ul>
+
+                    <h3>Leveling Not Working</h3>
+                    <ul>
+                        <li>Check if leveling is enabled for your server</li>
+                        <li>Ensure bot can read message history</li>
+                        <li>Verify XP gain cooldown (60 seconds)</li>
+                        <li>Check channel permissions</li>
+                    </ul>
+
+                    <h3>Need More Help?</h3>
+                    <p>If you're still experiencing issues:</p>
+                    <div class="command-example">
+                        🔗 Join our support server: <a href="https://discord.gg/gd7UNSfX86" target="_blank">https://discord.gg/gd7UNSfX86</a><br>
+                        📧 Check our FAQ page: <a href="/faq.html">FAQ</a>
+                    </div>
+                </section>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Smooth scrolling for navigation links
+        document.querySelectorAll('.docs-nav a').forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const targetId = this.getAttribute('href');
+                const targetElement = document.querySelector(targetId);
+                if (targetElement) {
+                    targetElement.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
