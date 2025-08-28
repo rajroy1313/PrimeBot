@@ -42,7 +42,7 @@ task = "shell.exec"
 args = "node website.js"
 
 [deployment]
-run = ["sh", "-c", "node website.js"]
+run = ["sh", "-c", "node index.js"]
 
 [[ports]]
 localPort = 5000
