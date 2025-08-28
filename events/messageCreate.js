@@ -50,7 +50,19 @@ module.exports = {
                     .setStyle(ButtonStyle.Link)
                     .setURL(config.supportServer);
 
-                const row = new ActionRowBuilder().addComponents(inviteButton, supportServerButton);
+
+      const webbutton = new ButtonBuilder()
+          .setLabel("Website ")
+          .setStyle(ButtonStyle.Link)
+          .setURL(config.website);
+      
+
+      const docButton = new ButtonBuilder()
+          .setLabel("Documentation")
+          .setStyle(ButtonStyle.Link)
+          .setURL(config.doc);
+      
+                const row = new ActionRowBuilder().addComponents(inviteButton, supportServerButton,webButton,docButton );
 
                 const pingEmbed = new EmbedBuilder()
                     .setColor(config.colors.primary)
