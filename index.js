@@ -197,10 +197,16 @@ const website = require('./website');
 // Function to handle reconnection
 async function connectBot() {
     try {
+        console.log('Attempting to connect to Discord...');
         await client.login(process.env.DISCORD_TOKEN);
+        console.log('✅ Bot successfully logged in and is now online!');
         debug('Bot successfully logged in');
     } catch (error) {
         console.error('[ERROR] Failed to login to Discord:', error);
+        if (error.code === 'TOKEN_INVALID') {
+            console.error('❌ Invalid Discord token. Please check your DISCORD_TOKEN in secrets.');
+            process.exit(1);
+        }
         console.log('Attempting to reconnect in 5 seconds...');
         setTimeout(connectBot, 5000);
     }
