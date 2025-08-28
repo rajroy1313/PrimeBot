@@ -7,11 +7,8 @@ const { setupAuth, isAuthenticated } = require('./server/replitAuth.js');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Initialize authentication with error handling
-setupAuth(app).catch(error => {
-    console.error('Auth setup failed:', error);
-    // Continue without auth for now
-});
+// Initialize authentication
+setupAuth(app).catch(console.error);
 
 // Security and performance middleware
 app.use(helmet({
@@ -92,14 +89,9 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Dashboard route - serve React app for all dashboard routes
-app.get('/dashboard*', (req, res) => {
-    try {
-        res.sendFile(path.join(__dirname, 'public/dashboard', 'index.html'));
-    } catch (error) {
-        console.error('Dashboard route error:', error);
-        res.status(500).send('Dashboard unavailable');
-    }
+// Dashboard route - serve React app (handles auth in frontend)
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public/dashboard', 'index.html'));
 });
 
 // Separate API route for authenticated dashboard data

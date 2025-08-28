@@ -34,14 +34,13 @@ function AuthenticatedApp() {
       <Sidebar user={user} />
       <main className="main-content">
         <Routes>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/dashboard/config" element={<BotConfig />} />
-          <Route path="/dashboard/giveaways" element={<Giveaways />} />
-          <Route path="/dashboard/leveling" element={<Leveling />} />
-          <Route path="/dashboard/polls" element={<Polls />} />
-          <Route path="/dashboard/tickets" element={<Tickets />} />
-          <Route path="/dashboard/moderation" element={<Moderation />} />
           <Route path="/" element={<Dashboard />} />
+          <Route path="/config" element={<BotConfig />} />
+          <Route path="/giveaways" element={<Giveaways />} />
+          <Route path="/leveling" element={<Leveling />} />
+          <Route path="/polls" element={<Polls />} />
+          <Route path="/tickets" element={<Tickets />} />
+          <Route path="/moderation" element={<Moderation />} />
         </Routes>
       </main>
     </div>
@@ -51,7 +50,7 @@ function AuthenticatedApp() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router basename="/dashboard">
+      <Router>
         <AuthenticatedApp />
       </Router>
     </QueryClientProvider>
