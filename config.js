@@ -7,7 +7,7 @@ module.exports = {
     prefix: '$', // Command prefix for message commands
     
     // Bot URLs
-    supportServer: "https://discord.gg/discord-testers", // General invite that will always work
+    supportServer: "https://discord.gg/gd7UNSfX86", // PrimeBot support server
   
     // Developer IDs (users who can access developer commands)
     developerIds: [

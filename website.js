@@ -46,7 +46,7 @@ app.use((req, res, next) => {
 
         // Create bot info with proper error handling
         res.locals.botInfo = {
-            name: 'AFK Devs Bot',
+            name: 'PrimeBot',
             prefix: '/',
             servers: global.client && global.client.guilds ? global.client.guilds.cache.size : 'Loading...',
             commands: commandNames,
@@ -56,7 +56,7 @@ app.use((req, res, next) => {
         console.error('Error setting up bot info middleware:', error);
         // Fallback bot info
         res.locals.botInfo = {
-            name: 'AFK Devs Bot',
+            name: 'PrimeBot',
             prefix: '/',
             servers: 'Online',
             commands: ['help', 'about', 'giveaway'],
