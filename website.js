@@ -89,8 +89,8 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Dashboard route - serve React app (handles auth in frontend)
-app.get('/dashboard', (req, res) => {
+// Dashboard route - serve React app for all dashboard routes
+app.get('/dashboard*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/dashboard', 'index.html'));
 });
 
