@@ -28,11 +28,7 @@
   "env": {
     "NODE_ENV": "production"
   },
-  "functions": {
-    "website.js": {
-      "maxDuration": 30
-    }
-  },
+  
   "rewrites": [
     {
       "source": "/dashboard",
