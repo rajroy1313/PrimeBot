@@ -51,7 +51,7 @@ module.exports = {
                     .setURL(config.supportServer);
 
 
-      const webbutton = new ButtonBuilder()
+      const webButton = new ButtonBuilder()
           .setLabel("Website ")
           .setStyle(ButtonStyle.Link)
           .setURL(config.website);

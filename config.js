@@ -5,7 +5,8 @@ module.exports = {
     
     // Bot configuration
     prefix: '$', // Command prefix for message commands
-    
+    website: 'https://primebot-online.vercel.app/',
+    doc: 'https://primebot-online.vercel.app/docs.html',
     // Bot URLs
     supportServer: "https://discord.gg/gd7UNSfX86", // PrimeBot support server
   
