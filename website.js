@@ -1,12 +1,31 @@
 const express = require('express');
 const path = require('path');
+const compression = require('compression');
+const helmet = require('helmet');
 const config = require('./config.js');
 const { setupAuth, isAuthenticated } = require('./server/replitAuth.js');
 const app = express();
-const port = 5000;
+const PORT = process.env.PORT || 5000;
 
 // Initialize authentication
 setupAuth(app).catch(console.error);
+
+// Security and performance middleware
+app.use(helmet({
+    contentSecurityPolicy: false, // Allow inline styles for now
+}));
+app.use(compression()); // Gzip compression
+
+// Rate limiting for API endpoints
+const rateLimit = require('express-rate-limit');
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+    message: 'Too many API requests from this IP'
+});
+
+app.use('/api/', apiLimiter);
+
 
 // JSON parsing middleware
 app.use(express.json());
@@ -326,8 +345,8 @@ app.get('/api/moderation', (req, res) => {
 });
 
 // Start server
-app.listen(port, '0.0.0.0', () => {
-    console.log(`Bot website is running on port ${port}`);
+app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Bot website is running on port ${PORT}`);
 });
 
 module.exports = app;

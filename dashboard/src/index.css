@@ -229,19 +229,165 @@ body {
   background-color: #f9fafb;
 }
 
-@media (max-width: 768px) {
+/* Mobile-first dashboard optimization */
+@media (max-width: 1024px) {
+  .dashboard-container {
+    flex-direction: column;
+  }
+  
   .sidebar {
     width: 100%;
     position: relative;
     height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 15px;
   }
   
   .main-content {
     margin-left: 0;
+    padding: 15px;
+  }
+  
+  .nav-item {
+    padding: 10px 14px;
+    margin-bottom: 6px;
+  }
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+  
+  .stat-card {
+    padding: 15px;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .btn {
+    padding: 12px 16px;
+    font-size: 14px;
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 10px;
+  }
+  
+  .form-input,
+  .form-select,
+  .form-textarea {
+    padding: 12px;
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+  
+  .table {
+    font-size: 14px;
+  }
+  
+  .table th,
+  .table td {
+    padding: 8px;
+  }
+  
+  /* Login page mobile optimization */
+  .login-container {
+    padding: 20px;
+  }
+  
+  .login-card {
+    padding: 30px 20px;
+    max-width: 100%;
+  }
+  
+  .login-header h1 {
+    font-size: 24px;
+  }
+  
+  .login-button {
+    padding: 14px 20px;
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 576px) {
+  .main-content {
+    padding: 10px;
+  }
+  
+  .card {
+    padding: 12px;
+    margin-bottom: 12px;
   }
   
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .stat-card {
+    padding: 12px;
+    text-align: left;
+  }
+  
+  .stat-value {
+    font-size: 1.3rem;
+  }
+  
+  .nav-item {
+    padding: 12px;
+    margin-bottom: 4px;
+  }
+  
+  .sidebar {
+    padding: 12px;
+  }
+  
+  /* Form optimization for small screens */
+  .form-group {
+    margin-bottom: 15px;
+  }
+  
+  .form-label {
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+  
+  /* Table responsiveness */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .table {
+    min-width: 600px;
+  }
+}
+
+/* Touch-friendly improvements */
+@media (hover: none) and (pointer: coarse) {
+  .btn:hover {
+    transform: none;
+  }
+  
+  .nav-item:hover {
+    background-color: inherit;
+  }
+  
+  .nav-item:active {
+    background-color: #f3f4f6;
+  }
+  
+  .btn:active {
+    transform: scale(0.98);
   }
 }/* Login Page Styles */
 .login-container {

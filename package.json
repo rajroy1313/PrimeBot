@@ -6,7 +6,9 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node run-bot.js",
     "direct": "node index.js",
-    "supervisor": "node run-bot.js"
+    "supervisor": "node run-bot.js",
+    "build:dashboard": "cd dashboard && npm run build",
+    "dev:dashboard": "cd dashboard && npm run dev"
   },
   "keywords": [],
   "author": "",
@@ -19,6 +21,7 @@
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.1",
     "axios": "^1.11.0",
+    "compression": "^1.8.1",
     "connect-pg-simple": "^10.0.0",
     "debug": "^4.4.0",
     "discord.js": "^14.18.0",
@@ -26,7 +29,9 @@
     "drizzle-kit": "^0.31.4",
     "drizzle-orm": "^0.44.3",
     "express": "^5.1.0",
+    "express-rate-limit": "^8.0.1",
     "express-session": "^1.18.2",
+    "helmet": "^8.1.0",
     "lucide-react": "^0.541.0",
     "memoizee": "^0.4.17",
     "ms": "^2.1.3",

@@ -28,8 +28,21 @@ task = "shell.exec"
 args = "node index.js"
 waitForPort = 5000
 
+[[workflows.workflow]]
+name = "Production"
+author = 43331182
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build:dashboard"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node website.js"
+
 [deployment]
-run = ["sh", "-c", "node index.js"]
+run = ["sh", "-c", "node website.js"]
 
 [[ports]]
 localPort = 5000

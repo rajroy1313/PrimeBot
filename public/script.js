@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Set up smooth scrolling for anchor links
     setupSmoothScrolling();
     
+    // Set up mobile navigation
+    setupMobileNavigation();
+    
     // Update stats periodically
     setInterval(fetchBotInfo, 60000); // Update every minute
 });
@@ -104,6 +107,69 @@ function animateOnScroll(elements) {
             element.style.transform = 'translateY(0)';
         }
     });
+}
+
+// Set up mobile navigation
+function setupMobileNavigation() {
+    // Create mobile menu toggle button
+    const header = document.querySelector('header .container');
+    const nav = document.querySelector('nav');
+    const navUl = document.querySelector('nav ul');
+    
+    if (header && nav && navUl) {
+        const mobileToggle = document.createElement('button');
+        mobileToggle.innerHTML = '☰';
+        mobileToggle.className = 'mobile-toggle';
+        mobileToggle.style.cssText = `
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            color: var(--dark-color);
+        `;
+        
+        // Insert toggle button
+        header.insertBefore(mobileToggle, nav);
+        
+        // Add mobile styles
+        const style = document.createElement('style');
+        style.textContent = `
+            @media (max-width: 768px) {
+                .mobile-toggle {
+                    display: block !important;
+                }
+                nav {
+                    position: relative;
+                    width: 100%;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Toggle functionality
+        mobileToggle.addEventListener('click', () => {
+            navUl.classList.toggle('mobile-open');
+            mobileToggle.innerHTML = navUl.classList.contains('mobile-open') ? '✕' : '☰';
+        });
+        
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!nav.contains(e.target) && !mobileToggle.contains(e.target)) {
+                navUl.classList.remove('mobile-open');
+                mobileToggle.innerHTML = '☰';
+            }
+        });
+        
+        // Close menu when clicking nav links
+        navUl.querySelectorAll('a').forEach(link => {
+            link.addEventListener('click', () => {
+                navUl.classList.remove('mobile-open');
+                mobileToggle.innerHTML = '☰';
+            });
+        });
+    }
 }
 
 // Initialize elements with fade-in effect
