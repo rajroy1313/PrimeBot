@@ -89,9 +89,14 @@ app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Dashboard route - serve React app (protected)
-app.get('/dashboard', isAuthenticated, (req, res) => {
+// Dashboard route - serve React app (handles auth in frontend)
+app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public/dashboard', 'index.html'));
+});
+
+// Separate API route for authenticated dashboard data
+app.get('/api/dashboard', isAuthenticated, (req, res) => {
+    res.redirect('/dashboard');
 });
 
 // Auth routes
