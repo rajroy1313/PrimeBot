@@ -43,7 +43,24 @@ function LandingPage() {
             <img src="https://images-ext-1.discordapp.net/external/8_2-oV24CYGRGCBjvNcStL2gNz6VWKloGxcgp3dDRnw/https/cdn.discordapp.com/avatars/1356575287151951943/a_b68e32aef94163405d60d977abe16f69.gif" alt="Bot Logo" />
             <h1>PrimeBot</h1>
           </div>
-          <nav>
+          <nav className="desktop-nav">
+            <ul>
+              <li><a href="#features">Features</a></li>
+              <li><a href="#commands">Commands</a></li>
+              <li><a href="#stats">Stats</a></li>
+              <li><Link to="/docs">Docs</Link></li>
+              <li><Link to="/faq">FAQ</Link></li>
+              <li><Link to="/dashboard" className="btn btn-dashboard">Dashboard</Link></li>
+              <li><a href="#invite" className="btn">Invite Bot</a></li>
+            </ul>
+          </nav>
+          <button className="mobile-menu-toggle" onClick={() => {
+            const nav = document.querySelector('.mobile-nav');
+            nav.style.display = nav.style.display === 'flex' ? 'none' : 'flex';
+          }}>
+            <i className="fas fa-bars"></i>
+          </button>
+          <nav className="mobile-nav">
             <ul>
               <li><a href="#features">Features</a></li>
               <li><a href="#commands">Commands</a></li>
