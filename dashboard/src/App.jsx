@@ -11,9 +11,12 @@ import Polls from './pages/Polls'
 import Tickets from './pages/Tickets'
 import Moderation from './pages/Moderation'
 import LoginPage from './pages/LoginPage'
+import LandingPage from './pages/LandingPage'
+import DocsPage from './pages/DocsPage'
+import FAQPage from './pages/FAQPage'
 import queryClient from './lib/queryClient'
 
-function AuthenticatedApp() {
+function DashboardApp() {
   const { isAuthenticated, isLoading, user } = useAuth()
 
   if (isLoading) {
@@ -34,13 +37,13 @@ function AuthenticatedApp() {
       <Sidebar user={user} />
       <main className="main-content">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/config" element={<BotConfig />} />
-          <Route path="/giveaways" element={<Giveaways />} />
-          <Route path="/leveling" element={<Leveling />} />
-          <Route path="/polls" element={<Polls />} />
-          <Route path="/tickets" element={<Tickets />} />
-          <Route path="/moderation" element={<Moderation />} />
+          <Route path="" element={<Dashboard />} />
+          <Route path="config" element={<BotConfig />} />
+          <Route path="giveaways" element={<Giveaways />} />
+          <Route path="leveling" element={<Leveling />} />
+          <Route path="polls" element={<Polls />} />
+          <Route path="tickets" element={<Tickets />} />
+          <Route path="moderation" element={<Moderation />} />
         </Routes>
       </main>
     </div>
@@ -51,7 +54,12 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <Router>
-        <AuthenticatedApp />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/docs" element={<DocsPage />} />
+          <Route path="/faq" element={<FAQPage />} />
+          <Route path="/dashboard/*" element={<DashboardApp />} />
+        </Routes>
       </Router>
     </QueryClientProvider>
   )

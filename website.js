@@ -30,9 +30,7 @@ app.use('/api/', apiLimiter);
 // JSON parsing middleware
 app.use(express.json());
 
-// Static files middleware - serve the dashboard build
-app.use('/dashboard', express.static(path.join(__dirname, 'public/dashboard')));
-// Static files middleware - serve the public landing page
+// Static files middleware - serve the React build
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Bot information middleware
@@ -84,30 +82,8 @@ function formatUptime(uptime) {
     return parts.join(' ');
 }
 
-// Routes
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// Documentation route
-app.get('/docs', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'docs.html'));
-});
-
-// FAQ route
-app.get('/faq', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'faq.html'));
-});
-
-// Dashboard route - serve React app (handles auth in frontend)
-app.get('/dashboard', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public/dashboard', 'index.html'));
-});
-
-// Separate API route for authenticated dashboard data
-app.get('/api/dashboard', isAuthenticated, (req, res) => {
-    res.redirect('/dashboard');
-});
+// Routes - Catch all routes and serve React app (SPA routing)
+// This must be after API routes but before the catch-all
 
 // Auth routes
 app.get('/api/auth/user', isAuthenticated, async (req, res) => {
@@ -357,6 +333,48 @@ app.get('/api/moderation', (req, res) => {
         console.error('Error fetching moderation data:', error);
         res.status(500).json({ error: 'Failed to fetch moderation data' });
     }
+});
+
+// React SPA routes handler
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/docs', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/faq', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/dashboard', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// Handle dashboard sub-routes with individual route definitions
+app.get('/dashboard/config', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/dashboard/giveaways', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/dashboard/leveling', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/dashboard/polls', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/dashboard/tickets', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+app.get('/dashboard/moderation', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Start server

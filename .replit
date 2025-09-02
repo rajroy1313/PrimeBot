@@ -16,6 +16,10 @@ author = "agent"
 task = "workflow.run"
 args = "Bot"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Website"
+
 [[workflows.workflow]]
 name = "Bot"
 author = "agent"
@@ -40,6 +44,18 @@ args = "npm run build:dashboard"
 [[workflows.workflow.tasks]]
 task = "shell.exec"
 args = "node website.js"
+
+[[workflows.workflow]]
+name = "Website"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node website.js"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
 
 [deployment]
 run = ["sh", "-c", "node index.js"]
