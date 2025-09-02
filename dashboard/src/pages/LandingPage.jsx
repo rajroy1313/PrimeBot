@@ -47,7 +47,6 @@ function LandingPage() {
             <ul>
               <li><a href="#features">Features</a></li>
               <li><a href="#commands">Commands</a></li>
-              <li><a href="#stats">Stats</a></li>
               <li><Link to="/docs">Docs</Link></li>
               <li><Link to="/faq">FAQ</Link></li>
               <li><Link to="/dashboard" className="btn btn-dashboard">Dashboard</Link></li>
@@ -64,7 +63,6 @@ function LandingPage() {
             <ul>
               <li><a href="#features">Features</a></li>
               <li><a href="#commands">Commands</a></li>
-              <li><a href="#stats">Stats</a></li>
               <li><Link to="/docs">Docs</Link></li>
               <li><Link to="/faq">FAQ</Link></li>
               <li><Link to="/dashboard" className="btn btn-dashboard">Dashboard</Link></li>
@@ -164,28 +162,6 @@ function LandingPage() {
         </div>
       </section>
 
-      <section id="stats" className="stats">
-        <div className="container">
-          <h2>Bot Statistics</h2>
-          <div className="stats-grid">
-            <div className="stat-card">
-              <i className="fas fa-server"></i>
-              <h3>Servers</h3>
-              <p>{botStats.servers}</p>
-            </div>
-            <div className="stat-card">
-              <i className="fas fa-clock"></i>
-              <h3>Uptime</h3>
-              <p>{botStats.uptime}</p>
-            </div>
-            <div className="stat-card">
-              <i className="fas fa-code"></i>
-              <h3>Commands</h3>
-              <p>{botStats.commands}</p>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <section id="invite" className="invite">
         <div className="container">
@@ -209,7 +185,6 @@ function LandingPage() {
               <ul>
                 <li><a href="#features">Features</a></li>
                 <li><a href="#commands">Commands</a></li>
-                <li><a href="#stats">Stats</a></li>
                 <li><a href="#invite">Invite Bot</a></li>
               </ul>
             </div>
