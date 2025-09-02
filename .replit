@@ -1,7 +1,7 @@
-modules = ["nodejs-20", "postgresql-16"]
+modules = ["nodejs-20", "web", "bash"]
 
 [nix]
-channel = "stable-24_05"
+channel = "stable-25_05"
 packages = ["nix-output-monitor", "mysql80"]
 
 [workflows]
@@ -47,3 +47,6 @@ run = ["sh", "-c", "node index.js"]
 [[ports]]
 localPort = 5000
 externalPort = 80
+
+[agent]
+expertMode = true
