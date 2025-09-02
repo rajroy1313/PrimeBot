@@ -19,7 +19,7 @@ const Sidebar = ({ user }) => {
   }
 
   const menuItems = [
-    { path: '/', icon: Home, label: 'Dashboard', description: 'Bot overview and stats' },
+    { path: '/', icon: Home, label: 'Dashboard', description: 'Bot overview' },
     { path: '/config', icon: Settings, label: 'Bot Config', description: 'General settings' },
     { path: '/giveaways', icon: Gift, label: 'Giveaways', description: 'Manage giveaways' },
     { path: '/leveling', icon: TrendingUp, label: 'Leveling', description: 'XP and badges' },

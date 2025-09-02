@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Activity, Users, MessageSquare, Zap } from 'lucide-react'
+import { Activity, Users, MessageSquare, Zap, Gift, Vote, TrendingUp, Settings } from 'lucide-react'
 
 const Dashboard = () => {
   const [botStats, setBotStats] = useState({
@@ -71,72 +71,49 @@ const Dashboard = () => {
         Dashboard Overview
       </h1>
 
-      {loading ? (
-        <div className="loading">
-          <div className="spinner"></div>
+      <div className="card">
+        <h3 style={{ marginBottom: '20px' }}>Quick Actions</h3>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          <a href="/giveaways" className="btn btn-primary">
+            <Gift size={16} />
+            Create Giveaway
+          </a>
+          <a href="/polls" className="btn btn-success">
+            <Vote size={16} />
+            Create Poll
+          </a>
+          <a href="/leveling" className="btn btn-warning">
+            <TrendingUp size={16} />
+            Manage Levels
+          </a>
+          <a href="/config" className="btn btn-primary">
+            <Settings size={16} />
+            Bot Settings
+          </a>
         </div>
-      ) : (
-        <>
-          <div className="stats-grid">
-            {statCards.map((stat, index) => {
-              const Icon = stat.icon
-              return (
-                <div key={index} className="stat-card">
-                  <Icon size={40} color={stat.color} style={{ marginBottom: '10px' }} />
-                  <div className="stat-value" style={{ color: stat.color }}>
-                    {stat.value}
-                  </div>
-                  <div className="stat-label">{stat.label}</div>
-                </div>
-              )
-            })}
-          </div>
+      </div>
 
-          <div className="card">
-            <h3 style={{ marginBottom: '20px' }}>Quick Actions</h3>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              <a href="/giveaways" className="btn btn-primary">
-                <Gift size={16} />
-                Create Giveaway
-              </a>
-              <a href="/polls" className="btn btn-success">
-                <Vote size={16} />
-                Create Poll
-              </a>
-              <a href="/leveling" className="btn btn-warning">
-                <TrendingUp size={16} />
-                Manage Levels
-              </a>
-              <a href="/config" className="btn btn-primary">
-                <Settings size={16} />
-                Bot Settings
-              </a>
-            </div>
+      <div className="card">
+        <h3 style={{ marginBottom: '20px' }}>System Information</h3>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
+          <div>
+            <h4>Bot Version</h4>
+            <p>v2.5.0</p>
           </div>
-
-          <div className="card">
-            <h3 style={{ marginBottom: '20px' }}>System Information</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '20px' }}>
-              <div>
-                <h4>Bot Version</h4>
-                <p>v2.5.0</p>
-              </div>
-              <div>
-                <h4>Last Updated</h4>
-                <p>August 2025</p>
-              </div>
-              <div>
-                <h4>Features</h4>
-                <p>Giveaways, Leveling, Polls, Tickets, Moderation</p>
-              </div>
-              <div>
-                <h4>Database</h4>
-                <p>MySQL with Drizzle ORM</p>
-              </div>
-            </div>
+          <div>
+            <h4>Last Updated</h4>
+            <p>August 2025</p>
           </div>
-        </>
-      )}
+          <div>
+            <h4>Features</h4>
+            <p>Giveaways, Leveling, Polls, Tickets, Moderation</p>
+          </div>
+          <div>
+            <h4>Database</h4>
+            <p>MySQL with Drizzle ORM</p>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
