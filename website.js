@@ -3,12 +3,12 @@ const path = require('path');
 const compression = require('compression');
 const helmet = require('helmet');
 const config = require('./config.js');
-const { setupAuth, isAuthenticated } = require('./server/replitAuth.js');
+const { setupDiscordAuth, isAuthenticated } = require('./server/discordAuth');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Initialize authentication
-setupAuth(app).catch(console.error);
+setupDiscordAuth(app).catch(console.error);
 
 // Security and performance middleware
 app.use(helmet({
