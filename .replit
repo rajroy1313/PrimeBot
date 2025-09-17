@@ -58,7 +58,9 @@ waitForPort = 5000
 outputType = "webview"
 
 [deployment]
-run = ["sh", "-c", "node website.js"]
+run = ["node", "website.js"]
+deploymentTarget = "vm"
+build = ["npm", "run", "build:dashboard"]
 
 [[ports]]
 localPort = 5000

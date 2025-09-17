@@ -7,6 +7,9 @@ const { setupDiscordAuth, isAuthenticated } = require('./server/discordAuth');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy for correct client IPs behind Replit proxy
+app.set('trust proxy', 1);
+
 // Initialize authentication
 setupDiscordAuth(app).catch(console.error);
 
