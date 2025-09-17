@@ -18,7 +18,7 @@ args = "Bot"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Website"
+args = "Frontend"
 
 [[workflows.workflow]]
 name = "Bot"
@@ -46,12 +46,12 @@ task = "shell.exec"
 args = "node website.js"
 
 [[workflows.workflow]]
-name = "Website"
+name = "Frontend"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "node website.js"
+args = "cd dashboard && npm run dev"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
