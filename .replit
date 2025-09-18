@@ -18,7 +18,7 @@ args = "Bot"
 
 [[workflows.workflow.tasks]]
 task = "workflow.run"
-args = "Frontend"
+args = "Website"
 
 [[workflows.workflow]]
 name = "Bot"
@@ -46,12 +46,12 @@ task = "shell.exec"
 args = "node website.js"
 
 [[workflows.workflow]]
-name = "Frontend"
+name = "Website"
 author = "agent"
 
 [[workflows.workflow.tasks]]
 task = "shell.exec"
-args = "cd dashboard && npm run dev"
+args = "node website.js"
 waitForPort = 5000
 
 [workflows.workflow.metadata]
@@ -65,10 +65,6 @@ build = ["npm", "run", "build:dashboard"]
 [[ports]]
 localPort = 5000
 externalPort = 80
-
-[[ports]]
-localPort = 5001
-externalPort = 3001
 
 [[ports]]
 localPort = 36903
