@@ -66,6 +66,14 @@ build = ["npm", "run", "build:dashboard"]
 localPort = 5000
 externalPort = 80
 
+[[ports]]
+localPort = 5001
+externalPort = 3001
+
+[[ports]]
+localPort = 36903
+externalPort = 3000
+
 [agent]
 expertMode = true
 integrations = ["javascript_database:1.0.0"]
