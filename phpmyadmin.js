@@ -58,5 +58,6 @@ app.get('/api/query', async (req, res) => {
 });
 
 app.listen(PORT, '0.0.0.0', () => {
-    console.log(`phpMyAdmin interface available at http://localhost:${PORT}/phpmyadmin`);
+    console.log(`phpMyAdmin interface available at http://0.0.0.0:${PORT}/phpmyadmin`);
+    console.log(`Access it via your Replit preview URL on port ${PORT}`);
 });
