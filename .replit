@@ -57,6 +57,15 @@ waitForPort = 5000
 [workflows.workflow.metadata]
 outputType = "webview"
 
+[[workflows.workflow]]
+name = "Database Admin"
+author = 47306138
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node phpmyadmin.js"
+
 [deployment]
 run = ["node", "website.js"]
 deploymentTarget = "vm"
