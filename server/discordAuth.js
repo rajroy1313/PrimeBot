@@ -37,6 +37,30 @@ async function setupDiscordAuth(app) {
     app.use(passport.initialize());
     app.use(passport.session());
 
+    // Check if Discord credentials are configured
+    if (!process.env.DISCORD_CLIENT_ID || !process.env.DISCORD_CLIENT_SECRET) {
+        console.warn('⚠️ Discord OAuth credentials not configured. Authentication will be disabled.');
+        
+        // Add mock routes for when OAuth is not configured
+        app.get('/api/login', (req, res) => {
+            res.status(503).json({ error: 'Authentication not configured' });
+        });
+        
+        app.get('/api/auth/callback', (req, res) => {
+            res.redirect('/?error=auth_not_configured');
+        });
+        
+        app.get('/api/logout', (req, res) => {
+            res.redirect('/');
+        });
+        
+        app.get('/api/auth/user', (req, res) => {
+            res.status(401).json({ message: 'Authentication not configured' });
+        });
+        
+        return;
+    }
+
     // Configure Discord Strategy
     passport.use(new DiscordStrategy({
         clientID: process.env.DISCORD_CLIENT_ID,

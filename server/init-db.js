@@ -275,39 +275,37 @@ async function initializeTables() {
       )
     `);
 
-    // Create indexes for better performance
-    await connection.execute(`
-      CREATE INDEX IF NOT EXISTS idx_live_polls_poll_id ON live_polls(poll_id)
-    `);
-    await connection.execute(`
-      CREATE INDEX IF NOT EXISTS idx_live_polls_pass_code ON live_polls(pass_code)
-    `);
-    await connection.execute(`
-      CREATE INDEX IF NOT EXISTS idx_live_poll_options_poll_id ON live_poll_options(poll_id)
-    `);
-    await connection.execute(`
-      CREATE INDEX IF NOT EXISTS idx_live_poll_votes_poll_id ON live_poll_votes(poll_id)
-    `);
-    await connection.execute(`
-      CREATE INDEX IF NOT EXISTS idx_live_poll_votes_user_id ON live_poll_votes(user_id)
-    `);
+    // Create indexes for better performance (with fallback for older MySQL versions)
+    const indexes = [
+      { name: 'idx_live_polls_poll_id', table: 'live_polls', columns: 'poll_id' },
+      { name: 'idx_live_polls_pass_code', table: 'live_polls', columns: 'pass_code' },
+      { name: 'idx_live_poll_options_poll_id', table: 'live_poll_options', columns: 'poll_id' },
+      { name: 'idx_live_poll_votes_poll_id', table: 'live_poll_votes', columns: 'poll_id' },
+      { name: 'idx_live_poll_votes_user_id', table: 'live_poll_votes', columns: 'user_id' },
+      { name: 'idx_user_levels_guild_user', table: 'user_levels', columns: 'guild_id, user_id' },
+      { name: 'idx_user_levels_guild_level', table: 'user_levels', columns: 'guild_id, level DESC' },
+      { name: 'idx_user_levels_guild_xp', table: 'user_levels', columns: 'guild_id, xp DESC' },
+      { name: 'idx_user_badges_guild_user', table: 'user_badges', columns: 'guild_id, user_id' },
+      { name: 'idx_user_badges_badge_id', table: 'user_badges', columns: 'badge_id' }
+    ];
 
-    // Create indexes for leveling tables
-    await connection.execute(`
-      CREATE INDEX IF NOT EXISTS idx_user_levels_guild_user ON user_levels(guild_id, user_id)
-    `);
-    await connection.execute(`
-      CREATE INDEX IF NOT EXISTS idx_user_levels_guild_level ON user_levels(guild_id, level DESC)
-    `);
-    await connection.execute(`
-      CREATE INDEX IF NOT EXISTS idx_user_levels_guild_xp ON user_levels(guild_id, xp DESC)
-    `);
-    await connection.execute(`
-      CREATE INDEX IF NOT EXISTS idx_user_badges_guild_user ON user_badges(guild_id, user_id)
-    `);
-    await connection.execute(`
-      CREATE INDEX IF NOT EXISTS idx_user_badges_badge_id ON user_badges(badge_id)
-    `);
+    for (const index of indexes) {
+      try {
+        // Check if index exists first
+        const [existingIndexes] = await connection.execute(`
+          SHOW INDEX FROM ${index.table} WHERE Key_name = '${index.name}'
+        `);
+        
+        if (existingIndexes.length === 0) {
+          await connection.execute(`
+            CREATE INDEX ${index.name} ON ${index.table}(${index.columns})
+          `);
+          console.log(`✅ Created index ${index.name} on ${index.table}`);
+        }
+      } catch (indexError) {
+        console.warn(`Warning: Could not create index ${index.name}:`, indexError.message);
+      }
+    }
 
     await connection.end();
     console.log('✅ Database tables initialized successfully (including leveling system)');

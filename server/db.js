@@ -71,15 +71,23 @@ async function initializeGracefully() {
     const isConnected = await testConnection();
     if (isConnected) {
       const { initializeDatabase } = require('./init-db.js');
-      await initializeDatabase();
-      return true;
+      try {
+        await initializeDatabase();
+        console.log('✅ Database initialized successfully');
+        return true;
+      } catch (initError) {
+        console.error('❌ Database initialization failed:', initError.message);
+        console.log('⚠️ Bot will continue without some database features');
+        return false;
+      }
     } else {
-      console.log('⚠️  Bot will continue without MySQL database');
-      console.log('⚠️  Live poll features may not work until database is configured');
+      console.log('⚠️ Bot will continue without MySQL database');
+      console.log('⚠️ Live poll features may not work until database is configured');
       return false;
     }
   } catch (error) {
     console.error('Database initialization error:', error.message);
+    console.log('⚠️ Bot will continue in fallback mode');
     return false;
   }
 }

@@ -16,10 +16,15 @@ export default async function handler(req, res) {
 
     try {
       // Check if we can access the existing database pool
-      const { pool } = require('../../../server/db.js');
-      connection = await pool.getConnection();
-      isUsingPool = true;
+      const dbModule = require('../../../server/db.js');
+      if (dbModule && dbModule.pool) {
+        connection = await dbModule.pool.getConnection();
+        isUsingPool = true;
+      } else {
+        throw new Error('Pool not available');
+      }
     } catch (poolError) {
+      console.log('Pool connection failed, trying direct connection:', poolError.message);
       // Fallback to direct MySQL connection for Vercel
       const mysql = require('mysql2/promise');
       
