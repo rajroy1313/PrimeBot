@@ -95,9 +95,17 @@ class LivePollManager {
                 console.log('⚠️ Database components not available - using fallback mode');
             }
         } catch (error) {
-            console.error('❌ Database initialization error:', error);
+            console.error('❌ Database initialization error:', error.message);
             this.dbReady = false;
             console.log('⚠️ Live polls will use fallback mode (memory only)');
+            
+            // If it's a connection error, retry after delay
+            if (error.message.includes('Connection') || error.message.includes('timeout')) {
+                console.log('⏳ Will retry database connection in 60 seconds...');
+                setTimeout(() => {
+                    this.initializeDatabaseConnection();
+                }, 60000);
+            }
         }
     }
 
@@ -602,13 +610,21 @@ class LivePollManager {
             const dbInstance = db || global.livePollDb || this.drizzleDb;
             const now = new Date();
 
-            // Find all active polls that have expired
-            const expiredPolls = await dbInstance.select()
-                .from(livePolls)
-                .where(and(
-                    eq(livePolls.isActive, true),
-                    sql`${livePolls.expiresAt} IS NOT NULL AND ${livePolls.expiresAt} <= ${now}`
-                ));
+            // Add timeout wrapper for database operations
+            const timeoutPromise = new Promise((_, reject) => {
+                setTimeout(() => reject(new Error('Database operation timeout')), 10000); // 10 second timeout
+            });
+
+            // Find all active polls that have expired with timeout
+            const expiredPolls = await Promise.race([
+                dbInstance.select()
+                    .from(livePolls)
+                    .where(and(
+                        eq(livePolls.isActive, true),
+                        sql`${livePolls.expiresAt} IS NOT NULL AND ${livePolls.expiresAt} <= ${now}`
+                    )),
+                timeoutPromise
+            ]);
 
             console.log(`[LIVE POLLS] Checking for expired polls. Found ${expiredPolls.length} expired polls.`);
 
@@ -671,7 +687,18 @@ class LivePollManager {
                 console.log(`[LIVE POLLS] Updated ${expiredPolls.length} expired polls to inactive status.`);
             }
         } catch (error) {
-            console.error('[LIVE POLLS] Error checking expired polls:', error);
+            console.error('[LIVE POLLS] Error checking expired polls:', error.message);
+            
+            // If it's a connection error, try to reinitialize database
+            if (error.message.includes('Connection terminated') || error.message.includes('timeout')) {
+                console.log('[LIVE POLLS] Connection issue detected, reinitializing database...');
+                this.dbReady = false;
+                
+                // Try to reinitialize after a delay
+                setTimeout(() => {
+                    this.initializeDatabaseConnection();
+                }, 30000); // Wait 30 seconds before retry
+            }
         }
     }
 }

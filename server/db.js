@@ -45,8 +45,14 @@ function parseConnectionString() {
 
 const dbConfig = parseConnectionString();
 
-// Create PostgreSQL connection pool
-const pool = new Pool(dbConfig);
+// Create PostgreSQL connection pool with better timeout settings
+const pool = new Pool({
+    ...dbConfig,
+    connectionTimeoutMillis: 10000, // 10 seconds
+    idleTimeoutMillis: 30000, // 30 seconds
+    max: 10, // maximum number of connections
+    allowExitOnIdle: true
+});
 
 // Initialize Drizzle with PostgreSQL
 const db = drizzle(pool, { schema });
