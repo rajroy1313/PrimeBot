@@ -1,0 +1,84 @@
+modules = ["nodejs-20", "web", "bash", "php-8.1"]
+
+[nix]
+channel = "stable-25_05"
+packages = ["nix-output-monitor", "mysql80"]
+
+[workflows]
+runButton = "Project"
+
+[[workflows.workflow]]
+name = "Project"
+mode = "parallel"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Bot"
+
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Website"
+
+[[workflows.workflow]]
+name = "Bot"
+author = "agent"
+
+[workflows.workflow.metadata]
+agentRequireRestartOnSave = false
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node index.js"
+waitForPort = 5000
+
+[[workflows.workflow]]
+name = "Production"
+author = 43331182
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "npm run build:dashboard"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node website.js"
+
+[[workflows.workflow]]
+name = "Website"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node website.js"
+waitForPort = 5000
+
+[workflows.workflow.metadata]
+outputType = "webview"
+
+[[workflows.workflow]]
+name = "Database Admin"
+author = 47306138
+mode = "sequential"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "node phpmyadmin.js"
+
+[deployment]
+run = ["node", "website.js"]
+deploymentTarget = "vm"
+build = ["npm", "run", "build:dashboard"]
+
+[[ports]]
+localPort = 5000
+externalPort = 80
+
+[[ports]]
+localPort = 36903
+externalPort = 3000
+
+[agent]
+expertMode = true
+integrations = ["javascript_database:1.0.0"]
