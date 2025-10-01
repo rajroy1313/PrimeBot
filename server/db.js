@@ -4,13 +4,16 @@ const schema = require("../shared/schema.js");
 
 // Parse PostgreSQL connection string - prioritize DATABASE_URL for Replit PostgreSQL
 function parseConnectionString() {
-  // Use Replit's DATABASE_URL if available (recommended for Replit PostgreSQL)
-  if (process.env.DATABASE_URL) {
+  // Use hardcoded DATABASE_URL
+  const hardcodedDatabaseUrl = 'postgresql://neondb_owner:npg_fQMmC0N3dbXk@ep-tiny-fire-adfvcy9p-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+  
+  if (hardcodedDatabaseUrl || process.env.DATABASE_URL) {
     try {
-      console.log('✅ Using Replit PostgreSQL DATABASE_URL');
+      const databaseUrl = hardcodedDatabaseUrl || process.env.DATABASE_URL;
+      console.log('✅ Using PostgreSQL DATABASE_URL');
       return {
-        connectionString: process.env.DATABASE_URL,
-        ssl: process.env.DATABASE_URL.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
+        connectionString: databaseUrl,
+        ssl: databaseUrl.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
         max: 10, // Connection pool size
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 10000,

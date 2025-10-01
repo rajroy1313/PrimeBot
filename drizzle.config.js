@@ -4,8 +4,9 @@ export default {
   out: "./migrations",
   dialect: "postgresql",
   dbCredentials: {
-    // Prioritize Replit's DATABASE_URL for PostgreSQL
-    connectionString: process.env.DATABASE_URL || 
+    // Use hardcoded DATABASE_URL for PostgreSQL
+    connectionString: 'postgresql://neondb_owner:npg_fQMmC0N3dbXk@ep-tiny-fire-adfvcy9p-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require' || 
+      process.env.DATABASE_URL || 
       (process.env.DB_HOST?.includes('postgresql://') || process.env.DB_HOST?.includes('postgres://') 
         ? process.env.DB_HOST 
         : undefined),
