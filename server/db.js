@@ -2,8 +2,23 @@ const { Pool } = require('pg');
 const { drizzle } = require('drizzle-orm/node-postgres');
 const schema = require("../shared/schema.js");
 
-// Parse PostgreSQL connection string if DB_HOST contains full URL
+// Parse PostgreSQL connection string - prioritize DATABASE_URL for Replit PostgreSQL
 function parseConnectionString() {
+  // Use Replit's DATABASE_URL if available (recommended for Replit PostgreSQL)
+  if (process.env.DATABASE_URL) {
+    try {
+      return {
+        connectionString: process.env.DATABASE_URL,
+        ssl: process.env.DATABASE_URL.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
+        max: 10, // Connection pool size
+        idleTimeoutMillis: 30000,
+        connectionTimeoutMillis: 10000,
+      };
+    } catch (error) {
+      console.warn('Failed to parse DATABASE_URL, falling back to individual env vars:', error.message);
+    }
+  }
+
   const dbHost = process.env.DB_HOST || '';
   
   // Check if DB_HOST is a full PostgreSQL connection string
@@ -22,7 +37,7 @@ function parseConnectionString() {
         ssl: url.searchParams.get('sslmode') === 'require' ? { rejectUnauthorized: false } : false,
         max: 10, // Connection pool size
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 2000,
+        connectionTimeoutMillis: 10000,
       };
     } catch (error) {
       console.warn('Failed to parse PostgreSQL connection string, using individual env vars:', error.message);
@@ -39,7 +54,7 @@ function parseConnectionString() {
     ssl: process.env.DB_SSL === 'require' ? { rejectUnauthorized: false } : false,
     max: 10, // Connection pool size
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 2000,
+    connectionTimeoutMillis: 10000,
   };
 }
 
