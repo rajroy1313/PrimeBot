@@ -7,6 +7,7 @@ function parseConnectionString() {
   // Use Replit's DATABASE_URL if available (recommended for Replit PostgreSQL)
   if (process.env.DATABASE_URL) {
     try {
+      console.log('✅ Using Replit PostgreSQL DATABASE_URL');
       return {
         connectionString: process.env.DATABASE_URL,
         ssl: process.env.DATABASE_URL.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
@@ -17,6 +18,9 @@ function parseConnectionString() {
     } catch (error) {
       console.warn('Failed to parse DATABASE_URL, falling back to individual env vars:', error.message);
     }
+  } else {
+    console.warn('⚠️ DATABASE_URL not found. Please create a PostgreSQL database in Replit.');
+    console.log('💡 To fix: Open a new tab, type "Database", and click "Create a database"');
   }
 
   const dbHost = process.env.DB_HOST || '';
@@ -75,6 +79,14 @@ const db = drizzle(pool, { schema });
 // Test connection function
 async function testConnection() {
   try {
+    if (!process.env.DATABASE_URL && !process.env.DB_HOST) {
+      console.error('❌ No database configuration found');
+      console.log('💡 Please create a PostgreSQL database in Replit:');
+      console.log('   1. Open a new tab and type "Database"');
+      console.log('   2. Click "Create a database"');
+      return false;
+    }
+    
     const client = await pool.connect();
     await client.query('SELECT NOW()');
     console.log('✅ PostgreSQL database connected successfully');
@@ -82,8 +94,13 @@ async function testConnection() {
     return true;
   } catch (error) {
     console.error('❌ PostgreSQL connection failed:', error.message);
-    console.log('💡 Please ensure PostgreSQL is running and properly configured');
-    console.log('💡 Check your DATABASE_URL or DB_* environment variables');
+    if (error.code === 'ECONNREFUSED') {
+      console.log('💡 Database connection refused. Please create a PostgreSQL database in Replit:');
+      console.log('   1. Open a new tab and type "Database"');
+      console.log('   2. Click "Create a database"');
+    } else {
+      console.log('💡 Please check your database configuration');
+    }
     return false;
   }
 }

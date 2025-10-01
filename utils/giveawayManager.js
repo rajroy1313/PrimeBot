@@ -27,12 +27,14 @@ class GiveawayManager {
                 await this.loadGiveaways();
             } else {
                 // Retry after a short delay if database isn't ready yet
-                setTimeout(() => this.initializeDatabase(), 1000);
+                console.log('[GIVEAWAY] Waiting for database to be ready...');
+                setTimeout(() => this.initializeDatabase(), 2000);
             }
         } catch (error) {
             console.error('❌ GiveawayManager database initialization failed:', error);
-            // Retry after a delay
-            setTimeout(() => this.initializeDatabase(), 5000);
+            console.log('[GIVEAWAY] Will operate in memory-only mode until database is available');
+            // Retry after a longer delay
+            setTimeout(() => this.initializeDatabase(), 10000);
         }
     }
 

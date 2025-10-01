@@ -7,6 +7,9 @@ class TicketManager {
         this.client = client;
         this.tickets = new Map();
         this.dataPath = path.join(__dirname, '../data/tickets.json');
+        this.db = null;
+        this.schema = null;
+        this.dbReady = false;
         
         // Ensure data directory exists
         const dataDir = path.join(__dirname, '../data');
@@ -14,7 +17,30 @@ class TicketManager {
             fs.mkdirSync(dataDir, { recursive: true });
         }
         
+        // Initialize database connection
+        this.initializeDatabase();
         this.loadTickets();
+    }
+
+    async initializeDatabase() {
+        try {
+            // Wait for client database to be ready
+            if (this.client.db && this.client.schema) {
+                this.db = this.client.db;
+                this.schema = this.client.schema;
+                this.dbReady = true;
+                console.log('✅ TicketManager database connection established');
+            } else {
+                // Retry after a short delay if database isn't ready yet
+                console.log('[TICKET] Waiting for database to be ready...');
+                setTimeout(() => this.initializeDatabase(), 2000);
+            }
+        } catch (error) {
+            console.error('❌ TicketManager database initialization failed:', error);
+            console.log('[TICKET] Will operate in file-based mode until database is available');
+            // Retry after a longer delay
+            setTimeout(() => this.initializeDatabase(), 10000);
+        }
     }
 
     loadTickets() {
