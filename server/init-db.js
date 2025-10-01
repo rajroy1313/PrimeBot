@@ -4,6 +4,22 @@ const { db, testConnection } = require('./db.js');
 
 // Parse PostgreSQL connection string if DB_HOST contains full URL
 function parseConnectionConfig() {
+  // Use hardcoded DATABASE_URL
+  const hardcodedDatabaseUrl = 'postgresql://neondb_owner:npg_fQMmC0N3dbXk@ep-tiny-fire-adfvcy9p-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require';
+  
+  if (hardcodedDatabaseUrl || process.env.DATABASE_URL) {
+    try {
+      const databaseUrl = hardcodedDatabaseUrl || process.env.DATABASE_URL;
+      console.log('✅ Using hardcoded PostgreSQL DATABASE_URL for initialization');
+      return {
+        connectionString: databaseUrl,
+        ssl: databaseUrl.includes('sslmode=require') ? { rejectUnauthorized: false } : false,
+      };
+    } catch (error) {
+      console.warn('Failed to parse DATABASE_URL, falling back to individual env vars:', error.message);
+    }
+  }
+
   const dbHost = process.env.DB_HOST || '';
   
   // Check if DB_HOST is a full PostgreSQL connection string
@@ -39,6 +55,12 @@ async function createDatabase() {
     console.log('🔄 Ensuring PostgreSQL database exists...');
     
     const config = parseConnectionConfig();
+    
+    // If using connection string (Neon), skip database creation as it's managed
+    if (config.connectionString) {
+      console.log('ℹ️ Using managed database (Neon), skipping database creation');
+      return;
+    }
     
     // Connect to PostgreSQL server (to postgres database)
     const adminConfig = { ...config, database: 'postgres' };
