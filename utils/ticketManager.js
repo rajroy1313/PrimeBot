@@ -215,6 +215,44 @@ class TicketManager {
         }
     }
 
+    async sendTicketEmbed({ channelId, title = 'Support Tickets', description = 'Click the button below to create a support ticket', buttonText = 'Create Ticket', supportRoles = [] }) {
+        try {
+            const channel = await this.client.channels.fetch(channelId);
+            if (!channel) {
+                throw new Error('Channel not found');
+            }
+
+            const embed = new EmbedBuilder()
+                .setColor('#0099ff')
+                .setTitle(`🎫 ${title}`)
+                .setDescription(description)
+                .setTimestamp();
+
+            if (supportRoles.length > 0) {
+                const roleText = supportRoles.map(roleId => `<@&${roleId}>`).join(', ');
+                embed.addFields({ name: '👥 Support Team', value: roleText });
+            }
+
+            const button = new ButtonBuilder()
+                .setCustomId('ticket_create')
+                .setLabel(buttonText)
+                .setStyle(ButtonStyle.Primary)
+                .setEmoji('🎫');
+
+            const row = new ActionRowBuilder().addComponents(button);
+
+            await channel.send({
+                embeds: [embed],
+                components: [row]
+            });
+
+            return true;
+        } catch (error) {
+            console.error('Error sending ticket embed:', error);
+            throw error;
+        }
+    }
+
     getTicketHistory(guildId, userId = null) {
         const tickets = Array.from(this.tickets.values())
             .filter(ticket => ticket.guildId === guildId)
