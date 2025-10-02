@@ -360,16 +360,16 @@ module.exports = {
                     // For other buttons that use colons as separators, extract the parts
                     const [action, ...params] = customId.split(':');
                     // Route to the appropriate handler based on customId or action
-                    if (action === 'create-ticket' || interaction.customId === 'create-ticket') {
+                    if (action === 'create-ticket' || interaction.customId === 'create-ticket' || interaction.customId === 'ticket_create') {
                         await safeExecute(
-                            client.ticketManager.handleTicketCreation.bind(client.ticketManager),
+                            client.ticketManager.createTicket.bind(client.ticketManager),
                             [interaction],
                             null,
                             'Ticket creation button'
                         );
-                    } else if (action === 'close-ticket' || interaction.customId === 'close-ticket') {
+                    } else if (action === 'close-ticket' || interaction.customId === 'close-ticket' || interaction.customId === 'ticket_close') {
                         await safeExecute(
-                            client.ticketManager.handleTicketClose.bind(client.ticketManager),
+                            client.ticketManager.closeTicket.bind(client.ticketManager),
                             [interaction],
                             null,
                             'Ticket close button'
