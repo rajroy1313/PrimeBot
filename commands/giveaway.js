@@ -40,11 +40,13 @@ module.exports = {
     
     async execute(interaction) {
         try {
+            // Defer the reply immediately to prevent timeout
+            await interaction.deferReply({ ephemeral: false });
+
             // Check if user has permission
             if (!interaction.member.permissions.has(PermissionFlagsBits.ManageGuild)) {
-                return interaction.reply({ 
-                    content: 'You need the Manage Server permission to create giveaways!', 
-                    ephemeral: false 
+                return interaction.editReply({ 
+                    content: 'You need the Manage Server permission to create giveaways!'
                 });
             }
 
@@ -61,9 +63,8 @@ module.exports = {
             const ms_duration = ms(duration);
             
             if (!ms_duration) {
-                return interaction.reply({ 
-                    content: 'Please provide a valid duration format (e.g., 1m, 1h, 1d)!', 
-                    ephemeral: false 
+                return interaction.editReply({ 
+                    content: 'Please provide a valid duration format (e.g., 1m, 1h, 1d)!'
                 });
             }
 
@@ -72,9 +73,8 @@ module.exports = {
                 try {
                     new URL(thumbnail);
                 } catch (e) {
-                    return interaction.reply({ 
-                        content: 'Please provide a valid URL for the thumbnail image!', 
-                        ephemeral: false 
+                    return interaction.editReply({ 
+                        content: 'Please provide a valid URL for the thumbnail image!'
                     });
                 }
             }
@@ -112,17 +112,22 @@ module.exports = {
 
             const giveaway = await interaction.client.giveawayManager.startGiveaway(giveawayOptions);
 
-            await interaction.reply({ 
-                embeds: [detailsEmbed], 
-                ephemeral: false 
+            await interaction.editReply({ 
+                embeds: [detailsEmbed]
             });
             
         } catch (error) {
             console.error('Error creating giveaway:', error);
-            await interaction.reply({ 
-                content: 'There was an error creating the giveaway! Please try again later.', 
-                ephemeral: false 
-            });
+            if (interaction.deferred) {
+                await interaction.editReply({ 
+                    content: 'There was an error creating the giveaway! Please try again later.'
+                });
+            } else {
+                await interaction.reply({ 
+                    content: 'There was an error creating the giveaway! Please try again later.', 
+                    ephemeral: false 
+                });
+            }
         }
     },
 };
