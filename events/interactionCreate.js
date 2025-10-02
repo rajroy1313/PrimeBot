@@ -367,19 +367,12 @@ module.exports = {
                             null,
                             'Ticket creation button'
                         );
-                    } else if (action === 'close-ticket' || interaction.customId === 'close-ticket' || interaction.customId === 'ticket_close') {
+                    } else if (action === 'close-ticket' || interaction.customId === 'close-ticket' || interaction.customId === 'ticket_close' || action === 'reopen-ticket' || interaction.customId === 'reopen-ticket' || interaction.customId === 'ticket_reopen' || interaction.customId === 'ticket_toggle') {
                         await safeExecute(
-                            client.ticketManager.closeTicket.bind(client.ticketManager),
+                            client.ticketManager.toggleTicket.bind(client.ticketManager),
                             [interaction],
                             null,
-                            'Ticket close button'
-                        );
-                    } else if (action === 'reopen-ticket' || interaction.customId === 'reopen-ticket' || interaction.customId === 'ticket_reopen') {
-                        await safeExecute(
-                            client.ticketManager.reopenTicket.bind(client.ticketManager),
-                            [interaction],
-                            null,
-                            'Ticket reopen button'
+                            'Ticket toggle button'
                         );
                     } else if (action === 'tictactoe') {
                         const position = params[0];
