@@ -27,7 +27,7 @@ module.exports = {
             const pageSize = 10;
             
             // Get ticket history
-            const ticketHistory = interaction.client.ticketManager.getTicketHistory();
+            const ticketHistory = interaction.client.ticketManager.getTicketHistory(interaction.guild.id);
             
             if (!ticketHistory || ticketHistory.length === 0) {
                 return interaction.reply('There are no closed tickets in the history.');
