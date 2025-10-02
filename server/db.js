@@ -135,15 +135,7 @@ async function initializeGracefully() {
   }
 }
 
-// Handle graceful shutdown
-process.on('SIGINT', async () => {
-  console.log('Closing PostgreSQL pool...');
-  await pool.end();
-});
-
-process.on('SIGTERM', async () => {
-  console.log('Closing PostgreSQL pool...');
-  await pool.end();
-});
+// Handle graceful shutdown - removed to prevent premature connection closing
+// The pool will be closed when the process exits naturally
 
 module.exports = { pool, db, testConnection, initializeGracefully };

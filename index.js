@@ -1,4 +1,3 @@
-
 const debug = require('debug')('bot:main');
 
 const { Client, GatewayIntentBits, Collection, ActivityType } = require('discord.js');
@@ -79,15 +78,26 @@ client.schema = schema;
 
 // Initialize leveling and badges manager (after database is available)
 const LevelingManager = require('./utils/levelingManager');
-client.levelingManager = new LevelingManager(client);
+
+// Initialize managers (with database)
+    client.giveawayManager = new GiveawayManager(client);
+    client.pollManager = new PollManager(client);
+    client.livePollManager = new LivePollManager(client);
+
+    // Wait a bit to ensure database is fully ready before initializing leveling
+    setTimeout(() => {
+        client.levelingManager = new LevelingManager(client);
+    }, 2000);
+
 
 // Initialize server settings manager for broadcast opt-outs
 const ServerSettingsManager = require('./utils/serverSettingsManager');
 client.serverSettingsManager = new ServerSettingsManager(client);
 
 // Initialize live poll manager
-const LivePollManager = require('./utils/livePollManager');
-client.livePollManager = new LivePollManager(client);
+// const LivePollManager = require('./utils/livePollManager'); // Already required above
+// client.livePollManager = new LivePollManager(client); // Already initialized above
+
 
 // Load command files
 const commandsPath = path.join(__dirname, 'commands');
@@ -97,7 +107,7 @@ const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
     const command = require(filePath);
-    
+
     // Set a new item in the Collection with the key as the command name and the value as the exported module
     if ('data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command);
@@ -122,9 +132,9 @@ console.log(`Found ${eventFiles.length} event files`);
 for (const file of eventFiles) {
     const filePath = path.join(eventsPath, file);
     const event = require(filePath);
-    
+
     console.log(`Loading event: ${file} (${event.name}, once: ${event.once ? 'true' : 'false'})`);
-    
+
     if (event.once) {
         client.once(event.name, (...args) => {
             console.log(`[EVENT] Executing once event: ${event.name}`);
@@ -138,14 +148,14 @@ for (const file of eventFiles) {
         client.on(event.name, (...args) => {
             // Always log message events for debugging
             console.log(`[EVENT] Executing event: ${event.name}`);
-            
+
             try {
                 // For message events, log key details
                 if (event.name === 'messageCreate') {
                     const message = args[0];
                     console.log(`[MESSAGE DEBUG] Content: "${message.content}", Author: ${message.author.tag}, Channel: ${message.channel.type === 'DM' ? 'DM' : message.channel.name}, Guild: ${message.guild ? message.guild.name : 'None'}`);
                 }
-                
+
                 event.execute(...args, client);
             } catch (error) {
                 console.error(`[EVENT ERROR] Error in event ${event.name}:`, error);

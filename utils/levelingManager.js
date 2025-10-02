@@ -35,12 +35,16 @@ class LevelingManager {
                 
                 // Perform migration from JSON to database
                 await this.migrateFromJSON();
+                
+                console.log('✅ LevelingManager fully initialized and ready');
             } else {
+                console.log('[LEVELING] Waiting for database to be ready...');
                 // Retry after a short delay if database isn't ready yet
                 setTimeout(() => this.initializeDatabase(), 1000);
             }
         } catch (error) {
             console.error('❌ LevelingManager database initialization failed:', error);
+            console.error('[LEVELING] Stack trace:', error.stack);
             // Retry after a delay
             setTimeout(() => this.initializeDatabase(), 5000);
         }
@@ -226,7 +230,14 @@ class LevelingManager {
      * @param {number} multiplier - Server-specific XP multiplier
      */
     async awardXP(message, multiplier = 1.0) {
-        if (!this.dbReady) return;
+        if (!this.dbReady) {
+            console.log('[LEVELING] Database not ready, skipping XP award');
+            return;
+        }
+        if (!this.db || !this.schema) {
+            console.log('[LEVELING] Database or schema not initialized');
+            return;
+        }
 
         const guildId = message.guild.id;
         const userId = message.author.id;
