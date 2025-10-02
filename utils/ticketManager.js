@@ -83,37 +83,33 @@ class TicketManager {
         }
 
         try {
-            // Create ticket channel
-            const ticketChannel = await interaction.guild.channels.create({
-                name: `ticket-${interaction.user.username}`,
-                type: ChannelType.GuildText,
-                permissionOverwrites: [
-                    {
-                        id: interaction.guild.id,
-                        deny: [PermissionFlagsBits.ViewChannel],
-                    },
-                    {
-                        id: interaction.user.id,
-                        allow: [
-                            PermissionFlagsBits.ViewChannel,
-                            PermissionFlagsBits.SendMessages,
-                            PermissionFlagsBits.ReadMessageHistory,
-                        ],
-                    },
-                ],
+            // Get the channel where the button was clicked
+            const parentChannel = interaction.channel;
+            
+            // Create ticket as a private thread
+            const ticketThread = await parentChannel.threads.create({
+                name: `🎫 ${interaction.user.username}'s ticket`,
+                autoArchiveDuration: 1440, // 24 hours
+                type: ChannelType.PrivateThread,
+                reason: `Support ticket created by ${interaction.user.tag}`,
             });
+            
+            // Add the user to the thread
+            await ticketThread.members.add(interaction.user.id);
 
             // Create ticket data
             const ticketData = {
-                channelId: ticketChannel.id,
+                channelId: ticketThread.id,
                 userId: interaction.user.id,
                 guildId: interaction.guild.id,
                 category,
                 createdAt: Date.now(),
-                closed: false
+                closed: false,
+                isThread: true,
+                parentChannelId: parentChannel.id
             };
 
-            this.tickets.set(ticketChannel.id, ticketData);
+            this.tickets.set(ticketThread.id, ticketData);
             this.saveTickets();
 
             // Create initial embed
@@ -137,14 +133,14 @@ class TicketManager {
 
             const row = new ActionRowBuilder().addComponents(closeButton);
 
-            await ticketChannel.send({
-                content: `${interaction.user}`,
+            await ticketThread.send({
+                content: `${interaction.user} Welcome to your support ticket!`,
                 embeds: [embed],
                 components: [row]
             });
 
             return interaction.reply({
-                content: `Your ticket has been created: ${ticketChannel}`,
+                content: `Your ticket thread has been created: ${ticketThread}`,
                 ephemeral: true
             });
 
@@ -195,14 +191,21 @@ class TicketManager {
 
             await interaction.reply({ embeds: [embed] });
 
-            // Delete channel after 10 seconds
+            // Archive and lock the thread after 10 seconds
             setTimeout(async () => {
                 try {
-                    await interaction.channel.delete();
+                    if (ticket.isThread) {
+                        // Archive and lock the thread
+                        await interaction.channel.setArchived(true);
+                        await interaction.channel.setLocked(true);
+                    } else {
+                        // For old channel-based tickets, delete the channel
+                        await interaction.channel.delete();
+                    }
                     this.tickets.delete(channelId);
                     this.saveTickets();
                 } catch (error) {
-                    console.error('Error deleting ticket channel:', error);
+                    console.error('Error closing ticket:', error);
                 }
             }, 10000);
 
