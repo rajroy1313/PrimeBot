@@ -374,6 +374,13 @@ module.exports = {
                             null,
                             'Ticket close button'
                         );
+                    } else if (action === 'reopen-ticket' || interaction.customId === 'reopen-ticket' || interaction.customId === 'ticket_reopen') {
+                        await safeExecute(
+                            client.ticketManager.reopenTicket.bind(client.ticketManager),
+                            [interaction],
+                            null,
+                            'Ticket reopen button'
+                        );
                     } else if (action === 'tictactoe') {
                         const position = params[0];
                         if (position) {

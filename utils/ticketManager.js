@@ -69,18 +69,6 @@ class TicketManager {
     async createTicket(interaction, category = 'general') {
         const guildId = interaction.guild.id;
         const userId = interaction.user.id;
-        
-        // Check if user already has an open ticket
-        const existingTicket = Array.from(this.tickets.values()).find(
-            ticket => ticket.userId === userId && ticket.guildId === guildId && !ticket.closed
-        );
-        
-        if (existingTicket) {
-            return interaction.reply({
-                content: `You already have an open ticket: <#${existingTicket.channelId}>`,
-                ephemeral: true
-            });
-        }
 
         try {
             // Get the channel where the button was clicked
@@ -96,6 +84,19 @@ class TicketManager {
             
             // Add the user to the thread
             await ticketThread.members.add(interaction.user.id);
+            
+            // Add all members with Administrator permission to the thread
+            const adminMembers = interaction.guild.members.cache.filter(member => 
+                member.permissions.has(PermissionFlagsBits.Administrator)
+            );
+            
+            for (const [_, member] of adminMembers) {
+                try {
+                    await ticketThread.members.add(member.id);
+                } catch (error) {
+                    console.error(`Failed to add admin ${member.user.tag} to ticket:`, error);
+                }
+            }
 
             // Create ticket data
             const ticketData = {
@@ -124,7 +125,7 @@ class TicketManager {
                 .setThumbnail(interaction.user.displayAvatarURL())
                 .setTimestamp();
 
-            // Create close button
+            // Create close button (accessible to everyone in the thread)
             const closeButton = new ButtonBuilder()
                 .setCustomId('ticket_close')
                 .setLabel('Close Ticket')
@@ -134,7 +135,7 @@ class TicketManager {
             const row = new ActionRowBuilder().addComponents(closeButton);
 
             await ticketThread.send({
-                content: `${interaction.user} Welcome to your support ticket!`,
+                content: `${interaction.user} Welcome to your support ticket!\n\n**Note:** You or an administrator can close this ticket at any time. Only administrators can reopen closed tickets.`,
                 embeds: [embed],
                 components: [row]
             });
@@ -171,6 +172,17 @@ class TicketManager {
             });
         }
 
+        // Check if user is the ticket owner or an admin
+        const isOwner = interaction.user.id === ticket.userId;
+        const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+
+        if (!isOwner && !isAdmin) {
+            return interaction.reply({
+                content: 'Only the ticket owner or administrators can close this ticket.',
+                ephemeral: true
+            });
+        }
+
         try {
             // Mark ticket as closed
             ticket.closed = true;
@@ -178,20 +190,29 @@ class TicketManager {
             ticket.closedBy = interaction.user.id;
             this.saveTickets();
 
+            // Create reopen button (only for admins)
+            const reopenButton = new ButtonBuilder()
+                .setCustomId('ticket_reopen')
+                .setLabel('Reopen Ticket')
+                .setStyle(ButtonStyle.Success)
+                .setEmoji('🔓');
+
+            const row = new ActionRowBuilder().addComponents(reopenButton);
+
             // Create closing embed
             const embed = new EmbedBuilder()
                 .setColor('#ff0000')
                 .setTitle('🔒 Ticket Closed')
-                .setDescription('This ticket has been closed. The channel will be deleted in 10 seconds.')
+                .setDescription('This ticket has been closed and archived.\n\n**Administrators** can reopen this ticket using the button below.')
                 .addFields(
                     { name: '👤 Closed by', value: `${interaction.user}`, inline: true },
                     { name: '🕐 Closed at', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true }
                 )
                 .setTimestamp();
 
-            await interaction.reply({ embeds: [embed] });
+            await interaction.reply({ embeds: [embed], components: [row] });
 
-            // Archive and lock the thread after 10 seconds
+            // Archive and lock the thread after 5 seconds
             setTimeout(async () => {
                 try {
                     if (ticket.isThread) {
@@ -202,17 +223,90 @@ class TicketManager {
                         // For old channel-based tickets, delete the channel
                         await interaction.channel.delete();
                     }
-                    this.tickets.delete(channelId);
                     this.saveTickets();
                 } catch (error) {
-                    console.error('Error closing ticket:', error);
+                    console.error('Error archiving ticket:', error);
                 }
-            }, 10000);
+            }, 5000);
 
         } catch (error) {
             console.error('Error closing ticket:', error);
             return interaction.reply({
                 content: 'There was an error closing this ticket.',
+                ephemeral: true
+            });
+        }
+    }
+
+    async reopenTicket(interaction) {
+        const channelId = interaction.channel.id;
+        const ticket = this.tickets.get(channelId);
+
+        if (!ticket) {
+            return interaction.reply({
+                content: 'This is not a valid ticket channel.',
+                ephemeral: true
+            });
+        }
+
+        if (!ticket.closed) {
+            return interaction.reply({
+                content: 'This ticket is already open.',
+                ephemeral: true
+            });
+        }
+
+        // Only admins can reopen tickets
+        const isAdmin = interaction.member.permissions.has(PermissionFlagsBits.Administrator);
+
+        if (!isAdmin) {
+            return interaction.reply({
+                content: 'Only administrators can reopen tickets.',
+                ephemeral: true
+            });
+        }
+
+        try {
+            // Mark ticket as reopened
+            ticket.closed = false;
+            ticket.reopenedAt = Date.now();
+            ticket.reopenedBy = interaction.user.id;
+            delete ticket.closedAt;
+            delete ticket.closedBy;
+            this.saveTickets();
+
+            // Unarchive and unlock the thread
+            if (ticket.isThread) {
+                await interaction.channel.setArchived(false);
+                await interaction.channel.setLocked(false);
+            }
+
+            // Create close button again
+            const closeButton = new ButtonBuilder()
+                .setCustomId('ticket_close')
+                .setLabel('Close Ticket')
+                .setStyle(ButtonStyle.Danger)
+                .setEmoji('🔒');
+
+            const row = new ActionRowBuilder().addComponents(closeButton);
+
+            // Create reopening embed
+            const embed = new EmbedBuilder()
+                .setColor('#00ff00')
+                .setTitle('🔓 Ticket Reopened')
+                .setDescription('This ticket has been reopened and is now active again.')
+                .addFields(
+                    { name: '👤 Reopened by', value: `${interaction.user}`, inline: true },
+                    { name: '🕐 Reopened at', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true }
+                )
+                .setTimestamp();
+
+            await interaction.update({ embeds: [embed], components: [row] });
+
+        } catch (error) {
+            console.error('Error reopening ticket:', error);
+            return interaction.reply({
+                content: 'There was an error reopening this ticket.',
                 ephemeral: true
             });
         }
