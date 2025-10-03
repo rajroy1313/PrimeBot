@@ -79,6 +79,9 @@ client.schema = schema;
 // Initialize leveling and badges manager (after database is available)
 const LevelingManager = require('./utils/levelingManager');
 
+// Initialize Live Poll Manager
+const LivePollManager = require('./utils/livePollManager');
+
 // Initialize managers (with database)
     client.giveawayManager = new GiveawayManager(client);
     client.pollManager = new PollManager(client);
@@ -94,9 +97,7 @@ const LevelingManager = require('./utils/levelingManager');
 const ServerSettingsManager = require('./utils/serverSettingsManager');
 client.serverSettingsManager = new ServerSettingsManager(client);
 
-// Initialize live poll manager
-// const LivePollManager = require('./utils/livePollManager'); // Already required above
-// client.livePollManager = new LivePollManager(client); // Already initialized above
+// Live poll manager already initialized above
 
 
 // Load command files
