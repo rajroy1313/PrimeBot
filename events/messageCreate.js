@@ -441,7 +441,7 @@ module.exports = {
                     // Handle no-prefix mode - moved to separate case section for better organization
                     break;
                     
-                case "help":
+                case "commands":
                 
                     // Check if user wants a specific category
                     const category = args[0]?.toLowerCase();
@@ -455,21 +455,21 @@ module.exports = {
                     const categoryEmbed = new EmbedBuilder()
                         .setColor(config.colors.primary)
                         .setTitle('📚 Command Categories')
-                        .setDescription(`Choose a category to explore available commands:\n\n**Usage:** \`${prefix}help [category]\``)
+                        .setDescription(`Choose a category to explore available commands:\n\n**Usage:** \`${prefix}commands [category]\``)
                         .addFields(
-                            { name: '⚡ General', value: `\`${prefix}help general\`\nBasic bot commands and information`, inline: true },
-                            { name: '📊 Leveling', value: `\`${prefix}help leveling\`\nXP, ranks, and progression system`, inline: true },
-                            { name: '🎮 Games', value: `\`${prefix}help games\`\nFun interactive games and activities`, inline: true },
-                            { name: '🛡️ Moderation', value: `\`${prefix}help moderation\`\nServer management and moderation tools`, inline: true },
-                            { name: '👥 Community', value: `\`${prefix}help community\`\nEngagement and social features`, inline: true },
-                            { name: '⚙️ Administration', value: `\`${prefix}help admin\`\nAdvanced server configuration`, inline: true }
+                            { name: '⚡ General', value: `\`${prefix}commands general\`\nBasic bot commands and information`, inline: true },
+                            { name: '📊 Leveling', value: `\`${prefix}commands leveling\`\nXP, ranks, and progression system`, inline: true },
+                            { name: '🎮 Games', value: `\`${prefix}commands games\`\nFun interactive games and activities`, inline: true },
+                            { name: '🛡️ Moderation', value: `\`${prefix}commands moderation\`\nServer management and moderation tools`, inline: true },
+                            { name: '👥 Community', value: `\`${prefix}commands community\`\nEngagement and social features`, inline: true },
+                            { name: '⚙️ Administration', value: `\`${prefix}commands admin\`\nAdvanced server configuration`, inline: true }
                         )
                         .setFooter({ text: `Total Commands: 30+ • Version: ${config.version}` })
                         .setTimestamp();
 
                     return message.reply({ embeds: [categoryEmbed] });
 
-                case "commands":
+                case "help":
                 case "categories":
                     // Interactive category browser with select menu
                     const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
@@ -481,7 +481,7 @@ module.exports = {
                         .addFields(
                             { name: '📊 Quick Stats', value: `**Total Commands:** 30+\n**Categories:** 6\n**Active Servers:** ${message.client.guilds.cache.size}`, inline: true },
                             { name: '🚀 Getting Started', value: 'Select a category from the menu to see available commands and their descriptions.', inline: true },
-                            { name: '💡 Pro Tip', value: `Use \`${prefix}help\` for traditional browsing or \`${prefix}categories\` for this interactive experience.`, inline: true }
+                            { name: '💡 Pro Tip', value: `Use \`${prefix}commands\` for traditional browsing or \`${prefix}help\` for this interactive experience.`, inline: true }
                         )
                         .setFooter({ text: `Version: ${config.version}` })
                         .setTimestamp();
