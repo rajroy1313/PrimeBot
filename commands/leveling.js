@@ -409,19 +409,109 @@ async function handleRankCommand(interaction, client) {
     await interaction.deferReply();
     
     try {
-        const profileData = await client.levelingManager.createProfileEmbed(
-            guild.id,
-            targetUser.id
-        );
+        // Get user data from database
+        const userData = await client.levelingManager.getUserProfile(guild.id, targetUser.id);
         
-        if (!profileData) {
+        if (!userData) {
             return interaction.editReply({
                 content: `${targetUser.id === user.id ? 'You haven\'t' : `${targetUser.username} hasn't`} earned any XP in this server yet.`,
                 ephemeral: false
             });
         }
-        
-        interaction.editReply({ embeds: [profileData.embed] });
+
+        // Get user's rank position
+        const leaderboard = await client.levelingManager.getLeaderboard(guild.id, 1000);
+        const userRank = leaderboard.findIndex(u => u.userId === targetUser.id) + 1;
+
+        // Calculate progress to next level
+        const currentLevel = userData.level;
+        const nextLevel = currentLevel + 1;
+        const currentLevelMessages = client.levelingManager.calculateRequiredMessages(currentLevel);
+        const nextLevelMessages = client.levelingManager.calculateRequiredMessages(nextLevel);
+        const messagesForCurrentLevel = nextLevelMessages - currentLevelMessages;
+        const currentProgress = userData.messages - currentLevelMessages;
+        const progressPercentage = Math.floor((currentProgress / messagesForCurrentLevel) * 100);
+
+        // Create progress bar
+        const progressBarLength = 20;
+        const filledSquares = Math.floor((progressPercentage / 100) * progressBarLength);
+        const emptySquares = progressBarLength - filledSquares;
+        const progressBar = '█'.repeat(filledSquares) + '░'.repeat(emptySquares);
+
+        // Get rank medal emoji
+        let rankEmoji = '🏅';
+        if (userRank === 1) rankEmoji = '🥇';
+        else if (userRank === 2) rankEmoji = '🥈';
+        else if (userRank === 3) rankEmoji = '🥉';
+        else if (userRank <= 10) rankEmoji = '⭐';
+
+        // Create enhanced embed
+        const embed = new EmbedBuilder()
+            .setColor(config.colors.primary)
+            .setAuthor({ 
+                name: `${targetUser.username}'s Level Stats`,
+                iconURL: targetUser.displayAvatarURL({ dynamic: true })
+            })
+            .setThumbnail(targetUser.displayAvatarURL({ dynamic: true, size: 256 }))
+            .addFields(
+                { 
+                    name: `${rankEmoji} Server Rank`, 
+                    value: `**#${userRank}** out of ${leaderboard.length}`, 
+                    inline: true 
+                },
+                { 
+                    name: '📊 Level', 
+                    value: `**${userData.level}**`, 
+                    inline: true 
+                },
+                { 
+                    name: '✨ Total XP', 
+                    value: `**${userData.xp.toLocaleString()}**`, 
+                    inline: true 
+                },
+                { 
+                    name: '💬 Messages', 
+                    value: `**${userData.messages.toLocaleString()}**`, 
+                    inline: true 
+                },
+                { 
+                    name: '🎯 Next Level', 
+                    value: `**${messagesForCurrentLevel - currentProgress}** messages`, 
+                    inline: true 
+                },
+                { 
+                    name: '📈 Progress', 
+                    value: `**${progressPercentage}%**`, 
+                    inline: true 
+                },
+                {
+                    name: '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬',
+                    value: `\`${progressBar}\` ${currentProgress}/${messagesForCurrentLevel}`,
+                    inline: false
+                }
+            );
+
+        // Add badges section if user has badges
+        if (userData.badges && userData.badges.length > 0) {
+            const badgeDisplay = userData.badges
+                .slice(0, 10) // Limit to 10 badges
+                .map(badge => badge.badgeEmoji)
+                .join(' ');
+            
+            embed.addFields({
+                name: `🏆 Badges (${userData.badges.length})`,
+                value: badgeDisplay || 'None',
+                inline: false
+            });
+        }
+
+        embed.setFooter({ 
+            text: `Keep chatting to level up! • ${guild.name}`,
+            iconURL: guild.iconURL({ dynamic: true })
+        });
+        embed.setTimestamp();
+
+        interaction.editReply({ embeds: [embed] });
     } catch (error) {
         console.error('[LEVELING] Error displaying rank:', error);
         interaction.editReply({

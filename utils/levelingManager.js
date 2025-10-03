@@ -850,20 +850,84 @@ class LevelingManager {
         if (!profile) return null;
 
         try {
+            // Get user's rank position
+            const leaderboard = await this.getLeaderboard(guildId, 1000);
+            const userRank = leaderboard.findIndex(u => u.userId === userId) + 1;
+
+            // Calculate progress to next level
+            const currentLevel = profile.level;
+            const nextLevel = currentLevel + 1;
+            const currentLevelMessages = this.calculateRequiredMessages(currentLevel);
+            const nextLevelMessages = this.calculateRequiredMessages(nextLevel);
+            const messagesForCurrentLevel = nextLevelMessages - currentLevelMessages;
+            const currentProgress = profile.messages - currentLevelMessages;
+            const progressPercentage = Math.floor((currentProgress / messagesForCurrentLevel) * 100);
+
+            // Create progress bar
+            const progressBarLength = 20;
+            const filledSquares = Math.floor((progressPercentage / 100) * progressBarLength);
+            const emptySquares = progressBarLength - filledSquares;
+            const progressBar = '█'.repeat(filledSquares) + '░'.repeat(emptySquares);
+
+            // Get rank medal emoji
+            let rankEmoji = '🏅';
+            if (userRank === 1) rankEmoji = '🥇';
+            else if (userRank === 2) rankEmoji = '🥈';
+            else if (userRank === 3) rankEmoji = '🥉';
+            else if (userRank <= 10) rankEmoji = '⭐';
+
             const embed = new EmbedBuilder()
                 .setColor(config.colors.primary)
-                .setTitle('User Profile')
+                .setTitle('📊 User Profile')
                 .addFields(
-                    { name: 'Level', value: `${profile.level}`, inline: true },
-                    { name: 'XP', value: `${profile.xp}`, inline: true },
-                    { name: 'Messages', value: `${profile.messages}`, inline: true }
+                    { 
+                        name: `${rankEmoji} Server Rank`, 
+                        value: `**#${userRank}** out of ${leaderboard.length}`, 
+                        inline: true 
+                    },
+                    { 
+                        name: '📊 Level', 
+                        value: `**${profile.level}**`, 
+                        inline: true 
+                    },
+                    { 
+                        name: '✨ Total XP', 
+                        value: `**${profile.xp.toLocaleString()}**`, 
+                        inline: true 
+                    },
+                    { 
+                        name: '💬 Messages', 
+                        value: `**${profile.messages.toLocaleString()}**`, 
+                        inline: true 
+                    },
+                    { 
+                        name: '🎯 Next Level', 
+                        value: `**${messagesForCurrentLevel - currentProgress}** messages`, 
+                        inline: true 
+                    },
+                    { 
+                        name: '📈 Progress', 
+                        value: `**${progressPercentage}%**`, 
+                        inline: true 
+                    },
+                    {
+                        name: '▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬',
+                        value: `\`${progressBar}\` ${currentProgress}/${messagesForCurrentLevel}`,
+                        inline: false
+                    }
                 );
 
-            if (profile.badges.length > 0) {
-                const badgeText = profile.badges.map(badge => 
-                    `${badge.badgeEmoji} ${badge.badgeName}`
-                ).join('\n');
-                embed.addFields({ name: 'Badges', value: badgeText });
+            if (profile.badges && profile.badges.length > 0) {
+                const badgeDisplay = profile.badges
+                    .slice(0, 10)
+                    .map(badge => badge.badgeEmoji)
+                    .join(' ');
+                
+                embed.addFields({
+                    name: `🏆 Badges (${profile.badges.length})`,
+                    value: badgeDisplay || 'None',
+                    inline: false
+                });
             }
 
             return { embed };
