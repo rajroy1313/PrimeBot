@@ -796,7 +796,7 @@ module.exports = {
                             name: "Examples",
                             value:
                                 `\`${prefix}gstart 1d 1 Discord Nitro\` - 1 day giveaway for 1 winner\n` +
-                                `\`${prefix}gstart 12h 3 Steam Game\` - 12 hour giveaway for 3 winners\n` +
+                                `\`${prefix}gstart 2h 3 Steam Game\` - 2 hour giveaway for 3 winners\n` +
                                 `\`${prefix}gend 123456789123456789\` - End giveaway with the specified message ID\n` +
                                 `\`${prefix}reroll 123456789123456789\` - Reroll winners for the specified giveaway`
                         })
