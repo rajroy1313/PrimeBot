@@ -802,7 +802,7 @@ body {
 /* Desktop Navigation */
 @media (max-width: 768px) {
   .desktop-nav {
-    display: none;
+    display: block
   }
   
   .mobile-menu-toggle {
@@ -907,6 +907,7 @@ body {
     font-size: 2rem;
     margin-bottom: 30px;
   }
+
 
 @media (max-width: 576px) {
   .landing-page .hero h1 {
@@ -1087,4 +1088,5 @@ body {
 /* Logout Button Hover */
 .logout-btn:hover {
   background-color: rgba(220, 53, 69, 0.1) !important;
+}
 }

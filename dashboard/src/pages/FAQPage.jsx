@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom'
 function FAQPage() {
   const faqs = [
     {
-      question: "How do I invite PrimeBot to my server?",
+      question: "How can I invite PrimeBot to my server?",
       answer: "Click the 'Add to Discord' button on our homepage and follow the authorization process. Make sure to grant the necessary permissions for the bot to function properly."
     },
     {
